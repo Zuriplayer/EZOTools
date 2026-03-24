@@ -1,0 +1,27 @@
+<Bindings>
+  <String id="SI_BINDING_CATEGORY_EZOTOOLS" value="EZOTools" />
+  <String id="SI_BINDING_NAME_EZO_TOGGLE_COMMAND_PANEL" value="Open Command Panel" />
+  <String id="SI_BINDING_NAME_EZO_COMMAND_PANEL_SELECT" value="Command Panel: Execute Selected" />
+  <String id="SI_BINDING_NAME_EZO_TRAVEL_PRIMARY_HOUSE" value="Travel to Primary House" />
+  <String id="SI_BINDING_NAME_EZO_TRAVEL_CRAFTING_HALL" value="Visit Crafting Hall" />
+  <String id="SI_BINDING_NAME_EZO_TRAVEL_SECONDARY_HALL" value="Visit Secondary Hall" />
+  <String id="SI_BINDING_NAME_EZO_LEAVE_GROUP" value="Leave Group" />
+  <String id="SI_BINDING_NAME_EZO_LEAVE_INSTANCE" value="Leave Instance" />
+  <String id="SI_BINDING_NAME_EZO_LEAVE_GROUP_INSTANCE" value="Leave Group and Instance" />
+  <String id="SI_BINDING_NAME_EZO_RELOAD_UI" value="Reload UI" />
+  <String id="SI_BINDING_NAME_EZO_TOGGLE_OVERLAY" value="Show/Hide Overlay" />
+  <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
+    <Category name="E|cB040FFZ|rOTools">
+      <Action name="EZO_TOGGLE_COMMAND_PANEL"><Down>EZOTools_ToggleCommandPanel()</Down></Action>
+      <Action name="EZO_COMMAND_PANEL_SELECT"><Down>EZOTools.ExecuteCommandPanelSelection()</Down></Action>
+      <Action name="EZO_TRAVEL_PRIMARY_HOUSE"><Down>EZOTools.JumpPrimaryHouse()</Down></Action>
+      <Action name="EZO_TRAVEL_CRAFTING_HALL"><Down>EZOTools.JumpCraftingHall()</Down></Action>
+      <Action name="EZO_TRAVEL_SECONDARY_HALL"><Down>EZOTools.JumpSecondaryHall()</Down></Action>
+      <Action name="EZO_LEAVE_GROUP"><Down>EZOTools.LeaveGroup()</Down></Action>
+      <Action name="EZO_LEAVE_INSTANCE"><Down>EZOTools.LeaveInstance()</Down></Action>
+      <Action name="EZO_LEAVE_GROUP_INSTANCE"><Down>EZOTools.LeaveGroupAndInstance()</Down></Action>
+      <Action name="EZO_RELOAD_UI"><Down>EZOTools.ReloadUIBinding()</Down></Action>
+      <Action name="EZO_TOGGLE_OVERLAY"><Down>EZOTools.ToggleOverlay()</Down></Action>
+    </Category>
+  </Layer>
+</Bindings>

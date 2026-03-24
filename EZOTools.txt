@@ -1,0 +1,32 @@
+## Title: E|cB040FFZ|rOTools v3.7.5
+## Author: @Zuriplayer
+## Description: Panel de comandos rápidos para gamepad y ratón. Viajes, acciones de grupo, atajos de casa, salto al líder y ayudas de reparación/recarga.
+## Version: 3.7.5
+## AddOnVersion: 30705
+## APIVersion: 101049
+## DependsOn: LibAddonMenu-2.0
+## OptionalDependsOn: LibChatMessage LibDebugLogger LibSlashCommander
+## SavedVariables: EZOTools_Saved
+
+lang/en.lua
+lang/es.lua
+modules/i18n.lua
+EZOTools.lua
+Bindings.xml
+modules/core.lua
+modules/shared_utils.lua
+modules/lam_registry.lua
+modules/action_exec.lua
+modules/input_router.lua
+modules/maintenance.lua
+modules/actions.lua
+modules/menu.lua
+modules/overlay.lua
+modules/context_menu.lua
+modules/keybinds.lua
+media/ezotools_logo.dds
+
+modules/keyboard_enter_override.lua
+modules/gamepad_dialog.lua
+modules/gamepad_settings.lua
+modules/commander_binding.lua
