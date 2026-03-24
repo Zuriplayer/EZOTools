@@ -407,8 +407,8 @@ function EZOTools_ToggleCommandPanel()
 end
 
 
--- Diagnóstico: prueba texturas de pet y companion
-SLASH_COMMANDS["/ezotex"] = function()
+-- Diagnóstico: prueba carga de texturas de pet y companion
+SLASH_COMMANDS["/ezotexload"] = function()
     local ventana = WINDOW_MANAGER:CreateTopLevelWindow("EZOTexTest")
     ventana:SetDimensions(200, 200)
     ventana:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
@@ -431,7 +431,7 @@ SLASH_COMMANDS["/ezotex"] = function()
     end
 end
 
--- Diagnóstico de texturas de iconos
+-- Diagnóstico de texturas de iconos del overlay
 SLASH_COMMANDS["/ezotex"] = function()
     local iconos = {
         {nombre="MaintDot",    ctrl=EZOTools_MaintDot},
