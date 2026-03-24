@@ -1,8 +1,8 @@
-## Title: E|cB040FFZ|rOTools v3.7.5
+## Title: E|cB040FFZ|rOTools v1.0.0
 ## Author: @Zuriplayer
-## Description: Panel de comandos rápidos para gamepad y ratón. Viajes, acciones de grupo, atajos de casa, salto al líder y ayudas de reparación/recarga.
-## Version: 3.7.5
-## AddOnVersion: 30705
+## Description: Quick command panel for gamepad and mouse. Travel, group actions, house shortcuts, leader jump, and repair/recharge helpers.
+## Version: 1.0.0
+## AddOnVersion: 10000
 ## APIVersion: 101049
 ## DependsOn: LibAddonMenu-2.0
 ## OptionalDependsOn: LibChatMessage LibDebugLogger LibSlashCommander
