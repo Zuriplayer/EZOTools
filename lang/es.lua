@@ -6,6 +6,7 @@ EZO_STRINGS_ES = {
     -- Categoría de keybind
     -- -------------------------------------------------------------------------
     SI_BINDING_CATEGORY_EZOTools                = "E|cB040FFZ|rOTools",
+    SI_BINDING_CATEGORY_EZOTOOLS                = "E|cB040FFZ|rOTools",
 
     -- -------------------------------------------------------------------------
     -- Nombres de keybinds (aparecen en la pantalla de controles)
@@ -158,3 +159,4 @@ EZO_STRINGS_ES = {
     EZO_CMD_INFO_GUILD          = "  Hermandad representada: <<1>> (id=<<2>>)",
     EZO_CMD_INFO_NO_GUILD       = "  Hermandad representada: ninguna",
 }
+

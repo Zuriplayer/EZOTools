@@ -7,6 +7,7 @@ EZO_STRINGS_EN = {
     -- Keybind category
     -- -------------------------------------------------------------------------
     SI_BINDING_CATEGORY_EZOTools                = "E|cB040FFZ|rOTools",
+    SI_BINDING_CATEGORY_EZOTOOLS                = "E|cB040FFZ|rOTools",
 
     -- -------------------------------------------------------------------------
     -- Keybind names (shown in Controls screen)
@@ -165,3 +166,4 @@ EZO_STRINGS_EN = {
 EZO_STRINGS_EN["EZO_OVERLAY_TABARD"] = "Tabard"
 -- Food buff indicator (added v3.5.0)
 -- No new strings needed: food dot is visual only, no LAM option yet
+
