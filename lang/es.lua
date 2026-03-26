@@ -138,6 +138,7 @@ EZO_STRINGS_ES = {
     EZO_CMD_HELP_TITLE          = "Comandos disponibles:",
     EZO_CMD_HELP_GUILDS         = "  /ezo guilds   — lista tus guilds y cuál está representada",
     EZO_CMD_HELP_INFO           = "  /ezo info     — diagnóstico: zona, grupo, mantenimiento, guild",
+    EZO_CMD_HELP_VERSION        = "  /ezo version  — versión cargada y estado runtime",
     EZO_CMD_HELP_HELP           = "  /ezo help",
 
     EZO_CMD_GUILDS_NONE         = "No perteneces a ninguna hermandad.",
@@ -158,5 +159,10 @@ EZO_STRINGS_ES = {
     EZO_CMD_INFO_OK             = "OK",
     EZO_CMD_INFO_GUILD          = "  Hermandad representada: <<1>> (id=<<2>>)",
     EZO_CMD_INFO_NO_GUILD       = "  Hermandad representada: ninguna",
-}
 
+    EZO_CMD_VERSION_HEADER      = "=== EZOTools v<<1>> ===",
+    EZO_CMD_VERSION_LANGUAGE    = "  Idioma: <<1>>",
+    EZO_CMD_VERSION_LAM         = "  LibAddonMenu: <<1>>",
+    EZO_CMD_VERSION_OVERLAY     = "  Módulo overlay: <<1>>",
+    EZO_CMD_VERSION_GAMEPAD     = "  Diálogo gamepad: <<1>>",
+}

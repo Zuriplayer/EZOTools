@@ -139,6 +139,7 @@ EZO_STRINGS_EN = {
     EZO_CMD_HELP_TITLE          = "Available commands:",
     EZO_CMD_HELP_GUILDS         = "  /ezo guilds   — list your guilds and which is represented",
     EZO_CMD_HELP_INFO           = "  /ezo info     — diagnostic: zone, group, maintenance, guild",
+    EZO_CMD_HELP_VERSION        = "  /ezo version  — loaded addon version and runtime state",
     EZO_CMD_HELP_HELP           = "  /ezo help",
 
     EZO_CMD_GUILDS_NONE         = "You do not belong to any guild.",
@@ -159,6 +160,12 @@ EZO_STRINGS_EN = {
     EZO_CMD_INFO_OK             = "OK",
     EZO_CMD_INFO_GUILD          = "  Represented guild: <<1>> (id=<<2>>)",
     EZO_CMD_INFO_NO_GUILD       = "  Represented guild: none",
+
+    EZO_CMD_VERSION_HEADER      = "=== EZOTools v<<1>> ===",
+    EZO_CMD_VERSION_LANGUAGE    = "  Language: <<1>>",
+    EZO_CMD_VERSION_LAM         = "  LibAddonMenu: <<1>>",
+    EZO_CMD_VERSION_OVERLAY     = "  Overlay module: <<1>>",
+    EZO_CMD_VERSION_GAMEPAD     = "  Gamepad dialog: <<1>>",
 }
 
 -- NOTE: appended by patch -- tabard indicator
@@ -166,4 +173,3 @@ EZO_STRINGS_EN = {
 EZO_STRINGS_EN["EZO_OVERLAY_TABARD"] = "Tabard"
 -- Food buff indicator (added v3.5.0)
 -- No new strings needed: food dot is visual only, no LAM option yet
-

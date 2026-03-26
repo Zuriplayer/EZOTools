@@ -246,6 +246,7 @@ local function _mostrarAyuda()
     safeChat(GetString(EZO_CMD_HELP_TITLE))
     safeChat(GetString(EZO_CMD_HELP_GUILDS))
     safeChat(GetString(EZO_CMD_HELP_INFO))
+    safeChat(GetString(EZO_CMD_HELP_VERSION))
     safeChat(GetString(EZO_CMD_HELP_HELP))
 end
 
@@ -317,6 +318,18 @@ local function _comandoInfo()
     safeChat(GetString(EZO_CMD_INFO_FOOTER))
 end
 
+local function _comandoVersion()
+    local lang = (EZO_Lang and EZO_Lang.current) or (EZOTools.sv and EZOTools.sv.general and EZOTools.sv.general.language) or "?"
+    local lam = (_G.LibAddonMenu2 and "yes") or "no"
+    local overlay = (EZOTools_Overlay and EZOTools_Overlay.Refresh and "yes") or "no"
+    local gamepad = (EZOTools.GamepadDialog and EZOTools.GamepadDialog.Open and "yes") or "no"
+
+    safeChat(zo_strformat(GetString(EZO_CMD_VERSION_HEADER), EZOTools.ADDON_VERSION))
+    safeChat(zo_strformat(GetString(EZO_CMD_VERSION_LANGUAGE), tostring(lang)))
+    safeChat(zo_strformat(GetString(EZO_CMD_VERSION_LAM), lam))
+    safeChat(zo_strformat(GetString(EZO_CMD_VERSION_OVERLAY), overlay))
+    safeChat(zo_strformat(GetString(EZO_CMD_VERSION_GAMEPAD), gamepad))
+end
 local function _establecerModoEntrada(modoConst, etiqueta)
     if not (SETTING_TYPE_GAMEPAD and GAMEPAD_SETTING_INPUT_PREFERRED_MODE and SetSetting) then
         safeChat(GetString(EZO_MSG_INPUT_MODE_NA))
@@ -375,6 +388,9 @@ local function _manejadorSlash(arg)
     end
     if a1 == "info" then
         _comandoInfo(); return
+    end
+    if a1 == "version" then
+        _comandoVersion(); return
     end
     _mostrarAyuda()
 end
