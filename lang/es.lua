@@ -136,10 +136,16 @@ EZO_STRINGS_ES = {
     EZO_CMD_BANNER              = "E|cB040FFZ|rOTools v<<1>> — @Zuriplayer",
     EZO_CMD_REGISTERED          = "Comandos registrados: /ezo, /ezotools",
     EZO_CMD_HELP_TITLE          = "Comandos disponibles:",
-    EZO_CMD_HELP_GUILDS         = "  /ezo guilds   — lista tus guilds y cuál está representada",
-    EZO_CMD_HELP_INFO           = "  /ezo info     — diagnóstico: zona, grupo, mantenimiento, guild",
     EZO_CMD_HELP_VERSION        = "  /ezo version  — versión cargada y estado runtime",
+    EZO_CMD_HELP_DEBUG          = "  /ezo debug    — lista comandos de diagnóstico",
     EZO_CMD_HELP_HELP           = "  /ezo help",
+
+    EZO_CMD_DEBUG_TITLE         = "Comandos de diagnóstico:",
+    EZO_CMD_DEBUG_INFO          = "  /ezo debug info     — diagnóstico: zona, grupo, mantenimiento, guild",
+    EZO_CMD_DEBUG_GUILDS        = "  /ezo debug guilds   — lista tus guilds y cuál está representada",
+    EZO_CMD_DEBUG_TEX           = "  /ezo debug tex      — estado de iconos del overlay",
+    EZO_CMD_DEBUG_TEXLOAD       = "  /ezo debug texload  — prueba de carga de texturas",
+    EZO_CMD_DEBUG_DOTS          = "  /ezo debug dots     — estado de dots pet/companion",
 
     EZO_CMD_GUILDS_NONE         = "No perteneces a ninguna hermandad.",
     EZO_CMD_GUILDS_HEADER       = "Hermandades (<<1>>):",

@@ -242,11 +242,10 @@ end
 -- Comandos de chat (/ezo, /ezotools)
 -- ============================================================
 
-local function _mostrarAyuda()
+local function _mostrarAyudaPrincipal()
     safeChat(GetString(EZO_CMD_HELP_TITLE))
-    safeChat(GetString(EZO_CMD_HELP_GUILDS))
-    safeChat(GetString(EZO_CMD_HELP_INFO))
     safeChat(GetString(EZO_CMD_HELP_VERSION))
+    safeChat(GetString(EZO_CMD_HELP_DEBUG))
     safeChat(GetString(EZO_CMD_HELP_HELP))
 end
 
@@ -330,6 +329,48 @@ local function _comandoVersion()
     safeChat(zo_strformat(GetString(EZO_CMD_VERSION_OVERLAY), overlay))
     safeChat(zo_strformat(GetString(EZO_CMD_VERSION_GAMEPAD), gamepad))
 end
+
+local EjecutarDebugTexload, EjecutarDebugTex, EjecutarDebugDots
+
+local function _mostrarAyudaDebug()
+    safeChat(GetString(EZO_CMD_DEBUG_TITLE))
+    safeChat(GetString(EZO_CMD_DEBUG_INFO))
+    safeChat(GetString(EZO_CMD_DEBUG_GUILDS))
+    safeChat(GetString(EZO_CMD_DEBUG_TEX))
+    safeChat(GetString(EZO_CMD_DEBUG_TEXLOAD))
+    safeChat(GetString(EZO_CMD_DEBUG_DOTS))
+end
+
+local function _ejecutarDebug(sub)
+    sub = zo_strlower(sub or "")
+    if sub == "" or sub == "help" or sub == "?" then
+        _mostrarAyudaDebug()
+        return true
+    end
+    if sub == "info" then
+        _comandoInfo()
+        return true
+    end
+    if sub == "guilds" then
+        _comandoGuilds()
+        return true
+    end
+    if sub == "tex" then
+        EjecutarDebugTex()
+        return true
+    end
+    if sub == "texload" then
+        EjecutarDebugTexload()
+        return true
+    end
+    if sub == "dots" then
+        EjecutarDebugDots()
+        return true
+    end
+    _mostrarAyudaDebug()
+    return true
+end
+
 local function _establecerModoEntrada(modoConst, etiqueta)
     if not (SETTING_TYPE_GAMEPAD and GAMEPAD_SETTING_INPUT_PREFERRED_MODE and SetSetting) then
         safeChat(GetString(EZO_MSG_INPUT_MODE_NA))
@@ -343,56 +384,27 @@ local function _establecerModoEntrada(modoConst, etiqueta)
     safeChat(zo_strformat(GetString(EZO_MSG_INPUT_MODE_SET), etiqueta))
 end
 
-local function _procesarSubcomandoEntrada(sub)
-    sub = zo_strlower(sub or "")
-    if sub == "auto" then
-        _establecerModoEntrada(INPUT_PREFERRED_MODE_AUTOMATIC, "AUTO")
-        return true
-    elseif sub == "gamepad" then
-        _establecerModoEntrada(INPUT_PREFERRED_MODE_ALWAYS_GAMEPAD, "GAMEPAD")
-        return true
-    elseif sub == "keyboard" then
-        _establecerModoEntrada(INPUT_PREFERRED_MODE_ALWAYS_KEYBOARD, "TECLADO")
-        return true
-    elseif sub == "toggle" then
-        if not (GetSetting and SETTING_TYPE_GAMEPAD and GAMEPAD_SETTING_INPUT_PREFERRED_MODE) then
-            safeChat(GetString(EZO_MSG_INPUT_MODE_NA))
-            return true
-        end
-        local actual = GetSetting(SETTING_TYPE_GAMEPAD, GAMEPAD_SETTING_INPUT_PREFERRED_MODE)
-        if actual == INPUT_PREFERRED_MODE_ALWAYS_GAMEPAD then
-            _establecerModoEntrada(INPUT_PREFERRED_MODE_ALWAYS_KEYBOARD, "TECLADO")
-        else
-            _establecerModoEntrada(INPUT_PREFERRED_MODE_ALWAYS_GAMEPAD, "GAMEPAD")
-        end
-        return true
-    end
-    return false
-end
 
 local function _manejadorSlash(arg)
     local trimmed = zo_strtrim(tostring(arg or ""))
     if trimmed == "" then
         safeChat(zo_strformat(GetString(EZO_CMD_BANNER), EZOTools.ADDON_VERSION))
-        _mostrarAyuda()
+        _mostrarAyudaPrincipal()
         return
     end
     local a1, a2 = zo_strsplit(" ", trimmed)
     a1 = zo_strlower(a1 or "")
     a2 = zo_strlower(a2 or "")
     if a1 == "help" or a1 == "?" then
-        _mostrarAyuda(); return
-    end
-    if a1 == "guilds" then
-        _comandoGuilds(); return
-    end
-    if a1 == "info" then
-        _comandoInfo(); return
+        _mostrarAyudaPrincipal(); return
     end
     if a1 == "version" then
         _comandoVersion(); return
     end
-    _mostrarAyuda()
+    if a1 == "debug" then
+        _ejecutarDebug(a2); return
+    end
+    _mostrarAyudaPrincipal()
 end
 
 function EZO:RegisterSlashCommands()
@@ -424,9 +436,17 @@ end
 
 
 -- Diagnóstico: prueba carga de texturas de pet y companion
-SLASH_COMMANDS["/ezotexload"] = function()
-    local ventana = WINDOW_MANAGER:CreateTopLevelWindow("EZOTexTest")
+EjecutarDebugTexload = function()
+    local ventana = _G["EZOTexTest"]
+    if ventana and not ventana:IsHidden() then
+        ventana:SetHidden(true)
+        return
+    end
+    if not ventana then
+        ventana = WINDOW_MANAGER:CreateTopLevelWindow("EZOTexTest")
+    end
     ventana:SetDimensions(200, 200)
+    ventana:ClearAnchors()
     ventana:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
     ventana:SetHidden(false)
 
@@ -438,17 +458,23 @@ SLASH_COMMANDS["/ezotexload"] = function()
         "/esoui/art/treeicons/collections_indexicon_companions_up.dds",
     }
     for i, ruta in ipairs(texturas) do
-        local t = WINDOW_MANAGER:CreateControl("EZOTexTest"..i, ventana, CT_TEXTURE)
+        local nombre = "EZOTexTest" .. i
+        local t = _G[nombre]
+        if not t then
+            t = WINDOW_MANAGER:CreateControl(nombre, ventana, CT_TEXTURE)
+        end
         t:SetDimensions(32, 32)
+        t:ClearAnchors()
         t:SetAnchor(TOPLEFT, ventana, TOPLEFT, 0, (i-1)*36)
         t:SetTexture(ruta)
+        t:SetHidden(false)
         local ok = t:IsTextureLoaded()
         EZOTools.Print(string.format("[%d] %s = %s", i, ruta:match("[^/]+$"), tostring(ok)))
     end
 end
 
 -- Diagnóstico de texturas de iconos del overlay
-SLASH_COMMANDS["/ezotex"] = function()
+EjecutarDebugTex = function()
     local iconos = {
         {nombre="MaintDot",    ctrl=EZOTools_MaintDot},
         {nombre="FoodDot",     ctrl=EZOTools_FoodDot},
@@ -469,13 +495,12 @@ SLASH_COMMANDS["/ezotex"] = function()
 end
 
 -- Diagnóstico iconos pet/companion: /ezodots
-SLASH_COMMANDS["/ezodots"] = function()
+EjecutarDebugDots = function()
     local EZO_Overlay = EZOTools_Overlay
     if not EZO_Overlay then
         EZOTools.Print("EZOTools_Overlay no existe")
         return
     end
-    -- Verificar controles directamente por nombre global
     local pet = _G["EZOToolsPetDot2"]
     local comp = _G["EZOToolsCompDot2"]
     EZOTools.Print("PetDot2: " .. tostring(pet))
@@ -488,7 +513,6 @@ SLASH_COMMANDS["/ezodots"] = function()
         EZOTools.Print("Comp hidden=" .. tostring(comp:IsHidden()) ..
             " texture=" .. tostring(comp:GetTextureFileName()))
     end
-    -- Estado detección
     local numBuffs = GetNumBuffs and GetNumBuffs("player") or "N/A"
     local groupSize = GetGroupSize and GetGroupSize() or "N/A"
     local hasComp = HasActiveCompanion and HasActiveCompanion() or false
@@ -501,3 +525,5 @@ SLASH_COMMANDS["/ezodots"] = function()
         " petId=" .. tostring(petId) ..
         " assistId=" .. tostring(assistId))
 end
+
+
