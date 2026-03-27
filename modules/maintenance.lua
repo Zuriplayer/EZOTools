@@ -16,6 +16,10 @@ local function ObtenerUmbralRecarga()
     return (EZO.sv and EZO.sv.general and tonumber(EZO.sv.general.rechargeThreshold)) or 50
 end
 
+local function ObtenerUmbralStockConsumibles()
+    return 10
+end
+
 -- Llama a una función de la API ESO de forma segura.
 -- Intento directo primero; si falla reintenta con CallSecureProtected si está disponible.
 local function LlamarApi(nombreFuncion, ...)
@@ -36,21 +40,52 @@ local function LlamarApi(nombreFuncion, ...)
     return nil
 end
 
--- Busca el primer kit de reparación en la mochila
-local function BuscarKitReparacion()
-    if type(GetBagSize) ~= "function" or type(IsItemRepairKit) ~= "function" then return nil end
-    for slot = 0, GetBagSize(BAG_BACKPACK) do
-        if IsItemRepairKit(BAG_BACKPACK, slot) then
-            return BAG_BACKPACK, slot
+local function IterarSlotsMochila(fnPorSlot)
+    if type(GetBagSize) ~= "function" or type(fnPorSlot) ~= "function" then return nil end
+    local bagSize = GetBagSize(BAG_BACKPACK)
+    if type(bagSize) ~= "number" or bagSize <= 0 then return nil end
+    for slot = 0, bagSize - 1 do
+        local resultado = fnPorSlot(slot)
+        if resultado ~= nil then
+            return resultado
         end
     end
     return nil
 end
 
+local function ObtenerStackSlot(slot)
+    if type(GetSlotStackSize) ~= "function" then return 1 end
+    local stack = GetSlotStackSize(BAG_BACKPACK, slot)
+    if type(stack) ~= "number" or stack < 1 then return 1 end
+    return stack
+end
+
+-- Busca el primer kit de reparación en la mochila
+local function BuscarKitReparacion()
+    if type(IsItemRepairKit) ~= "function" then return nil end
+    return IterarSlotsMochila(function(slot)
+        if IsItemRepairKit(BAG_BACKPACK, slot) then
+            return BAG_BACKPACK, slot
+        end
+        return nil
+    end)
+end
+
+local function ContarKitsReparacion()
+    if type(IsItemRepairKit) ~= "function" then return 0 end
+    local total = 0
+    IterarSlotsMochila(function(slot)
+        if IsItemRepairKit(BAG_BACKPACK, slot) then
+            total = total + ObtenerStackSlot(slot)
+        end
+        return nil
+    end)
+    return total
+end
+
 -- Busca la primera gema de alma cargada en la mochila
 local function BuscarGemaAlmaCargada()
-    if type(GetBagSize) ~= "function" then return nil end
-    for slot = 0, GetBagSize(BAG_BACKPACK) do
+    return IterarSlotsMochila(function(slot)
         if type(IsItemSoulGem) == "function" then
             if IsItemSoulGem(SOUL_GEM_TYPE_FILLED, BAG_BACKPACK, slot) then
                 return BAG_BACKPACK, slot
@@ -62,8 +97,26 @@ local function BuscarGemaAlmaCargada()
                 return BAG_BACKPACK, slot
             end
         end
-    end
-    return nil
+        return nil
+    end)
+end
+
+local function ContarGemasAlmaCargadas()
+    local total = 0
+    IterarSlotsMochila(function(slot)
+        local esGema = false
+        if type(IsItemSoulGem) == "function" then
+            esGema = IsItemSoulGem(SOUL_GEM_TYPE_FILLED, BAG_BACKPACK, slot) and true or false
+        elseif type(GetSoulGemItemInfo) == "function" then
+            local _, soulGemType = GetSoulGemItemInfo(BAG_BACKPACK, slot)
+            esGema = (soulGemType == SOUL_GEM_TYPE_FILLED)
+        end
+        if esGema then
+            total = total + ObtenerStackSlot(slot)
+        end
+        return nil
+    end)
+    return total
 end
 
 -- Ranuras de armadura/joyería con durabilidad
@@ -94,6 +147,26 @@ end
 -- ============================================================
 -- API pública (expuesta en EZOTools.*)
 -- ============================================================
+
+function EZOTools.GetRepairKitCount()
+    return ContarKitsReparacion()
+end
+
+function EZOTools.GetFilledSoulGemCount()
+    return ContarGemasAlmaCargadas()
+end
+
+function EZOTools.GetConsumableStockThreshold()
+    return ObtenerUmbralStockConsumibles()
+end
+
+function EZOTools.HasLowRepairKitStock()
+    return ContarKitsReparacion() <= ObtenerUmbralStockConsumibles()
+end
+
+function EZOTools.HasLowSoulGemStock()
+    return ContarGemasAlmaCargadas() <= ObtenerUmbralStockConsumibles()
+end
 
 function EZOTools.CanRepairEquipped()
     local umbral = ObtenerUmbralReparacion()
