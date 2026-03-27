@@ -330,7 +330,7 @@ local function _comandoVersion()
     safeChat(zo_strformat(GetString(EZO_CMD_VERSION_GAMEPAD), gamepad))
 end
 
-local EjecutarDebugTexload, EjecutarDebugTex, EjecutarDebugDots
+local EjecutarDebugTexload, EjecutarDebugTex, EjecutarDebugDots, EjecutarDebugLayout
 
 local function _mostrarAyudaDebug()
     safeChat(GetString(EZO_CMD_DEBUG_TITLE))
@@ -339,6 +339,7 @@ local function _mostrarAyudaDebug()
     safeChat(GetString(EZO_CMD_DEBUG_TEX))
     safeChat(GetString(EZO_CMD_DEBUG_TEXLOAD))
     safeChat(GetString(EZO_CMD_DEBUG_DOTS))
+    safeChat(GetString(EZO_CMD_DEBUG_LAYOUT))
 end
 
 local function _ejecutarDebug(sub)
@@ -365,6 +366,10 @@ local function _ejecutarDebug(sub)
     end
     if sub == "dots" then
         EjecutarDebugDots()
+        return true
+    end
+    if sub == "layout" then
+        EjecutarDebugLayout()
         return true
     end
     _mostrarAyudaDebug()
@@ -494,6 +499,15 @@ EjecutarDebugTex = function()
     end
 end
 
+EjecutarDebugLayout = function()
+    if not (EZOTools_Overlay and EZOTools_Overlay.ToggleLayoutPreview) then
+        EZOTools.Print(GetString(EZO_CMD_LAYOUT_NA))
+        return
+    end
+    local activo = EZOTools_Overlay.ToggleLayoutPreview()
+    EZOTools.Print(activo and GetString(EZO_CMD_LAYOUT_ON) or GetString(EZO_CMD_LAYOUT_OFF))
+end
+
 -- Diagnóstico iconos pet/companion: /ezodots
 EjecutarDebugDots = function()
     local EZO_Overlay = EZOTools_Overlay
@@ -525,5 +539,3 @@ EjecutarDebugDots = function()
         " petId=" .. tostring(petId) ..
         " assistId=" .. tostring(assistId))
 end
-
-

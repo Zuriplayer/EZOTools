@@ -10,6 +10,8 @@ local EZO = EZOTools
 
 -- Controles de la ventana (se crean en EnsureControls la primera vez)
 local overlayWin, overlayTex, overlayLabel, overlayGuildLabel, overlayMaintDot, overlayChargeDot, overlayFoodDot, overlayPetDot, overlayCompanionDot
+local overlaySideSlotsLeft, overlaySideSlotsRight = {}, {}
+local overlayLayoutPreviewEnabled = false
 
 -- Estado de combate (se actualiza vía evento)
 local enCombate = false
@@ -18,6 +20,17 @@ local enCombate = false
 -- ZOS no expone un evento para SetRepresentedGuildId(), así que usamos poll.
 local cachedRepresentedGuildId = nil
 
+
+-- Slots laterales preparados para futuras alertas/estados. Se calculan contra un radio
+-- seguro del logo en vez de depender de la transparencia exacta del DDS.
+local SIDE_SLOT_COUNT    = 4
+local SIDE_SLOT_BASE     = 22
+local SIDE_SLOT_MIN      = 18
+local SIDE_SLOT_GAP      = 6
+local SIDE_SLOT_MARGIN   = 12
+local SIDE_SLOT_RADIUS_X = 0.50
+local SIDE_SLOT_RADIUS_Y = 0.78
+local SIDE_SLOT_Y        = { -0.50, -0.16, 0.16, 0.50 }
 -- Tamaños base para calcular escala
 local BASE_TEX         = 128   -- píxeles base de la textura del logo
 local BASE_FONT_PC     = 20    -- tamaño de fuente base en modo teclado/ratón
@@ -156,6 +169,114 @@ local function ObtenerTextoOverlay()
     return tostring(t)
 end
 
+local function ObtenerSlotsLaterales(side)
+    return (side == "left") and overlaySideSlotsLeft or overlaySideSlotsRight
+end
+local function AplicarPreviewSlotsLaterales()
+    local previewTexture = "/esoui/art/buttons/large_leftarrow_up.dds"
+    local previewColors = {
+        left = {
+            { 0.95, 0.85, 0.35, 0.95 },
+            { 0.75, 0.86, 0.40, 0.95 },
+            { 0.45, 0.80, 0.95, 0.95 },
+            { 0.90, 0.55, 0.85, 0.95 },
+        },
+        right = {
+            { 0.95, 0.70, 0.30, 0.95 },
+            { 0.70, 0.70, 0.95, 0.95 },
+            { 0.92, 0.92, 0.92, 0.95 },
+            { 0.95, 0.35, 0.35, 0.95 },
+        },
+    }
+    for _, side in ipairs({ "left", "right" }) do
+        local lista = ObtenerSlotsLaterales(side)
+        for i = 1, SIDE_SLOT_COUNT do
+            local ctrl = lista[i]
+            if ctrl then
+                if overlayLayoutPreviewEnabled then
+                    local color = previewColors[side][i]
+                    ctrl:SetTexture(previewTexture)
+                    ctrl:SetColor(color[1], color[2], color[3], color[4])
+                    ctrl:SetAlpha(0.95)
+                    ctrl:SetHidden(false)
+                else
+                    ctrl:SetHidden(true)
+                end
+            end
+        end
+    end
+end
+local function AsegurarSlotsLaterales()
+    local nombres = {
+        left  = "EZOToolsSideSlotLeft",
+        right = "EZOToolsSideSlotRight",
+    }
+    for side, prefijo in pairs(nombres) do
+        local lista = ObtenerSlotsLaterales(side)
+        for i = 1, SIDE_SLOT_COUNT do
+            if not lista[i] then
+                local ctrl = WINDOW_MANAGER:CreateControl(prefijo .. i, overlayWin, CT_TEXTURE)
+                ctrl:SetDimensions(SIDE_SLOT_BASE, SIDE_SLOT_BASE)
+                ctrl:SetHidden(true)
+                lista[i] = ctrl
+            end
+        end
+    end
+end
+
+local function AplicarLayoutSlotsLaterales(texPx)
+    AsegurarSlotsLaterales()
+
+    local s          = tonumber(EZO.sv.overlay.scale) or 1
+    local slotSize   = math.max(SIDE_SLOT_MIN, math.floor(SIDE_SLOT_BASE * s + 0.5))
+    local slotGap    = math.max(4, math.floor(SIDE_SLOT_GAP * s + 0.5))
+    local radiusX    = math.max(slotSize, math.floor(texPx * SIDE_SLOT_RADIUS_X + 0.5))
+    local radiusY    = math.max(slotSize, math.floor(texPx * SIDE_SLOT_RADIUS_Y + 0.5))
+    local halfSlot   = math.floor(slotSize * 0.5 + 0.5)
+    local maxExtent  = math.floor(texPx * 0.5 + 0.5)
+    local lados = {
+        { side = "left",  sign = -1 },
+        { side = "right", sign =  1 },
+    }
+
+    for idx, yRatio in ipairs(SIDE_SLOT_Y) do
+        local yOffset = math.floor(radiusY * yRatio + 0.5)
+        local yNorm   = math.min(0.98, math.abs(yOffset) / math.max(1, radiusY))
+        local curveX  = math.floor(math.sqrt(math.max(0, 1 - yNorm * yNorm)) * radiusX + 0.5)
+        local xOffset = curveX + slotGap + halfSlot
+        maxExtent = math.max(maxExtent, xOffset + halfSlot)
+
+        for _, lado in ipairs(lados) do
+            local lista = ObtenerSlotsLaterales(lado.side)
+            local ctrl = lista[idx]
+            if ctrl then
+                ctrl:SetDimensions(slotSize, slotSize)
+                ctrl:ClearAnchors()
+                ctrl:SetAnchor(CENTER, overlayTex, CENTER, lado.sign * xOffset, yOffset)
+            end
+        end
+    end
+
+    AplicarPreviewSlotsLaterales()
+    return maxExtent, slotSize
+end
+
+function MOD.GetSideSlot(side, index)
+    local lista = ObtenerSlotsLaterales(side)
+    return lista and lista[index] or nil
+end
+
+function MOD.GetSideSlotCount()
+    return SIDE_SLOT_COUNT
+end
+function MOD.ToggleLayoutPreview()
+    overlayLayoutPreviewEnabled = not overlayLayoutPreviewEnabled
+    MOD.Refresh()
+    return overlayLayoutPreviewEnabled
+end
+function MOD.IsLayoutPreviewEnabled()
+    return overlayLayoutPreviewEnabled
+end
 -- Aplica la escala visual al logo y la etiqueta de texto
 local function AplicarEscalaVisual()
     if not overlayTex or not overlayLabel then return end
@@ -170,19 +291,21 @@ local function AplicarEscalaVisual()
     overlayLabel:SetAnchor(TOP, overlayTex, BOTTOM, 0, math.floor(6 * s + 0.5))
     overlayLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 
-    -- Fuente y posición de la etiqueta de guild (encima del logo, 75% del tamaño del nombre)
+    local guildPx = math.floor(basePx * GUILD_FONT_RATIO * s + 0.5)
     if overlayGuildLabel then
-        local guildPx = math.floor(basePx * GUILD_FONT_RATIO * s + 0.5)
         overlayGuildLabel:SetFont(CadenaFuente(guildPx))
         overlayGuildLabel:ClearAnchors()
         -- Ancla: borde inferior de la guild = borde superior del logo con pequeño margen
         overlayGuildLabel:SetAnchor(BOTTOM, overlayTex, TOP, 0, -math.floor(4 * s + 0.5))
         overlayGuildLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     end
+
+    local sideExtent, sideSlotSize = AplicarLayoutSlotsLaterales(texPx)
+
     -- Tres iconos centrados bajo overlayLabel (@ZuriPlayer), distribuidos uniformemente.
     -- Sep = distancia centro-a-centro entre iconos adyacentes.
+    local dotSize = math.max(18, math.floor(24 * s + 0.5))
     if overlayLabel then
-        local dotSize = math.max(18, math.floor(24 * s + 0.5))
         local sep     = math.max(20, math.floor(28 * s + 0.5))
         local offsetY = math.floor(6 * s + 0.5)
         -- 5 iconos centrados bajo el label, separación uniforme
@@ -201,6 +324,13 @@ local function AplicarEscalaVisual()
                 d.ctrl:SetAnchor(TOP, overlayLabel, BOTTOM, d.x, offsetY)
             end
         end
+    end
+
+    if overlayWin then
+        local margin   = math.max(16, math.floor(SIDE_SLOT_MARGIN * s + 0.5))
+        local halfW    = math.max(math.floor(texPx * 0.5 + 0.5), sideExtent) + margin
+        local totalH   = texPx + guildPx + math.floor(basePx * s + 0.5) + math.max(dotSize, sideSlotSize) + math.floor(84 * s + 0.5)
+        overlayWin:SetDimensions(math.max(256, halfW * 2), math.max(256, totalH))
     end
 end
 

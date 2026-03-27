@@ -146,6 +146,7 @@ EZO_STRINGS_ES = {
     EZO_CMD_DEBUG_TEX           = "  /ezo debug tex      — estado de iconos del overlay",
     EZO_CMD_DEBUG_TEXLOAD       = "  /ezo debug texload  — prueba de carga de texturas",
     EZO_CMD_DEBUG_DOTS          = "  /ezo debug dots     — estado de dots pet/companion",
+    EZO_CMD_DEBUG_LAYOUT        = "  /ezo debug layout   — alterna preview de slots laterales",
 
     EZO_CMD_GUILDS_NONE         = "No perteneces a ninguna hermandad.",
     EZO_CMD_GUILDS_HEADER       = "Hermandades (<<1>>):",
@@ -171,4 +172,7 @@ EZO_STRINGS_ES = {
     EZO_CMD_VERSION_LAM         = "  LibAddonMenu: <<1>>",
     EZO_CMD_VERSION_OVERLAY     = "  Módulo overlay: <<1>>",
     EZO_CMD_VERSION_GAMEPAD     = "  Diálogo gamepad: <<1>>",
+    EZO_CMD_LAYOUT_ON           = "Preview layout: ON",
+    EZO_CMD_LAYOUT_OFF          = "Preview layout: OFF",
+    EZO_CMD_LAYOUT_NA           = "Preview layout no disponible.",
 }

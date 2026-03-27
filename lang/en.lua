@@ -147,6 +147,7 @@ EZO_STRINGS_EN = {
     EZO_CMD_DEBUG_TEX           = "  /ezo debug tex      — overlay icon state",
     EZO_CMD_DEBUG_TEXLOAD       = "  /ezo debug texload  — texture loading test",
     EZO_CMD_DEBUG_DOTS          = "  /ezo debug dots     — pet/companion dot state",
+    EZO_CMD_DEBUG_LAYOUT        = "  /ezo debug layout   — toggle side-slot layout preview",
 
     EZO_CMD_GUILDS_NONE         = "You do not belong to any guild.",
     EZO_CMD_GUILDS_HEADER       = "Guilds (<<1>>):",
@@ -172,6 +173,9 @@ EZO_STRINGS_EN = {
     EZO_CMD_VERSION_LAM         = "  LibAddonMenu: <<1>>",
     EZO_CMD_VERSION_OVERLAY     = "  Overlay module: <<1>>",
     EZO_CMD_VERSION_GAMEPAD     = "  Gamepad dialog: <<1>>",
+    EZO_CMD_LAYOUT_ON           = "Layout preview: ON",
+    EZO_CMD_LAYOUT_OFF          = "Layout preview: OFF",
+    EZO_CMD_LAYOUT_NA           = "Layout preview not available.",
 }
 
 -- NOTE: appended by patch -- tabard indicator
