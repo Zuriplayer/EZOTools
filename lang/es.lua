@@ -175,4 +175,8 @@ EZO_STRINGS_ES = {
     EZO_CMD_LAYOUT_ON           = "Preview layout: ON",
     EZO_CMD_LAYOUT_OFF          = "Preview layout: OFF",
     EZO_CMD_LAYOUT_NA           = "Preview layout no disponible.",
+    EZO_SIDE_WIDGET_LEFT        = "Izquierda",
+    EZO_SIDE_WIDGET_RIGHT       = "Derecha",
+    EZO_SIDE_WIDGET_PREVIEW_TOOLTIP = "Widget preview: <<1>> #<<2>>",
 }
+

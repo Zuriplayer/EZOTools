@@ -176,6 +176,9 @@ EZO_STRINGS_EN = {
     EZO_CMD_LAYOUT_ON           = "Layout preview: ON",
     EZO_CMD_LAYOUT_OFF          = "Layout preview: OFF",
     EZO_CMD_LAYOUT_NA           = "Layout preview not available.",
+    EZO_SIDE_WIDGET_LEFT        = "Left",
+    EZO_SIDE_WIDGET_RIGHT       = "Right",
+    EZO_SIDE_WIDGET_PREVIEW_TOOLTIP = "Preview widget: <<1>> #<<2>>",
 }
 
 -- NOTE: appended by patch -- tabard indicator
@@ -183,3 +186,4 @@ EZO_STRINGS_EN = {
 EZO_STRINGS_EN["EZO_OVERLAY_TABARD"] = "Tabard"
 -- Food buff indicator (added v3.5.0)
 -- No new strings needed: food dot is visual only, no LAM option yet
+

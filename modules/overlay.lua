@@ -11,7 +11,11 @@ local EZO = EZOTools
 -- Controles de la ventana (se crean en EnsureControls la primera vez)
 local overlayWin, overlayTex, overlayLabel, overlayGuildLabel, overlayMaintDot, overlayChargeDot, overlayFoodDot, overlayPetDot, overlayCompanionDot
 local overlaySideSlotsLeft, overlaySideSlotsRight = {}, {}
+local overlaySideWidgetsLeft, overlaySideWidgetsRight = {}, {}
+local overlaySideWidgetTexturesLeft, overlaySideWidgetTexturesRight = {}, {}
+local overlaySideWidgetData = { left = {}, right = {} }
 local overlayLayoutPreviewEnabled = false
+local overlayWidgetTooltipWin, overlayWidgetTooltipBackdrop, overlayWidgetTooltipLabel
 
 -- Estado de combate (se actualiza vía evento)
 local enCombate = false
@@ -172,7 +176,124 @@ end
 local function ObtenerSlotsLaterales(side)
     return (side == "left") and overlaySideSlotsLeft or overlaySideSlotsRight
 end
-local function AplicarPreviewSlotsLaterales()
+
+local function ObtenerWidgetsLaterales(side)
+    return (side == "left") and overlaySideWidgetsLeft or overlaySideWidgetsRight
+end
+
+local function ObtenerTexturasWidgetLaterales(side)
+    return (side == "left") and overlaySideWidgetTexturesLeft or overlaySideWidgetTexturesRight
+end
+
+local function ObtenerDatosWidgetLaterales(side)
+    return overlaySideWidgetData[side]
+end
+
+local function ObtenerNombreLadoWidget(side)
+    if side == "left" then
+        return GetString(EZO_SIDE_WIDGET_LEFT)
+    end
+    return GetString(EZO_SIDE_WIDGET_RIGHT)
+end
+
+local function OcultarTooltipWidget()
+    if overlayWidgetTooltipWin then
+        overlayWidgetTooltipWin:SetHidden(true)
+    end
+end
+
+local function AsegurarTooltipWidget()
+    if overlayWidgetTooltipWin then return end
+
+    overlayWidgetTooltipWin = WINDOW_MANAGER:CreateTopLevelWindow("EZOToolsOverlayWidgetTooltip")
+    overlayWidgetTooltipWin:SetDimensions(240, 64)
+    overlayWidgetTooltipWin:SetMouseEnabled(false)
+    overlayWidgetTooltipWin:SetMovable(false)
+    overlayWidgetTooltipWin:SetClampedToScreen(true)
+    overlayWidgetTooltipWin:SetDrawLayer(DL_OVERLAY)
+    overlayWidgetTooltipWin:SetDrawTier(DT_HIGH)
+    overlayWidgetTooltipWin:SetHidden(true)
+
+    overlayWidgetTooltipBackdrop = WINDOW_MANAGER:CreateControl("$(parent)Backdrop", overlayWidgetTooltipWin, CT_BACKDROP)
+    overlayWidgetTooltipBackdrop:SetAnchorFill()
+    overlayWidgetTooltipBackdrop:SetCenterColor(0.04, 0.04, 0.04, 0.92)
+    overlayWidgetTooltipBackdrop:SetEdgeColor(0.85, 0.78, 0.42, 0.95)
+    overlayWidgetTooltipBackdrop:SetEdgeTexture(nil, 1, 1, 2)
+    overlayWidgetTooltipBackdrop:SetInsets(0, 0, 0, 0)
+
+    overlayWidgetTooltipLabel = WINDOW_MANAGER:CreateControl("$(parent)Label", overlayWidgetTooltipWin, CT_LABEL)
+    overlayWidgetTooltipLabel:SetAnchor(TOPLEFT, overlayWidgetTooltipWin, TOPLEFT, 10, 8)
+    overlayWidgetTooltipLabel:SetDimensions(220, 48)
+    overlayWidgetTooltipLabel:SetFont(CadenaFuente(16))
+    overlayWidgetTooltipLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+    overlayWidgetTooltipLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    overlayWidgetTooltipLabel:SetColor(1, 1, 1, 1)
+end
+
+local function ConstruirTooltipPreviewWidget(side, index)
+    return zo_strformat(
+        GetString(EZO_SIDE_WIDGET_PREVIEW_TOOLTIP),
+        ObtenerNombreLadoWidget(side),
+        tostring(index))
+end
+
+local function ObtenerTooltipWidget(side, index, data)
+    if type(data) ~= "table" then
+        if overlayLayoutPreviewEnabled then
+            return ConstruirTooltipPreviewWidget(side, index)
+        end
+        return nil
+    end
+    if type(data.tooltipText) == "string" and data.tooltipText ~= "" then
+        return data.tooltipText
+    end
+    if type(data.tooltipStringId) == "number" then
+        local baseText = GetString(data.tooltipStringId)
+        if type(data.tooltipArgs) == "table" and #data.tooltipArgs > 0 then
+            return zo_strformat(baseText, unpack(data.tooltipArgs))
+        end
+        return baseText
+    end
+    if overlayLayoutPreviewEnabled then
+        return ConstruirTooltipPreviewWidget(side, index)
+    end
+    return nil
+end
+
+local function MostrarTooltipWidget(ctrl, side, index, data)
+    local texto = ObtenerTooltipWidget(side, index, data)
+    if not texto or texto == "" then
+        OcultarTooltipWidget()
+        return
+    end
+
+    AsegurarTooltipWidget()
+    overlayWidgetTooltipLabel:SetText(texto)
+    overlayWidgetTooltipWin:ClearAnchors()
+    if side == "left" then
+        overlayWidgetTooltipWin:SetAnchor(TOPRIGHT, ctrl, TOPLEFT, -8, -4)
+    else
+        overlayWidgetTooltipWin:SetAnchor(TOPLEFT, ctrl, TOPRIGHT, 8, -4)
+    end
+    overlayWidgetTooltipWin:SetHidden(false)
+end
+
+local function EjecutarAccionWidget(side, index, data)
+    if type(data) ~= "table" or type(data.actionId) ~= "string" or data.actionId == "" then
+        return
+    end
+    if not (EZOTools_ActionExec and type(EZOTools_ActionExec.Execute) == "function") then
+        return
+    end
+    EZOTools_ActionExec.Execute(data.actionId, {
+        source = "MOUSE",
+        anchor = overlayWin,
+        widgetSide = side,
+        widgetIndex = index,
+    })
+end
+
+local function ObtenerPreviewWidgetData(side, index)
     local previewTexture = "/esoui/art/buttons/large_leftarrow_up.dds"
     local previewColors = {
         left = {
@@ -188,24 +309,62 @@ local function AplicarPreviewSlotsLaterales()
             { 0.95, 0.35, 0.35, 0.95 },
         },
     }
+    return {
+        visible = true,
+        texture = previewTexture,
+        color = previewColors[side][index],
+        alpha = 0.95,
+    }
+end
+
+local function ObtenerRenderDataWidget(side, index)
+    local data = ObtenerDatosWidgetLaterales(side)[index]
+    if type(data) == "table" and data.visible ~= false and type(data.texture) == "string" and data.texture ~= "" then
+        return data
+    end
+    if overlayLayoutPreviewEnabled then
+        return ObtenerPreviewWidgetData(side, index)
+    end
+    return nil
+end
+
+local function AplicarPreviewSlotsLaterales()
     for _, side in ipairs({ "left", "right" }) do
         local lista = ObtenerSlotsLaterales(side)
         for i = 1, SIDE_SLOT_COUNT do
             local ctrl = lista[i]
             if ctrl then
-                if overlayLayoutPreviewEnabled then
-                    local color = previewColors[side][i]
-                    ctrl:SetTexture(previewTexture)
-                    ctrl:SetColor(color[1], color[2], color[3], color[4])
-                    ctrl:SetAlpha(0.95)
-                    ctrl:SetHidden(false)
+                ctrl:SetHidden(true)
+            end
+        end
+    end
+end
+
+local function AplicarWidgetsLaterales()
+    for _, side in ipairs({ "left", "right" }) do
+        local widgets = ObtenerWidgetsLaterales(side)
+        local textures = ObtenerTexturasWidgetLaterales(side)
+        for i = 1, SIDE_SLOT_COUNT do
+            local host = widgets[i]
+            local tex = textures[i]
+            local data = ObtenerRenderDataWidget(side, i)
+            if host and tex then
+                if data then
+                    local color = data.color or { 1, 1, 1, 1 }
+                    tex:SetTexture(data.texture)
+                    tex:SetColor(color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1)
+                    tex:SetAlpha(data.alpha or 1)
+                    host:SetHidden(false)
+                    tex:SetHidden(false)
                 else
-                    ctrl:SetHidden(true)
+                    host:SetHidden(true)
+                    tex:SetHidden(true)
                 end
             end
         end
     end
 end
+
 local function AsegurarSlotsLaterales()
     local nombres = {
         left  = "EZOToolsSideSlotLeft",
@@ -224,8 +383,58 @@ local function AsegurarSlotsLaterales()
     end
 end
 
+local function AsegurarWidgetsLaterales()
+    local nombres = {
+        left  = "EZOToolsSideWidgetLeft",
+        right = "EZOToolsSideWidgetRight",
+    }
+    for side, prefijo in pairs(nombres) do
+        local widgets = ObtenerWidgetsLaterales(side)
+        local textures = ObtenerTexturasWidgetLaterales(side)
+        for i = 1, SIDE_SLOT_COUNT do
+            if not widgets[i] then
+                local host = WINDOW_MANAGER:CreateControl(prefijo .. i, overlayWin, CT_CONTROL)
+                host:SetDimensions(SIDE_SLOT_BASE, SIDE_SLOT_BASE)
+                host:SetHidden(true)
+                host:SetMouseEnabled(true)
+                host:SetDrawLayer(DL_CONTROLS)
+                host:SetDrawTier(DT_HIGH)
+                local widgetSide = side
+                local widgetIndex = i
+                host:SetHandler("OnMouseEnter", function(ctrl)
+                    MostrarTooltipWidget(ctrl, widgetSide, widgetIndex, ObtenerRenderDataWidget(widgetSide, widgetIndex))
+                end)
+                host:SetHandler("OnMouseExit", function()
+                    OcultarTooltipWidget()
+                end)
+                host:SetHandler("OnMouseUp", function(_, button, upInside)
+                    if not upInside then return end
+                    if button == MOUSE_BUTTON_INDEX_RIGHT then
+                        if EZOTools_ContextMenu and EZOTools_ContextMenu.OpenMouse then
+                            EZOTools_ContextMenu.OpenMouse(overlayWin)
+                        end
+                        return
+                    end
+                    if button == MOUSE_BUTTON_INDEX_LEFT then
+                        EjecutarAccionWidget(widgetSide, widgetIndex, ObtenerRenderDataWidget(widgetSide, widgetIndex))
+                    end
+                end)
+
+                local tex = WINDOW_MANAGER:CreateControl("$(parent)Tex", host, CT_TEXTURE)
+                tex:SetAnchorFill()
+                tex:SetMouseEnabled(false)
+                tex:SetHidden(true)
+
+                widgets[i] = host
+                textures[i] = tex
+            end
+        end
+    end
+end
+
 local function AplicarLayoutSlotsLaterales(texPx)
     AsegurarSlotsLaterales()
+    AsegurarWidgetsLaterales()
 
     local s          = tonumber(EZO.sv.overlay.scale) or 1
     local slotSize   = math.max(SIDE_SLOT_MIN, math.floor(SIDE_SLOT_BASE * s + 0.5))
@@ -254,10 +463,18 @@ local function AplicarLayoutSlotsLaterales(texPx)
                 ctrl:ClearAnchors()
                 ctrl:SetAnchor(CENTER, overlayTex, CENTER, lado.sign * xOffset, yOffset)
             end
+            local widgets = ObtenerWidgetsLaterales(lado.side)
+            local host = widgets[idx]
+            if host then
+                host:SetDimensions(slotSize, slotSize)
+                host:ClearAnchors()
+                host:SetAnchor(CENTER, overlayTex, CENTER, lado.sign * xOffset, yOffset)
+            end
         end
     end
 
     AplicarPreviewSlotsLaterales()
+    AplicarWidgetsLaterales()
     return maxExtent, slotSize
 end
 
@@ -269,8 +486,51 @@ end
 function MOD.GetSideSlotCount()
     return SIDE_SLOT_COUNT
 end
+
+function MOD.GetSideWidget(side, index)
+    local lista = ObtenerWidgetsLaterales(side)
+    return lista and lista[index] or nil
+end
+
+function MOD.SetSideWidgetData(side, index, data)
+    local lista = ObtenerDatosWidgetLaterales(side)
+    if not lista or type(index) ~= "number" or index < 1 or index > SIDE_SLOT_COUNT then return end
+    if type(data) ~= "table" then
+        lista[index] = nil
+    else
+        lista[index] = {
+            visible = data.visible,
+            texture = data.texture,
+            color = data.color,
+            alpha = data.alpha,
+            tooltipText = data.tooltipText,
+            tooltipStringId = data.tooltipStringId,
+            tooltipArgs = data.tooltipArgs,
+            actionId = data.actionId,
+            gamepadActionId = data.gamepadActionId,
+        }
+    end
+    MOD.Refresh()
+end
+
+function MOD.ClearSideWidgetData(side, index)
+    local lista = ObtenerDatosWidgetLaterales(side)
+    if not lista then return end
+    lista[index] = nil
+    MOD.Refresh()
+end
+
+function MOD.ClearAllSideWidgetData()
+    overlaySideWidgetData.left = {}
+    overlaySideWidgetData.right = {}
+    MOD.Refresh()
+end
+
 function MOD.ToggleLayoutPreview()
     overlayLayoutPreviewEnabled = not overlayLayoutPreviewEnabled
+    if not overlayLayoutPreviewEnabled then
+        OcultarTooltipWidget()
+    end
     MOD.Refresh()
     return overlayLayoutPreviewEnabled
 end
@@ -437,6 +697,8 @@ local function AsegurarControles()
         EZO.sv.overlay.y = math.floor(overlayWin:GetTop() + 0.5)
     end)
 
+    AsegurarTooltipWidget()
+
     -- Clic derecho abre el menú contextual
     overlayWin:SetHandler("OnMouseUp", function(_, button, upInside)
         if button == MOUSE_BUTTON_INDEX_RIGHT and upInside then
@@ -455,6 +717,9 @@ local function ActualizarVisibilidad()
         oculto = true
     end
     overlayWin:SetHidden(oculto)
+    if oculto then
+        OcultarTooltipWidget()
+    end
 end
 
 -- API pública: bloquear/desbloquear posición
@@ -807,3 +1072,7 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
         }
     end)
 end
+
+
+
+
