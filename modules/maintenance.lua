@@ -196,7 +196,11 @@ function EZOTools.RepairEquipped()
                     break
                 end
                 if _G["RepairItemWithRepairKit"] ~= nil then
-                    LlamarApi("RepairItemWithRepairKit", BAG_WORN, ranura, kitBag, kitSlot)
+                    local ok = LlamarApi("RepairItemWithRepairKit", BAG_WORN, ranura, kitBag, kitSlot)
+                    if ok == nil or ok == false then
+                        EZOTools.Print(zo_strformat(GetString(EZO_MSG_ACTION_FAILED), "RepairItemWithRepairKit"))
+                        break
+                    end
                     reparadoAlgo = true
                 else
                     EZOTools.Print(zo_strformat(GetString(EZO_MSG_ACTION_FAILED), "RepairItemWithRepairKit"))
@@ -234,7 +238,11 @@ function EZOTools.RechargeWeapons()
                 break
             end
             if _G["ChargeItemWithSoulGem"] ~= nil then
-                LlamarApi("ChargeItemWithSoulGem", BAG_WORN, ranura, gemBag, gemSlot)
+                local ok = LlamarApi("ChargeItemWithSoulGem", BAG_WORN, ranura, gemBag, gemSlot)
+                if ok == nil or ok == false then
+                    EZOTools.Print(zo_strformat(GetString(EZO_MSG_ACTION_FAILED), "ChargeItemWithSoulGem"))
+                    break
+                end
                 recargadoAlgo = true
             else
                 EZOTools.Print(zo_strformat(GetString(EZO_MSG_ACTION_FAILED), "ChargeItemWithSoulGem"))
