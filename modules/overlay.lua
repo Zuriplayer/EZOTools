@@ -37,8 +37,10 @@ local SIDE_SLOT_RADIUS_X = 0.50
 local SIDE_SLOT_RADIUS_Y = 0.78
 local SIDE_SLOT_Y        = { -0.50, -0.16, 0.16, 0.50 }
 local SIDE_WIDGET_ASSIGNMENTS = {
-    repairKits = { side = "left", index = 2 },
-    soulGems   = { side = "left", index = 3 },
+    repairEquipped  = { side = "left", index = 1 },
+    repairKits      = { side = "left", index = 2 },
+    rechargeWeapons = { side = "left", index = 3 },
+    soulGems        = { side = "left", index = 4 },
 }
 -- Tamaños base para calcular escala
 local BASE_TEX         = 128   -- píxeles base de la textura del logo
@@ -211,7 +213,7 @@ local function AsegurarTooltipWidget()
     if overlayWidgetTooltipWin then return end
 
     overlayWidgetTooltipWin = WINDOW_MANAGER:CreateTopLevelWindow("EZOToolsOverlayWidgetTooltip")
-    overlayWidgetTooltipWin:SetDimensions(240, 64)
+    overlayWidgetTooltipWin:SetDimensions(320, 92)
     overlayWidgetTooltipWin:SetMouseEnabled(false)
     overlayWidgetTooltipWin:SetMovable(false)
     overlayWidgetTooltipWin:SetClampedToScreen(true)
@@ -228,7 +230,7 @@ local function AsegurarTooltipWidget()
 
     overlayWidgetTooltipLabel = WINDOW_MANAGER:CreateControl("$(parent)Label", overlayWidgetTooltipWin, CT_LABEL)
     overlayWidgetTooltipLabel:SetAnchor(TOPLEFT, overlayWidgetTooltipWin, TOPLEFT, 10, 8)
-    overlayWidgetTooltipLabel:SetDimensions(220, 48)
+    overlayWidgetTooltipLabel:SetDimensions(296, 72)
     overlayWidgetTooltipLabel:SetFont(CadenaFuente(16))
     overlayWidgetTooltipLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
     overlayWidgetTooltipLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
@@ -283,18 +285,42 @@ local function MostrarTooltipWidget(ctrl, side, index, data)
     overlayWidgetTooltipWin:SetHidden(false)
 end
 
-local function EjecutarAccionWidget(side, index, data)
-    if type(data) ~= "table" or type(data.actionId) ~= "string" or data.actionId == "" then
+local function EjecutarAccionWidget(side, index, data, button)
+    if type(data) ~= "table" then return end
+
+    local handler = nil
+    if button == MOUSE_BUTTON_INDEX_RIGHT then
+        handler = data.secondaryHandler
+    else
+        handler = data.primaryHandler
+    end
+    if type(handler) == "function" then
+        local ok = pcall(handler, {
+            source = "MOUSE",
+            anchor = overlayWin,
+            widgetSide = side,
+            widgetIndex = index,
+            button = button,
+        })
+        if ok then return end
+    end
+
+    local actionId = data.actionId
+    if button == MOUSE_BUTTON_INDEX_RIGHT and type(data.secondaryActionId) == "string" and data.secondaryActionId ~= "" then
+        actionId = data.secondaryActionId
+    end
+    if type(actionId) ~= "string" or actionId == "" then
         return
     end
     if not (EZOTools_ActionExec and type(EZOTools_ActionExec.Execute) == "function") then
         return
     end
-    EZOTools_ActionExec.Execute(data.actionId, {
+    EZOTools_ActionExec.Execute(actionId, {
         source = "MOUSE",
         anchor = overlayWin,
         widgetSide = side,
         widgetIndex = index,
+        button = button,
     })
 end
 
@@ -314,6 +340,37 @@ local function ObtenerPreviewWidgetData(side, index)
             { 0.95, 0.35, 0.35, 0.95 },
         },
     }
+
+    local assignedPreview = {
+        repairEquipped = {
+            texture = "/esoui/art/hud/broken_armor.dds",
+            color = { 1.0, 0.30, 0.30, 0.95 },
+        },
+        repairKits = {
+            texture = "/esoui/art/icons/quest_crate_001.dds",
+            color = { 1.0, 0.32, 0.22, 0.95 },
+        },
+        rechargeWeapons = {
+            texture = "/esoui/art/hud/broken_weapon.dds",
+            color = { 1.0, 0.30, 0.30, 0.95 },
+        },
+        soulGems = {
+            texture = "/esoui/art/icons/soulgem_006_filled.dds",
+            color = { 1.0, 0.45, 0.15, 0.95 },
+        },
+    }
+
+    for key, slotInfo in pairs(SIDE_WIDGET_ASSIGNMENTS) do
+        if slotInfo and slotInfo.side == side and slotInfo.index == index and assignedPreview[key] then
+            return {
+                visible = true,
+                texture = assignedPreview[key].texture,
+                color = assignedPreview[key].color,
+                alpha = 0.95,
+            }
+        end
+    end
+
     return {
         visible = true,
         texture = previewTexture,
@@ -365,6 +422,10 @@ local function RefrescarWidgetsLateralesEstado()
     local soulGemThreshold = type(EZOTools.GetSoulGemStockThreshold) == "function" and EZOTools.GetSoulGemStockThreshold() or nil
     local soulGemCount = type(EZOTools.GetFilledSoulGemCount) == "function" and EZOTools.GetFilledSoulGemCount() or nil
     local lowSoulGems = type(EZOTools.HasLowSoulGemStock) == "function" and EZOTools.HasLowSoulGemStock() or false
+    local repairThreshold = (EZO.sv and EZO.sv.general and tonumber(EZO.sv.general.repairThreshold)) or 40
+    local rechargeThreshold = (EZO.sv and EZO.sv.general and tonumber(EZO.sv.general.rechargeThreshold)) or 50
+    local canRepairEquipped = type(EZOTools.CanRepairEquipped) == "function" and EZOTools.CanRepairEquipped() or false
+    local canRechargeWeapons = type(EZOTools.CanRechargeWeapons) == "function" and EZOTools.CanRechargeWeapons() or false
 
     if lowRepairKits and type(repairKitCount) == "number" and type(repairKitThreshold) == "number" then
         AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairKits, {
@@ -396,6 +457,40 @@ local function RefrescarWidgetsLateralesEstado()
         })
     else
         AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.soulGems, nil)
+    end
+
+    if canRepairEquipped then
+        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairEquipped, {
+            slotKey = "repair_equipped",
+            visible = true,
+            texture = "/esoui/art/hud/broken_armor.dds",
+            color = { 1.0, 0.30, 0.30, 0.95 },
+            alpha = 1,
+            tooltipStringId = EZO_SIDE_WIDGET_REPAIR_EQUIPPED_TOOLTIP,
+            tooltipArgs = { tostring(repairThreshold) },
+            actionId = "REPAIR_EQUIPPED",
+            secondaryActionId = "OPEN_ADDON_SETTINGS",
+            gamepadActionId = "REPAIR_EQUIPPED",
+        })
+    else
+        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairEquipped, nil)
+    end
+
+    if canRechargeWeapons then
+        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.rechargeWeapons, {
+            slotKey = "recharge_weapons",
+            visible = true,
+            texture = "/esoui/art/hud/broken_weapon.dds",
+            color = { 1.0, 0.30, 0.30, 0.95 },
+            alpha = 1,
+            tooltipStringId = EZO_SIDE_WIDGET_RECHARGE_WEAPONS_TOOLTIP,
+            tooltipArgs = { tostring(rechargeThreshold) },
+            actionId = "RECHARGE_WEAPONS",
+            secondaryActionId = "OPEN_ADDON_SETTINGS",
+            gamepadActionId = "RECHARGE_WEAPONS",
+        })
+    else
+        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.rechargeWeapons, nil)
     end
 
     AplicarWidgetsLaterales()
@@ -483,14 +578,17 @@ local function AsegurarWidgetsLaterales()
                 end)
                 host:SetHandler("OnMouseUp", function(_, button, upInside)
                     if not upInside then return end
+                    local data = ObtenerRenderDataWidget(widgetSide, widgetIndex)
                     if button == MOUSE_BUTTON_INDEX_RIGHT then
-                        if EZOTools_ContextMenu and EZOTools_ContextMenu.OpenMouse then
+                        if type(data) == "table" and type(data.secondaryActionId) == "string" and data.secondaryActionId ~= "" then
+                            EjecutarAccionWidget(widgetSide, widgetIndex, data, button)
+                        elseif EZOTools_ContextMenu and EZOTools_ContextMenu.OpenMouse then
                             EZOTools_ContextMenu.OpenMouse(overlayWin)
                         end
                         return
                     end
                     if button == MOUSE_BUTTON_INDEX_LEFT then
-                        EjecutarAccionWidget(widgetSide, widgetIndex, ObtenerRenderDataWidget(widgetSide, widgetIndex))
+                        EjecutarAccionWidget(widgetSide, widgetIndex, data, button)
                     end
                 end)
 
@@ -609,6 +707,7 @@ function MOD.SetSideWidgetData(side, index, data)
             tooltipArgs = data.tooltipArgs,
             actionId = data.actionId,
             gamepadActionId = data.gamepadActionId,
+            secondaryActionId = data.secondaryActionId,
             slotKey = data.slotKey,
         }
     end
@@ -673,11 +772,9 @@ local function AplicarEscalaVisual()
         -- 5 iconos centrados bajo el label, separación uniforme
         -- Pet | Repair | Food | Charge | Companion
         local dots = {
-            { ctrl = overlayPetDot,       x = -2 * sep },
-            { ctrl = overlayMaintDot,     x = -sep     },
-            { ctrl = overlayFoodDot,      x = 0        },
-            { ctrl = overlayChargeDot,    x =  sep     },
-            { ctrl = overlayCompanionDot, x =  2 * sep },
+            { ctrl = overlayPetDot,       x = -sep },
+            { ctrl = overlayFoodDot,      x = 0    },
+            { ctrl = overlayCompanionDot, x = sep  },
         }
         for _, d in ipairs(dots) do
             if d.ctrl then
@@ -876,14 +973,8 @@ local function TieneCompanion()
 end
 
 local function RefrescarDot()
-    -- Icono reparación armadura
-    if overlayMaintDot then
-        overlayMaintDot:SetHidden(not (EZOTools.CanRepairEquipped and EZOTools.CanRepairEquipped()))
-    end
-    -- Icono recarga armas
-    if overlayChargeDot then
-        overlayChargeDot:SetHidden(not (EZOTools.CanRechargeWeapons and EZOTools.CanRechargeWeapons()))
-    end
+    if overlayMaintDot then overlayMaintDot:SetHidden(true) end
+    if overlayChargeDot then overlayChargeDot:SetHidden(true) end
     -- Icono comida: visible cuando NO hay buff de comida/bebida activo
     if overlayFoodDot then
         overlayFoodDot:SetHidden(TieneBuffComida())
@@ -1176,6 +1267,8 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
         }
     end)
 end
+
+
 
 
 
