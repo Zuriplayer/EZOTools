@@ -14,6 +14,7 @@ local overlaySideSlotsLeft, overlaySideSlotsRight = {}, {}
 local overlaySideWidgetsLeft, overlaySideWidgetsRight = {}, {}
 local overlaySideWidgetTexturesLeft, overlaySideWidgetTexturesRight = {}, {}
 local overlaySideWidgetData = { left = {}, right = {} }
+local overlaySideWidgetRegistry = { left = {}, right = {} }
 local overlayLayoutPreviewEnabled = false
 local overlayWidgetTooltipWin, overlayWidgetTooltipBackdrop, overlayWidgetTooltipLabel
 
@@ -35,6 +36,10 @@ local SIDE_SLOT_MARGIN   = 12
 local SIDE_SLOT_RADIUS_X = 0.50
 local SIDE_SLOT_RADIUS_Y = 0.78
 local SIDE_SLOT_Y        = { -0.50, -0.16, 0.16, 0.50 }
+local SIDE_WIDGET_ASSIGNMENTS = {
+    repairKits = { side = "left", index = 2 },
+    soulGems   = { side = "left", index = 3 },
+}
 -- Tamaños base para calcular escala
 local BASE_TEX         = 128   -- píxeles base de la textura del logo
 local BASE_FONT_PC     = 20    -- tamaño de fuente base en modo teclado/ratón
@@ -328,6 +333,74 @@ local function ObtenerRenderDataWidget(side, index)
     return nil
 end
 
+local AplicarWidgetsLaterales
+
+local function ReconstruirRegistroWidgetsLaterales()
+    overlaySideWidgetRegistry.left = {}
+    overlaySideWidgetRegistry.right = {}
+    for _, side in ipairs({ "left", "right" }) do
+        local dataList = ObtenerDatosWidgetLaterales(side)
+        local registry = overlaySideWidgetRegistry[side]
+        for i = 1, SIDE_SLOT_COUNT do
+            local data = dataList[i]
+            if type(data) == "table" and data.visible ~= false then
+                registry[i] = data.slotKey or true
+            else
+                registry[i] = false
+            end
+        end
+    end
+end
+local function AsignarWidgetLateralInterno(slotInfo, data)
+    if not slotInfo or not slotInfo.side or not slotInfo.index then return end
+    local lista = ObtenerDatosWidgetLaterales(slotInfo.side)
+    if not lista then return end
+    lista[slotInfo.index] = data
+end
+
+local function RefrescarWidgetsLateralesEstado()
+    local repairKitThreshold = type(EZOTools.GetRepairKitStockThreshold) == "function" and EZOTools.GetRepairKitStockThreshold() or nil
+    local repairKitCount = type(EZOTools.GetRepairKitCount) == "function" and EZOTools.GetRepairKitCount() or nil
+    local lowRepairKits = type(EZOTools.HasLowRepairKitStock) == "function" and EZOTools.HasLowRepairKitStock() or false
+    local soulGemThreshold = type(EZOTools.GetSoulGemStockThreshold) == "function" and EZOTools.GetSoulGemStockThreshold() or nil
+    local soulGemCount = type(EZOTools.GetFilledSoulGemCount) == "function" and EZOTools.GetFilledSoulGemCount() or nil
+    local lowSoulGems = type(EZOTools.HasLowSoulGemStock) == "function" and EZOTools.HasLowSoulGemStock() or false
+
+    if lowRepairKits and type(repairKitCount) == "number" and type(repairKitThreshold) == "number" then
+        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairKits, {
+            slotKey = "repair_kits",
+            visible = true,
+            texture = "/esoui/art/icons/quest_crate_001.dds",
+            color = { 1.0, 0.32, 0.22, 0.95 },
+            alpha = 1,
+            tooltipStringId = EZO_SIDE_WIDGET_REPAIR_KITS_TOOLTIP,
+            tooltipArgs = { tostring(repairKitCount), tostring(repairKitThreshold) },
+            actionId = "OPEN_ADDON_SETTINGS",
+            gamepadActionId = "OPEN_ADDON_SETTINGS",
+        })
+    else
+        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairKits, nil)
+    end
+
+    if lowSoulGems and type(soulGemCount) == "number" and type(soulGemThreshold) == "number" then
+        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.soulGems, {
+            slotKey = "soul_gems",
+            visible = true,
+            texture = "/esoui/art/icons/soulgem_006_filled.dds",
+            color = { 1.0, 0.45, 0.15, 0.95 },
+            alpha = 1,
+            tooltipStringId = EZO_SIDE_WIDGET_SOUL_GEMS_TOOLTIP,
+            tooltipArgs = { tostring(soulGemCount), tostring(soulGemThreshold) },
+            actionId = "OPEN_ADDON_SETTINGS",
+            gamepadActionId = "OPEN_ADDON_SETTINGS",
+        })
+    else
+        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.soulGems, nil)
+    end
+
+    AplicarWidgetsLaterales()
+end
+
 local function AplicarPreviewSlotsLaterales()
     for _, side in ipairs({ "left", "right" }) do
         local lista = ObtenerSlotsLaterales(side)
@@ -340,7 +413,8 @@ local function AplicarPreviewSlotsLaterales()
     end
 end
 
-local function AplicarWidgetsLaterales()
+AplicarWidgetsLaterales = function()
+    ReconstruirRegistroWidgetsLaterales()
     for _, side in ipairs({ "left", "right" }) do
         local widgets = ObtenerWidgetsLaterales(side)
         local textures = ObtenerTexturasWidgetLaterales(side)
@@ -492,6 +566,33 @@ function MOD.GetSideWidget(side, index)
     return lista and lista[index] or nil
 end
 
+function MOD.GetSideWidgetSlotState(side, index)
+    local lista = overlaySideWidgetRegistry[side]
+    if not lista or type(index) ~= "number" then return nil end
+    return lista[index]
+end
+
+function MOD.GetSideWidgetRegistry()
+    local snapshot = { left = {}, right = {} }
+    for _, side in ipairs({ "left", "right" }) do
+        for i = 1, SIDE_SLOT_COUNT do
+            snapshot[side][i] = overlaySideWidgetRegistry[side][i] or false
+        end
+    end
+    return snapshot
+end
+
+function MOD.FindFreeSideWidgetSlot(side)
+    local lista = overlaySideWidgetRegistry[side]
+    if not lista then return nil end
+    for i = 1, SIDE_SLOT_COUNT do
+        if not lista[i] then
+            return i
+        end
+    end
+    return nil
+end
+
 function MOD.SetSideWidgetData(side, index, data)
     local lista = ObtenerDatosWidgetLaterales(side)
     if not lista or type(index) ~= "number" or index < 1 or index > SIDE_SLOT_COUNT then return end
@@ -508,6 +609,7 @@ function MOD.SetSideWidgetData(side, index, data)
             tooltipArgs = data.tooltipArgs,
             actionId = data.actionId,
             gamepadActionId = data.gamepadActionId,
+            slotKey = data.slotKey,
         }
     end
     MOD.Refresh()
@@ -794,6 +896,8 @@ local function RefrescarDot()
     if overlayCompanionDot then
         overlayCompanionDot:SetHidden(not TieneCompanion())
     end
+
+    RefrescarWidgetsLateralesEstado()
 end
 
 -- API pública: refresco completo del overlay (posición, apariencia, visibilidad)
@@ -1072,6 +1176,13 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
         }
     end)
 end
+
+
+
+
+
+
+
 
 
 

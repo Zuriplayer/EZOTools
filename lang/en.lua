@@ -148,6 +148,8 @@ EZO_STRINGS_EN = {
     EZO_CMD_DEBUG_TEXLOAD       = "  /ezo debug texload  — texture loading test",
     EZO_CMD_DEBUG_DOTS          = "  /ezo debug dots     — pet/companion dot state",
     EZO_CMD_DEBUG_LAYOUT        = "  /ezo debug layout   — toggle side-slot layout preview",
+    EZO_CMD_DEBUG_REPAIRKITICON = "  /ezo debug repairkiticon — first repair kit icon path",
+    EZO_CMD_DEBUG_SOULGEMICON   = "  /ezo debug soulgemicon   — first soul gem icon path",
 
     EZO_CMD_GUILDS_NONE         = "You do not belong to any guild.",
     EZO_CMD_GUILDS_HEADER       = "Guilds (<<1>>):",
@@ -179,6 +181,8 @@ EZO_STRINGS_EN = {
     EZO_SIDE_WIDGET_LEFT        = "Left",
     EZO_SIDE_WIDGET_RIGHT       = "Right",
     EZO_SIDE_WIDGET_PREVIEW_TOOLTIP = "Preview widget: <<1>> #<<2>>",
+    EZO_SIDE_WIDGET_SOUL_GEMS_TOOLTIP = "Filled Soul Gems low: <<1>> left (threshold <<2>>). Click to open settings.",
+    EZO_SIDE_WIDGET_REPAIR_KITS_TOOLTIP = "Repair Kits low: <<1>> left (threshold <<2>>). Click to open settings.",
 }
 
 -- NOTE: appended by patch -- tabard indicator
@@ -186,4 +190,12 @@ EZO_STRINGS_EN = {
 EZO_STRINGS_EN["EZO_OVERLAY_TABARD"] = "Tabard"
 -- Food buff indicator (added v3.5.0)
 -- No new strings needed: food dot is visual only, no LAM option yet
-
+EZO_STRINGS_EN["EZO_OPTION_LOW_STOCK_ALERTS_NOTE"] = "Low stock alerts drive the side widgets. Soul gems are counted by usable filled gems. Repair kits are currently counted by item units, without distinguishing single-piece kits from full-repair kits yet."
+EZO_STRINGS_EN["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE"] = "Show low repair kit alert"
+EZO_STRINGS_EN["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE_TOOLTIP"] = "Show or hide the side alert widget when repair kits are low."
+EZO_STRINGS_EN["EZO_OPTION_REPAIR_KIT_ALERT_THRESHOLD"] = "Repair kit alert threshold"
+EZO_STRINGS_EN["EZO_OPTION_REPAIR_KIT_ALERT_THRESHOLD_TOOLTIP"] = "Show the repair kit alert when the detected repair kit count is at or below this value."
+EZO_STRINGS_EN["EZO_OPTION_SOUL_GEM_ALERT_ENABLE"] = "Show low soul gem alert"
+EZO_STRINGS_EN["EZO_OPTION_SOUL_GEM_ALERT_ENABLE_TOOLTIP"] = "Show or hide the side alert widget when filled soul gems are low."
+EZO_STRINGS_EN["EZO_OPTION_SOUL_GEM_ALERT_THRESHOLD"] = "Soul gem alert threshold"
+EZO_STRINGS_EN["EZO_OPTION_SOUL_GEM_ALERT_THRESHOLD_TOOLTIP"] = "Show the soul gem alert when the detected filled soul gem count is at or below this value."

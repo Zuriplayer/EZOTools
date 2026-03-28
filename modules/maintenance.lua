@@ -20,6 +20,24 @@ local function ObtenerUmbralStockConsumibles()
     return 10
 end
 
+local function ObtenerUmbralStockKitsReparacion()
+    return (EZO.sv and EZO.sv.general and tonumber(EZO.sv.general.repairKitAlertThreshold)) or ObtenerUmbralStockConsumibles()
+end
+
+local function ObtenerUmbralStockGemasAlma()
+    return (EZO.sv and EZO.sv.general and tonumber(EZO.sv.general.soulGemAlertThreshold)) or ObtenerUmbralStockConsumibles()
+end
+
+local function EstaAlertaKitsReparacionActiva()
+    if not (EZO.sv and EZO.sv.general) then return true end
+    return EZO.sv.general.repairKitAlertEnabled ~= false
+end
+
+local function EstaAlertaGemasAlmaActiva()
+    if not (EZO.sv and EZO.sv.general) then return true end
+    return EZO.sv.general.soulGemAlertEnabled ~= false
+end
+
 -- Llama a una función de la API ESO de forma segura.
 -- Intento directo primero; si falla reintenta con CallSecureProtected si está disponible.
 local function LlamarApi(nombreFuncion, ...)
@@ -45,9 +63,9 @@ local function IterarSlotsMochila(fnPorSlot)
     local bagSize = GetBagSize(BAG_BACKPACK)
     if type(bagSize) ~= "number" or bagSize <= 0 then return nil end
     for slot = 0, bagSize - 1 do
-        local resultado = fnPorSlot(slot)
-        if resultado ~= nil then
-            return resultado
+        local resultados = { fnPorSlot(slot) }
+        if resultados[1] ~= nil then
+            return unpack(resultados)
         end
     end
     return nil
@@ -160,12 +178,117 @@ function EZOTools.GetConsumableStockThreshold()
     return ObtenerUmbralStockConsumibles()
 end
 
+function EZOTools.GetRepairKitStockThreshold()
+    return ObtenerUmbralStockKitsReparacion()
+end
+
+function EZOTools.GetSoulGemStockThreshold()
+    return ObtenerUmbralStockGemasAlma()
+end
+
+function EZOTools.IsRepairKitAlertEnabled()
+    return EstaAlertaKitsReparacionActiva()
+end
+
+function EZOTools.IsSoulGemAlertEnabled()
+    return EstaAlertaGemasAlmaActiva()
+end
+
 function EZOTools.HasLowRepairKitStock()
-    return ContarKitsReparacion() <= ObtenerUmbralStockConsumibles()
+    return EstaAlertaKitsReparacionActiva() and ContarKitsReparacion() <= ObtenerUmbralStockKitsReparacion()
 end
 
 function EZOTools.HasLowSoulGemStock()
-    return ContarGemasAlmaCargadas() <= ObtenerUmbralStockConsumibles()
+    return EstaAlertaGemasAlmaActiva() and ContarGemasAlmaCargadas() <= ObtenerUmbralStockGemasAlma()
+end
+
+function EZOTools.GetFirstRepairKitDebugInfo()
+    local bag, slot = BuscarKitReparacion()
+    if not bag or not slot then return nil end
+    local info = { bag = bag, slot = slot }
+    if type(GetItemLink) == "function" then
+        info.link = GetItemLink(bag, slot, LINK_STYLE_DEFAULT)
+    end
+    if type(GetItemLinkName) == "function" and type(info.link) == "string" and info.link ~= "" then
+        info.name = GetItemLinkName(info.link)
+    elseif type(GetItemName) == "function" then
+        info.name = GetItemName(bag, slot)
+    end
+    if type(GetItemLinkIcon) == "function" and type(info.link) == "string" and info.link ~= "" then
+        info.icon = GetItemLinkIcon(info.link)
+    end
+    return info
+end
+
+function EZOTools.GetFirstSoulGemDebugInfo()
+    local bag, slot = BuscarGemaAlmaCargada()
+    if not bag or not slot then return nil end
+    local info = { bag = bag, slot = slot }
+    if type(GetItemLink) == "function" then
+        info.link = GetItemLink(bag, slot, LINK_STYLE_DEFAULT)
+    end
+    if type(GetItemLinkName) == "function" and type(info.link) == "string" and info.link ~= "" then
+        info.name = GetItemLinkName(info.link)
+    elseif type(GetItemName) == "function" then
+        info.name = GetItemName(bag, slot)
+    end
+    if type(GetItemLinkIcon) == "function" and type(info.link) == "string" and info.link ~= "" then
+        info.icon = GetItemLinkIcon(info.link)
+    end
+    return info
+end
+
+function EZOTools.GetFirstRepairKitIcon()
+    local bag, slot = BuscarKitReparacion()
+    if not bag or not slot then return nil end
+    if type(GetItemLink) == "function" and type(GetItemLinkIcon) == "function" then
+        local link = GetItemLink(bag, slot, LINK_STYLE_DEFAULT)
+        if type(link) == "string" and link ~= "" then
+            local icon = GetItemLinkIcon(link)
+            if type(icon) == "string" and icon ~= "" then
+                return icon
+            end
+        end
+    end
+    if type(GetItemInfo) == "function" then
+        local _, _, _, _, _, _, _, _, _, icon = GetItemInfo(bag, slot)
+        if type(icon) == "string" and icon ~= "" then
+            return icon
+        end
+    end
+    return nil
+end
+
+function EZOTools.GetFirstFilledSoulGemIcon()
+    if type(GetSoulGemInfo) == "function" then
+        local level = 1
+        if type(GetUnitEffectiveLevel) == "function" then
+            level = GetUnitEffectiveLevel("player") or 1
+        end
+        local _, icon = GetSoulGemInfo(SOUL_GEM_TYPE_FILLED, level, true)
+        if type(icon) == "string" and icon ~= "" then
+            return icon
+        end
+    end
+
+    local bag, slot = BuscarGemaAlmaCargada()
+    if not bag or not slot then return nil end
+    if type(GetItemLink) == "function" and type(GetItemLinkIcon) == "function" then
+        local link = GetItemLink(bag, slot, LINK_STYLE_DEFAULT)
+        if type(link) == "string" and link ~= "" then
+            local icon = GetItemLinkIcon(link)
+            if type(icon) == "string" and icon ~= "" then
+                return icon
+            end
+        end
+    end
+    if type(GetItemInfo) == "function" then
+        local _, _, _, _, _, _, _, _, _, icon = GetItemInfo(bag, slot)
+        if type(icon) == "string" and icon ~= "" then
+            return icon
+        end
+    end
+    return nil
 end
 
 function EZOTools.CanRepairEquipped()
@@ -252,3 +375,8 @@ function EZOTools.RechargeWeapons()
     end
     if recargadoAlgo then EZOTools.Print(GetString(EZO_MSG_RECHARGE_DONE)) end
 end
+
+
+
+
+

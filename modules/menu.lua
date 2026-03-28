@@ -51,6 +51,60 @@ local function ConstruirOpciones()
         default = 50,
     }
 
+    opciones[#opciones + 1] = { type = "description", text = GetString(EZO_OPTION_LOW_STOCK_ALERTS_NOTE), width = "full" }
+
+    opciones[#opciones + 1] = {
+        type    = "checkbox",
+        name    = GetString(EZO_OPTION_REPAIR_KIT_ALERT_ENABLE),
+        tooltip = GetString(EZO_OPTION_REPAIR_KIT_ALERT_ENABLE_TOOLTIP),
+        getFunc = function() return EZOTools.sv.general.repairKitAlertEnabled ~= false end,
+        setFunc = function(v)
+            EZOTools.sv.general.repairKitAlertEnabled = v
+            if EZOTools_Overlay and EZOTools_Overlay.Refresh then EZOTools_Overlay.Refresh() end
+        end,
+        default = true,
+    }
+
+    opciones[#opciones + 1] = {
+        type    = "slider",
+        name    = GetString(EZO_OPTION_REPAIR_KIT_ALERT_THRESHOLD),
+        tooltip = GetString(EZO_OPTION_REPAIR_KIT_ALERT_THRESHOLD_TOOLTIP),
+        min     = 0, max = 50, step = 1,
+        getFunc = function() return tonumber(EZOTools.sv.general.repairKitAlertThreshold) or 10 end,
+        setFunc = function(v)
+            EZOTools.sv.general.repairKitAlertThreshold = tonumber(v)
+            if EZOTools_Overlay and EZOTools_Overlay.Refresh then EZOTools_Overlay.Refresh() end
+        end,
+        default = 10,
+        disabled = function() return EZOTools.sv.general.repairKitAlertEnabled == false end,
+    }
+
+    opciones[#opciones + 1] = {
+        type    = "checkbox",
+        name    = GetString(EZO_OPTION_SOUL_GEM_ALERT_ENABLE),
+        tooltip = GetString(EZO_OPTION_SOUL_GEM_ALERT_ENABLE_TOOLTIP),
+        getFunc = function() return EZOTools.sv.general.soulGemAlertEnabled ~= false end,
+        setFunc = function(v)
+            EZOTools.sv.general.soulGemAlertEnabled = v
+            if EZOTools_Overlay and EZOTools_Overlay.Refresh then EZOTools_Overlay.Refresh() end
+        end,
+        default = true,
+    }
+
+    opciones[#opciones + 1] = {
+        type    = "slider",
+        name    = GetString(EZO_OPTION_SOUL_GEM_ALERT_THRESHOLD),
+        tooltip = GetString(EZO_OPTION_SOUL_GEM_ALERT_THRESHOLD_TOOLTIP),
+        min     = 0, max = 50, step = 1,
+        getFunc = function() return tonumber(EZOTools.sv.general.soulGemAlertThreshold) or 10 end,
+        setFunc = function(v)
+            EZOTools.sv.general.soulGemAlertThreshold = tonumber(v)
+            if EZOTools_Overlay and EZOTools_Overlay.Refresh then EZOTools_Overlay.Refresh() end
+        end,
+        default = 10,
+        disabled = function() return EZOTools.sv.general.soulGemAlertEnabled == false end,
+    }
+
     return opciones
 end
 

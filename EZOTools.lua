@@ -26,6 +26,10 @@ function EZO:Initialize()
             language          = "en",
             repairThreshold   = 40,
             rechargeThreshold = 50,
+            repairKitAlertEnabled   = true,
+            repairKitAlertThreshold = 10,
+            soulGemAlertEnabled     = true,
+            soulGemAlertThreshold   = 10,
         },
         overlay = {
             enabled          = true,
@@ -330,7 +334,7 @@ local function _comandoVersion()
     safeChat(zo_strformat(GetString(EZO_CMD_VERSION_GAMEPAD), gamepad))
 end
 
-local EjecutarDebugTexload, EjecutarDebugTex, EjecutarDebugDots, EjecutarDebugLayout
+local EjecutarDebugTexload, EjecutarDebugTex, EjecutarDebugDots, EjecutarDebugLayout, EjecutarDebugRepairKitIcon, EjecutarDebugSoulGemIcon
 
 local function _mostrarAyudaDebug()
     safeChat(GetString(EZO_CMD_DEBUG_TITLE))
@@ -340,6 +344,8 @@ local function _mostrarAyudaDebug()
     safeChat(GetString(EZO_CMD_DEBUG_TEXLOAD))
     safeChat(GetString(EZO_CMD_DEBUG_DOTS))
     safeChat(GetString(EZO_CMD_DEBUG_LAYOUT))
+    safeChat(GetString(EZO_CMD_DEBUG_REPAIRKITICON))
+    safeChat(GetString(EZO_CMD_DEBUG_SOULGEMICON))
 end
 
 local function _ejecutarDebug(sub)
@@ -370,6 +376,14 @@ local function _ejecutarDebug(sub)
     end
     if sub == "layout" then
         EjecutarDebugLayout()
+        return true
+    end
+    if sub == "repairkiticon" then
+        EjecutarDebugRepairKitIcon()
+        return true
+    end
+    if sub == "soulgemicon" then
+        EjecutarDebugSoulGemIcon()
         return true
     end
     _mostrarAyudaDebug()
@@ -439,6 +453,36 @@ function EZOTools_ToggleCommandPanel()
     d("[EZOTools] Panel de comandos no disponible (ToggleCommandPanel no cargado)")
 end
 
+
+EjecutarDebugRepairKitIcon = function()
+    if not (EZOTools.GetFirstRepairKitDebugInfo) then
+        EZOTools.Print("Repair kit debug info not available")
+        return
+    end
+    local info = EZOTools.GetFirstRepairKitDebugInfo()
+    if not info then
+        EZOTools.Print(GetString(EZO_MSG_NO_REPAIR_KITS))
+        return
+    end
+    EZOTools.Print(string.format("RepairKit name=%s", tostring(info.name)))
+    EZOTools.Print(string.format("RepairKit icon=%s", tostring(info.icon)))
+    EZOTools.Print(string.format("RepairKit link=%s", tostring(info.link)))
+end
+
+EjecutarDebugSoulGemIcon = function()
+    if not (EZOTools.GetFirstSoulGemDebugInfo) then
+        EZOTools.Print("Soul gem debug info not available")
+        return
+    end
+    local info = EZOTools.GetFirstSoulGemDebugInfo()
+    if not info then
+        EZOTools.Print(GetString(EZO_MSG_NO_SOUL_GEMS))
+        return
+    end
+    EZOTools.Print(string.format("SoulGem name=%s", tostring(info.name)))
+    EZOTools.Print(string.format("SoulGem icon=%s", tostring(info.icon)))
+    EZOTools.Print(string.format("SoulGem link=%s", tostring(info.link)))
+end
 
 -- Diagnóstico: prueba carga de texturas de pet y companion
 EjecutarDebugTexload = function()
@@ -539,3 +583,4 @@ EjecutarDebugDots = function()
         " petId=" .. tostring(petId) ..
         " assistId=" .. tostring(assistId))
 end
+

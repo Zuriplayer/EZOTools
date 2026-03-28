@@ -147,6 +147,8 @@ EZO_STRINGS_ES = {
     EZO_CMD_DEBUG_TEXLOAD       = "  /ezo debug texload  — prueba de carga de texturas",
     EZO_CMD_DEBUG_DOTS          = "  /ezo debug dots     — estado de dots pet/companion",
     EZO_CMD_DEBUG_LAYOUT        = "  /ezo debug layout   — alterna preview de slots laterales",
+    EZO_CMD_DEBUG_REPAIRKITICON = "  /ezo debug repairkiticon — ruta del icono del primer repair kit",
+    EZO_CMD_DEBUG_SOULGEMICON   = "  /ezo debug soulgemicon   — ruta del icono de la primera soul gem",
 
     EZO_CMD_GUILDS_NONE         = "No perteneces a ninguna hermandad.",
     EZO_CMD_GUILDS_HEADER       = "Hermandades (<<1>>):",
@@ -178,5 +180,15 @@ EZO_STRINGS_ES = {
     EZO_SIDE_WIDGET_LEFT        = "Izquierda",
     EZO_SIDE_WIDGET_RIGHT       = "Derecha",
     EZO_SIDE_WIDGET_PREVIEW_TOOLTIP = "Widget preview: <<1>> #<<2>>",
+    EZO_SIDE_WIDGET_SOUL_GEMS_TOOLTIP = "Gemas de alma cargadas bajas: <<1>> disponibles (umbral <<2>>). Clic para abrir ajustes.",
+    EZO_SIDE_WIDGET_REPAIR_KITS_TOOLTIP = "Kits de reparación bajos: <<1>> disponibles (umbral <<2>>). Clic para abrir ajustes.",
 }
-
+EZO_STRINGS_ES["EZO_OPTION_LOW_STOCK_ALERTS_NOTE"] = "Las alertas de stock bajo controlan los widgets laterales. Las gemas se cuentan como gemas cargadas utilizables. Los kits de reparación se cuentan por unidades detectadas, sin distinguir todavía entre kits de una pieza y kits de reparación completa."
+EZO_STRINGS_ES["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE"] = "Mostrar alerta de kits bajos"
+EZO_STRINGS_ES["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE_TOOLTIP"] = "Muestra u oculta el widget lateral cuando los kits de reparación estén bajos."
+EZO_STRINGS_ES["EZO_OPTION_REPAIR_KIT_ALERT_THRESHOLD"] = "Umbral alerta kits reparación"
+EZO_STRINGS_ES["EZO_OPTION_REPAIR_KIT_ALERT_THRESHOLD_TOOLTIP"] = "Muestra la alerta de kits cuando la cantidad detectada de kits de reparación sea igual o inferior a este valor."
+EZO_STRINGS_ES["EZO_OPTION_SOUL_GEM_ALERT_ENABLE"] = "Mostrar alerta de gemas bajas"
+EZO_STRINGS_ES["EZO_OPTION_SOUL_GEM_ALERT_ENABLE_TOOLTIP"] = "Muestra u oculta el widget lateral cuando las gemas de alma cargadas estén bajas."
+EZO_STRINGS_ES["EZO_OPTION_SOUL_GEM_ALERT_THRESHOLD"] = "Umbral alerta gemas de alma"
+EZO_STRINGS_ES["EZO_OPTION_SOUL_GEM_ALERT_THRESHOLD_TOOLTIP"] = "Muestra la alerta de gemas cuando la cantidad detectada de gemas de alma cargadas sea igual o inferior a este valor."
