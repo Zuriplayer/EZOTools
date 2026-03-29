@@ -30,12 +30,12 @@ local function ConstruirOpciones()
         name    = GetString(EZO_OPTION_REPAIR_THRESHOLD),
         tooltip = GetString(EZO_OPTION_REPAIR_THRESHOLD_TOOLTIP),
         min     = 1, max = 100, step = 1,
-        getFunc = function() return tonumber(EZOTools.sv.general.repairThreshold) or 40 end,
+        getFunc = function() return tonumber(EZOTools.sv.general.repairThreshold) or 25 end,
         setFunc = function(v)
             EZOTools.sv.general.repairThreshold = tonumber(v)
             if EZOTools_Overlay and EZOTools_Overlay.RefreshDot then EZOTools_Overlay.RefreshDot() end
         end,
-        default = 40,
+        default = 25,
     }
 
     opciones[#opciones + 1] = {
@@ -43,26 +43,15 @@ local function ConstruirOpciones()
         name    = GetString(EZO_OPTION_RECHARGE_THRESHOLD),
         tooltip = GetString(EZO_OPTION_RECHARGE_THRESHOLD_TOOLTIP),
         min     = 1, max = 100, step = 1,
-        getFunc = function() return tonumber(EZOTools.sv.general.rechargeThreshold) or 50 end,
+        getFunc = function() return tonumber(EZOTools.sv.general.rechargeThreshold) or 25 end,
         setFunc = function(v)
             EZOTools.sv.general.rechargeThreshold = tonumber(v)
             if EZOTools_Overlay and EZOTools_Overlay.RefreshDot then EZOTools_Overlay.RefreshDot() end
         end,
-        default = 50,
+        default = 25,
     }
 
-    opciones[#opciones + 1] = {
-        type    = "checkbox",
-        name    = GetString(EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE),
-        tooltip = GetString(EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE_TOOLTIP),
-        getFunc = function() return EZOTools.sv.overlay.guildCustomImageEnabled == true end,
-        setFunc = function(v)
-            EZOTools.sv.overlay.guildCustomImageEnabled = v
-            if EZOTools_Overlay and EZOTools_Overlay.Refresh then EZOTools_Overlay.Refresh() end
-        end,
-        default = false,
-    }
-
+    opciones[#opciones + 1] = { type = "header", name = GetString(EZO_OPTION_STOCK_ALERTS) }
     opciones[#opciones + 1] = { type = "description", text = GetString(EZO_OPTION_LOW_STOCK_ALERTS_NOTE), width = "full" }
 
     opciones[#opciones + 1] = {
@@ -81,13 +70,13 @@ local function ConstruirOpciones()
         type    = "slider",
         name    = GetString(EZO_OPTION_REPAIR_KIT_ALERT_THRESHOLD),
         tooltip = GetString(EZO_OPTION_REPAIR_KIT_ALERT_THRESHOLD_TOOLTIP),
-        min     = 0, max = 50, step = 1,
-        getFunc = function() return tonumber(EZOTools.sv.general.repairKitAlertThreshold) or 10 end,
+        min     = 0, max = 200, step = 1,
+        getFunc = function() return tonumber(EZOTools.sv.general.repairKitAlertThreshold) or 25 end,
         setFunc = function(v)
             EZOTools.sv.general.repairKitAlertThreshold = tonumber(v)
             if EZOTools_Overlay and EZOTools_Overlay.Refresh then EZOTools_Overlay.Refresh() end
         end,
-        default = 10,
+        default = 25,
         disabled = function() return EZOTools.sv.general.repairKitAlertEnabled == false end,
     }
 
@@ -107,13 +96,13 @@ local function ConstruirOpciones()
         type    = "slider",
         name    = GetString(EZO_OPTION_SOUL_GEM_ALERT_THRESHOLD),
         tooltip = GetString(EZO_OPTION_SOUL_GEM_ALERT_THRESHOLD_TOOLTIP),
-        min     = 0, max = 50, step = 1,
-        getFunc = function() return tonumber(EZOTools.sv.general.soulGemAlertThreshold) or 10 end,
+        min     = 0, max = 200, step = 1,
+        getFunc = function() return tonumber(EZOTools.sv.general.soulGemAlertThreshold) or 25 end,
         setFunc = function(v)
             EZOTools.sv.general.soulGemAlertThreshold = tonumber(v)
             if EZOTools_Overlay and EZOTools_Overlay.Refresh then EZOTools_Overlay.Refresh() end
         end,
-        default = 10,
+        default = 25,
         disabled = function() return EZOTools.sv.general.soulGemAlertEnabled == false end,
     }
 

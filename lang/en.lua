@@ -49,6 +49,7 @@ EZO_STRINGS_EN = {
     EZO_OPTION_OVERLAY_SCALE            = "Overlay scale",
     EZO_OPTION_OVERLAY_TEXT             = "Overlay text",
     EZO_OPTION_OVERLAY_RESET_POS        = "Reset overlay position",
+    EZO_OPTION_GUILD_OVERLAY            = "Guild Overlay",
 
     -- -------------------------------------------------------------------------
     -- LAM panel: Friend Houses section
@@ -67,6 +68,7 @@ EZO_STRINGS_EN = {
     -- LAM panel: Maintenance section
     -- -------------------------------------------------------------------------
     EZO_OPTION_MAINTENANCE                = "Maintenance",
+    EZO_OPTION_STOCK_ALERTS               = "Stock Alerts",
     EZO_OPTION_REPAIR_THRESHOLD           = "Repair equipped threshold (%)",
     EZO_OPTION_REPAIR_THRESHOLD_TOOLTIP   = "The 'Repair equipped' option appears in the menu only if any equipped item is below this durability percentage.",
     EZO_OPTION_RECHARGE_THRESHOLD         = "Recharge weapons threshold (%)",

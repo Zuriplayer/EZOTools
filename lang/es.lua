@@ -48,6 +48,7 @@ EZO_STRINGS_ES = {
     EZO_OPTION_OVERLAY_SCALE            = "Escala del overlay",
     EZO_OPTION_OVERLAY_TEXT             = "Texto del overlay",
     EZO_OPTION_OVERLAY_RESET_POS        = "Reiniciar posición del overlay",
+    EZO_OPTION_GUILD_OVERLAY            = "Guild Overlay",
 
     -- -------------------------------------------------------------------------
     -- Panel LAM: sección Casas de amigos
@@ -66,6 +67,7 @@ EZO_STRINGS_ES = {
     -- Panel LAM: sección Mantenimiento
     -- -------------------------------------------------------------------------
     EZO_OPTION_MAINTENANCE                = "Mantenimiento",
+    EZO_OPTION_STOCK_ALERTS               = "Alertas de stock",
     EZO_OPTION_REPAIR_THRESHOLD           = "Umbral de reparación de equipo (%)",
     EZO_OPTION_REPAIR_THRESHOLD_TOOLTIP   = "La opción 'Reparar equipo' aparece en el menú solo si alguna pieza está por debajo de este porcentaje de durabilidad.",
     EZO_OPTION_RECHARGE_THRESHOLD         = "Umbral de recarga de armas (%)",

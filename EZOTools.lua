@@ -154,22 +154,22 @@ function EZO:Initialize()
     local defaults = {
         general = {
             language          = "en",
-            repairThreshold   = 40,
-            rechargeThreshold = 50,
+            repairThreshold   = 25,
+            rechargeThreshold = 25,
             repairKitAlertEnabled   = true,
-            repairKitAlertThreshold = 10,
+            repairKitAlertThreshold = 25,
             soulGemAlertEnabled     = true,
-            soulGemAlertThreshold   = 10,
+            soulGemAlertThreshold   = 25,
         },
         overlay = {
             enabled          = true,
             alpha            = 1.0,
             scale            = 1.0,
             text             = "EZOTools",
-            guildCustomImageEnabled = false,
+            guildCustomImageEnabled = true,
             simulateGamepad  = false,
             hideInCombat     = false,
-            hideInMenus      = true,
+            hideInMenus      = false,
             locked           = false,
             x                = nil,
             y                = nil,
@@ -177,7 +177,7 @@ function EZO:Initialize()
         friends = {
             craftingHall   = "",
             secondaryHall  = "",
-            autoAssignFriendHouses = false,
+            autoAssignFriendHouses = true,
             autoAssignFriendGuildKey = "",
             customGuildFriendHouses = {},
         },
@@ -805,4 +805,3 @@ EjecutarDebugDots = function()
         " petId=" .. tostring(petId) ..
         " assistId=" .. tostring(assistId))
 end
-

@@ -1575,7 +1575,7 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
                 name    = GetString(EZO_OPTION_OVERLAY_HIDE_MENUS),
                 getFunc = function() return EZO.sv.overlay.hideInMenus end,
                 setFunc = function(v) EZO.sv.overlay.hideInMenus = v; EZOTools_Overlay.Refresh() end,
-                default = true,
+                default = false,
             },
             {
                 type     = "slider",
@@ -1613,7 +1613,30 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
                 func  = function() EZOTools_Overlay.ResetPosition(); EZOTools_Overlay.Refresh() end,
                 width = "full",
             },
-            -- Casas de amigos (agrupadas aquí por proximidad a la config del overlay)
+        }
+    end)
+
+    EZOTools_LAM.RegisterSection("guild_overlay", 15, function()
+        local EZO = EZOTools
+        return {
+            { type = "header", name = GetString(EZO_OPTION_GUILD_OVERLAY) },
+            {
+                type    = "checkbox",
+                name    = GetString(EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE),
+                tooltip = GetString(EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE_TOOLTIP),
+                getFunc = function() return EZO.sv.overlay.guildCustomImageEnabled == true end,
+                setFunc = function(v)
+                    EZO.sv.overlay.guildCustomImageEnabled = v
+                    EZOTools_Overlay.Refresh()
+                end,
+                default = true,
+            },
+        }
+    end)
+
+    EZOTools_LAM.RegisterSection("friend_houses", 20, function()
+        local EZO = EZOTools
+        return {
             { type = "header", name = GetString(EZO_OPTION_FRIENDS) },
             {
                 type    = "checkbox",
@@ -1626,7 +1649,7 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
                         EZO.ApplyAutoFriendHousesSelection()
                     end
                 end,
-                default = false,
+                default = true,
                 disabled = function()
                     local choices = {}
                     if EZO.GetEligibleAutoFriendGuildChoices then
@@ -1700,8 +1723,6 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
         }
     end)
 end
-
-
 
 
 
