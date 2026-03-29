@@ -17,6 +17,7 @@ local overlaySideWidgetData = { left = {}, right = {} }
 local overlaySideWidgetRegistry = { left = {}, right = {} }
 local overlayLayoutPreviewEnabled = false
 local overlayWidgetTooltipWin, overlayWidgetTooltipBackdrop, overlayWidgetTooltipLabel
+local overlayFoodDebugState = nil
 
 -- Estado de combate (se actualiza vía evento)
 local enCombate = false
@@ -37,6 +38,7 @@ local SIDE_SLOT_RADIUS_X = 0.50
 local SIDE_SLOT_RADIUS_Y = 0.78
 local SIDE_SLOT_Y        = { -0.50, -0.16, 0.16, 0.50 }
 local SIDE_WIDGET_ASSIGNMENTS = {
+    foodBuff        = { side = "right", index = 1 },
     repairEquipped  = { side = "left", index = 1 },
     repairKits      = { side = "left", index = 2 },
     rechargeWeapons = { side = "left", index = 3 },
@@ -244,6 +246,95 @@ local function ConstruirTooltipPreviewWidget(side, index)
         tostring(index))
 end
 
+local function FormatearTiempoRestanteCorto(segundos)
+    segundos = math.max(0, math.floor(tonumber(segundos) or 0))
+    local horas = math.floor(segundos / 3600)
+    local minutos = math.floor((segundos % 3600) / 60)
+    local secs = segundos % 60
+    if horas > 0 then
+        return zo_strformat(GetString(EZO_TIME_REMAINING_HM), tostring(horas), tostring(minutos))
+    end
+    if minutos > 0 then
+        return zo_strformat(GetString(EZO_TIME_REMAINING_MS), tostring(minutos), tostring(secs))
+    end
+    return zo_strformat(GetString(EZO_TIME_REMAINING_S), tostring(secs))
+end
+
+local function CalcularSegundosRestantesBuff(endTime)
+    if type(endTime) ~= "number" then return nil end
+    local candidatos = {}
+    local maxRazonable = 7 * 24 * 60 * 60
+
+    if type(GetFrameTimeSeconds) == "function" then
+        local diff = endTime - GetFrameTimeSeconds()
+        if diff >= 0 and diff <= maxRazonable then
+            table.insert(candidatos, diff)
+        end
+    end
+    if type(GetFrameTimeMilliseconds) == "function" then
+        local diff = (endTime - GetFrameTimeMilliseconds()) / 1000
+        if diff >= 0 and diff <= maxRazonable then
+            table.insert(candidatos, diff)
+        end
+    end
+    if type(GetGameTimeMilliseconds) == "function" then
+        local diff = (endTime - GetGameTimeMilliseconds()) / 1000
+        if diff >= 0 and diff <= maxRazonable then
+            table.insert(candidatos, diff)
+        end
+    end
+
+    if #candidatos == 0 then return nil end
+    table.sort(candidatos, function(a, b) return a < b end)
+    return candidatos[1]
+end
+
+local function ObtenerInfoBuffComida()
+    if overlayFoodDebugState == "green" then
+        return {
+            active = true,
+            name = GetString(EZO_DEBUG_FOOD_NAME),
+            remainingSeconds = 15 * 60,
+        }
+    end
+    if overlayFoodDebugState == "yellow" then
+        return {
+            active = true,
+            name = GetString(EZO_DEBUG_FOOD_NAME),
+            remainingSeconds = 4 * 60 + 30,
+        }
+    end
+    if overlayFoodDebugState == "red" then
+        return { active = false }
+    end
+
+    if type(GetNumBuffs) ~= "function" or type(GetUnitBuffInfo) ~= "function" then
+        return { active = false }
+    end
+
+    local num = GetNumBuffs("player")
+    local mejor = nil
+    for i = 1, num do
+        local buffName, _, endTime, _, _, _, _, _, _, _, _, canClickOff = GetUnitBuffInfo("player", i)
+        if endTime and endTime > 0 and canClickOff == true then
+            local candidato = {
+                active = true,
+                name = buffName,
+                remainingSeconds = CalcularSegundosRestantesBuff(endTime),
+            }
+            if not mejor then
+                mejor = candidato
+            elseif type(candidato.remainingSeconds) == "number" and type(mejor.remainingSeconds) == "number" and candidato.remainingSeconds > mejor.remainingSeconds then
+                mejor = candidato
+            elseif mejor.remainingSeconds == nil and candidato.remainingSeconds ~= nil then
+                mejor = candidato
+            end
+        end
+    end
+
+    return mejor or { active = false }
+end
+
 local function ObtenerTooltipWidget(side, index, data)
     if type(data) ~= "table" then
         if overlayLayoutPreviewEnabled then
@@ -358,6 +449,10 @@ local function ObtenerPreviewWidgetData(side, index)
             texture = "/esoui/art/icons/soulgem_006_filled.dds",
             color = { 1.0, 0.45, 0.15, 0.95 },
         },
+        foodBuff = {
+            texture = "/esoui/art/inventory/inventory_tabIcon_Craftbag_provisioning_up.dds",
+            color = { 0.35, 0.85, 0.35, 0.95 },
+        },
     }
 
     for key, slotInfo in pairs(SIDE_WIDGET_ASSIGNMENTS) do
@@ -426,6 +521,40 @@ local function RefrescarWidgetsLateralesEstado()
     local rechargeThreshold = (EZO.sv and EZO.sv.general and tonumber(EZO.sv.general.rechargeThreshold)) or 50
     local canRepairEquipped = type(EZOTools.CanRepairEquipped) == "function" and EZOTools.CanRepairEquipped() or false
     local canRechargeWeapons = type(EZOTools.CanRechargeWeapons) == "function" and EZOTools.CanRechargeWeapons() or false
+    local foodInfo = ObtenerInfoBuffComida()
+    local foodColor = { 1.0, 0.30, 0.30, 0.95 }
+    local foodTooltip = GetString(EZO_SIDE_WIDGET_FOOD_NONE_TOOLTIP)
+
+    if foodInfo.active then
+        local remainingSeconds = tonumber(foodInfo.remainingSeconds)
+        if remainingSeconds ~= nil then
+            if remainingSeconds > 5 * 60 then
+                foodColor = { 0.35, 0.85, 0.35, 0.95 }
+            else
+                foodColor = { 1.0, 0.85, 0.25, 0.95 }
+            end
+            foodTooltip = zo_strformat(
+                GetString(EZO_SIDE_WIDGET_FOOD_ACTIVE_TOOLTIP),
+                tostring(foodInfo.name or ""),
+                FormatearTiempoRestanteCorto(remainingSeconds)
+            )
+        else
+            foodColor = { 0.35, 0.85, 0.35, 0.95 }
+            foodTooltip = zo_strformat(
+                GetString(EZO_SIDE_WIDGET_FOOD_ACTIVE_NO_TIME_TOOLTIP),
+                tostring(foodInfo.name or "")
+            )
+        end
+    end
+
+    AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.foodBuff, {
+        slotKey = "food_buff",
+        visible = true,
+        texture = "/esoui/art/inventory/inventory_tabIcon_Craftbag_provisioning_up.dds",
+        color = foodColor,
+        alpha = 1,
+        tooltipText = foodTooltip,
+    })
 
     if lowRepairKits and type(repairKitCount) == "number" and type(repairKitThreshold) == "number" then
         AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairKits, {
@@ -738,6 +867,19 @@ end
 function MOD.IsLayoutPreviewEnabled()
     return overlayLayoutPreviewEnabled
 end
+
+function MOD.SetFoodDebugState(state)
+    state = zo_strlower(tostring(state or ""))
+    if state == "" or state == "auto" or state == "off" then
+        overlayFoodDebugState = nil
+    elseif state == "green" or state == "yellow" or state == "red" then
+        overlayFoodDebugState = state
+    else
+        return false
+    end
+    MOD.Refresh()
+    return true
+end
 -- Aplica la escala visual al logo y la etiqueta de texto
 local function AplicarEscalaVisual()
     if not overlayTex or not overlayLabel then return end
@@ -769,12 +911,10 @@ local function AplicarEscalaVisual()
     if overlayLabel then
         local sep     = math.max(20, math.floor(28 * s + 0.5))
         local offsetY = math.floor(6 * s + 0.5)
-        -- 5 iconos centrados bajo el label, separación uniforme
-        -- Pet | Repair | Food | Charge | Companion
+        local medioSep = math.max(12, math.floor(sep * 0.5 + 0.5))
         local dots = {
-            { ctrl = overlayPetDot,       x = -sep },
-            { ctrl = overlayFoodDot,      x = 0    },
-            { ctrl = overlayCompanionDot, x = sep  },
+            { ctrl = overlayPetDot,       x = -medioSep },
+            { ctrl = overlayCompanionDot, x =  medioSep },
         }
         for _, d in ipairs(dots) do
             if d.ctrl then
@@ -941,15 +1081,7 @@ end
 --   buffs pasivos permanentes → canClickOff=false siempre (ej: Boon: The Thief)
 -- Regla: canClickOff=true + endTime>0 es exclusivo de comida/bebida.
 local function TieneBuffComida()
-    if not GetNumBuffs then return false end
-    local num = GetNumBuffs("player")
-    for i = 1, num do
-        local _, _, endTime, _, _, _, _, _, _, _, _, canClickOff = GetUnitBuffInfo("player", i)
-        if endTime and endTime > 0 and canClickOff == true then
-            return true
-        end
-    end
-    return false
+    return ObtenerInfoBuffComida().active == true
 end
 
 -- Mascota vanity activa (sin requisito de grupo para pruebas)
@@ -975,10 +1107,7 @@ end
 local function RefrescarDot()
     if overlayMaintDot then overlayMaintDot:SetHidden(true) end
     if overlayChargeDot then overlayChargeDot:SetHidden(true) end
-    -- Icono comida: visible cuando NO hay buff de comida/bebida activo
-    if overlayFoodDot then
-        overlayFoodDot:SetHidden(TieneBuffComida())
-    end
+    if overlayFoodDot then overlayFoodDot:SetHidden(true) end
     -- Icono mascota: visible si vanity pet activa (en grupo en producción)
     if overlayPetDot then
         overlayPetDot:SetHidden(not TieneMascotaEnGrupo())
@@ -1091,9 +1220,7 @@ function MOD.Init()
         EVENT_EFFECT_CHANGED,
         function(_, changeType, _, _, unitTag, _, _, _, _, _, abilityType)
             if unitTag == "player" and abilityType == ABILITY_TYPE_NONCOMBATBONUS then
-                if overlayFoodDot then
-                    overlayFoodDot:SetHidden(TieneBuffComida())
-                end
+                RefrescarDot()
             end
         end)
 

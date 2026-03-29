@@ -334,7 +334,7 @@ local function _comandoVersion()
     safeChat(zo_strformat(GetString(EZO_CMD_VERSION_GAMEPAD), gamepad))
 end
 
-local EjecutarDebugTexload, EjecutarDebugTex, EjecutarDebugDots, EjecutarDebugLayout, EjecutarDebugRepairKitIcon, EjecutarDebugSoulGemIcon
+local EjecutarDebugTexload, EjecutarDebugTex, EjecutarDebugDots, EjecutarDebugLayout, EjecutarDebugRepairKitIcon, EjecutarDebugSoulGemIcon, EjecutarDebugFood
 
 local function _mostrarAyudaDebug()
     safeChat(GetString(EZO_CMD_DEBUG_TITLE))
@@ -346,9 +346,10 @@ local function _mostrarAyudaDebug()
     safeChat(GetString(EZO_CMD_DEBUG_LAYOUT))
     safeChat(GetString(EZO_CMD_DEBUG_REPAIRKITICON))
     safeChat(GetString(EZO_CMD_DEBUG_SOULGEMICON))
+    safeChat(GetString(EZO_CMD_DEBUG_FOOD))
 end
 
-local function _ejecutarDebug(sub)
+local function _ejecutarDebug(sub, arg)
     sub = zo_strlower(sub or "")
     if sub == "" or sub == "help" or sub == "?" then
         _mostrarAyudaDebug()
@@ -386,6 +387,10 @@ local function _ejecutarDebug(sub)
         EjecutarDebugSoulGemIcon()
         return true
     end
+    if sub == "food" then
+        EjecutarDebugFood(arg)
+        return true
+    end
     _mostrarAyudaDebug()
     return true
 end
@@ -411,9 +416,10 @@ local function _manejadorSlash(arg)
         _mostrarAyudaPrincipal()
         return
     end
-    local a1, a2 = zo_strsplit(" ", trimmed)
+    local a1, a2, a3 = zo_strsplit(" ", trimmed)
     a1 = zo_strlower(a1 or "")
     a2 = zo_strlower(a2 or "")
+    a3 = zo_strlower(a3 or "")
     if a1 == "help" or a1 == "?" then
         _mostrarAyudaPrincipal(); return
     end
@@ -421,7 +427,7 @@ local function _manejadorSlash(arg)
         _comandoVersion(); return
     end
     if a1 == "debug" then
-        _ejecutarDebug(a2); return
+        _ejecutarDebug(a2, a3); return
     end
     _mostrarAyudaPrincipal()
 end
@@ -482,6 +488,23 @@ EjecutarDebugSoulGemIcon = function()
     EZOTools.Print(string.format("SoulGem name=%s", tostring(info.name)))
     EZOTools.Print(string.format("SoulGem icon=%s", tostring(info.icon)))
     EZOTools.Print(string.format("SoulGem link=%s", tostring(info.link)))
+end
+
+EjecutarDebugFood = function(modo)
+    if not (EZOTools_Overlay and EZOTools_Overlay.SetFoodDebugState) then
+        EZOTools.Print(GetString(EZO_CMD_LAYOUT_NA))
+        return
+    end
+    modo = zo_strlower(tostring(modo or ""))
+    if modo == "" then
+        EZOTools.Print(GetString(EZO_CMD_DEBUG_FOOD_USAGE))
+        return
+    end
+    if not EZOTools_Overlay.SetFoodDebugState(modo) then
+        EZOTools.Print(GetString(EZO_CMD_DEBUG_FOOD_USAGE))
+        return
+    end
+    EZOTools.Print(zo_strformat(GetString(EZO_CMD_DEBUG_FOOD_SET), modo))
 end
 
 -- Diagnóstico: prueba carga de texturas de pet y companion
