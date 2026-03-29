@@ -36,6 +36,7 @@ function EZO:Initialize()
             alpha            = 1.0,
             scale            = 1.0,
             text             = "EZOTools",
+            guildCustomImageEnabled = false,
             simulateGamepad  = false,
             hideInCombat     = false,
             hideInMenus      = true,
@@ -334,7 +335,7 @@ local function _comandoVersion()
     safeChat(zo_strformat(GetString(EZO_CMD_VERSION_GAMEPAD), gamepad))
 end
 
-local EjecutarDebugTexload, EjecutarDebugTex, EjecutarDebugDots, EjecutarDebugLayout, EjecutarDebugRepairKitIcon, EjecutarDebugSoulGemIcon, EjecutarDebugFood
+local EjecutarDebugTexload, EjecutarDebugTex, EjecutarDebugDots, EjecutarDebugLayout, EjecutarDebugRepairKitIcon, EjecutarDebugSoulGemIcon, EjecutarDebugFood, EjecutarDebugGuildColor, EjecutarDebugGuildImage
 
 local function _mostrarAyudaDebug()
     safeChat(GetString(EZO_CMD_DEBUG_TITLE))
@@ -347,6 +348,8 @@ local function _mostrarAyudaDebug()
     safeChat(GetString(EZO_CMD_DEBUG_REPAIRKITICON))
     safeChat(GetString(EZO_CMD_DEBUG_SOULGEMICON))
     safeChat(GetString(EZO_CMD_DEBUG_FOOD))
+    safeChat(GetString(EZO_CMD_DEBUG_GUILDCOLOR))
+    safeChat(GetString(EZO_CMD_DEBUG_GUILDIMAGE))
 end
 
 local function _ejecutarDebug(sub, arg)
@@ -389,6 +392,14 @@ local function _ejecutarDebug(sub, arg)
     end
     if sub == "food" then
         EjecutarDebugFood(arg)
+        return true
+    end
+    if sub == "guildcolor" then
+        EjecutarDebugGuildColor()
+        return true
+    end
+    if sub == "guildimage" then
+        EjecutarDebugGuildImage()
         return true
     end
     _mostrarAyudaDebug()
@@ -505,6 +516,41 @@ EjecutarDebugFood = function(modo)
         return
     end
     EZOTools.Print(zo_strformat(GetString(EZO_CMD_DEBUG_FOOD_SET), modo))
+end
+
+EjecutarDebugGuildColor = function()
+    if not (EZOTools_Overlay and EZOTools_Overlay.GetRepresentedGuildColorDebugInfo) then
+        EZOTools.Print("Guild color debug info not available")
+        return
+    end
+    local info = EZOTools_Overlay.GetRepresentedGuildColorDebugInfo()
+    EZOTools.Print(string.format("GuildColor guildId=%s", tostring(info.guildId)))
+    EZOTools.Print(string.format("GuildColor guildIndex=%s", tostring(info.guildIndex)))
+    EZOTools.Print(string.format("GuildColor guildName=%s", tostring(info.guildName)))
+    EZOTools.Print(string.format("GuildColor chatCategoryId=%s", tostring(info.chatCategoryId)))
+    EZOTools.Print(string.format(
+        "GuildColor rgba=%s,%s,%s,%s",
+        tostring(info.colorR),
+        tostring(info.colorG),
+        tostring(info.colorB),
+        tostring(info.colorA)
+    ))
+end
+
+EjecutarDebugGuildImage = function()
+    if not (EZOTools_Overlay and EZOTools_Overlay.GetRepresentedGuildImageDebugInfo) then
+        EZOTools.Print("Guild image debug info not available")
+        return
+    end
+    local info = EZOTools_Overlay.GetRepresentedGuildImageDebugInfo()
+    EZOTools.Print(string.format("GuildImage enabled=%s", tostring(info.enabled)))
+    EZOTools.Print(string.format("GuildImage tabard=%s", tostring(info.tabardName)))
+    EZOTools.Print(string.format("GuildImage guildName=%s", tostring(info.guildName)))
+    EZOTools.Print(string.format("GuildImage guildKey=%s", tostring(info.guildKey)))
+    EZOTools.Print(string.format("GuildImage preferredPath=%s", tostring(info.preferredPath)))
+    EZOTools.Print(string.format("GuildImage preferredLoaded=%s", tostring(info.preferredLoaded)))
+    EZOTools.Print(string.format("GuildImage fallbackPath=%s", tostring(info.fallbackPath)))
+    EZOTools.Print(string.format("GuildImage fallbackLoaded=%s", tostring(info.fallbackLoaded)))
 end
 
 -- Diagnóstico: prueba carga de texturas de pet y companion

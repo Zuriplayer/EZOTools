@@ -19,6 +19,40 @@ local overlayLayoutPreviewEnabled = false
 local overlayWidgetTooltipWin, overlayWidgetTooltipBackdrop, overlayWidgetTooltipLabel
 local overlayFoodDebugState = nil
 
+local DEFAULT_OVERLAY_TEXTURES = {
+    "/AddOns/EZOTools/media/ezotools_logo.dds",
+    "/AddOns/EZOTools/Media/ezotools_logo.dds",
+    "EZOTools/media/ezotools_logo.dds",
+    "EZOTools/Media/ezotools_logo.dds",
+}
+
+local GUILD_OVERLAY_TEXTURES = {
+    ["children of lamae"] = {
+        "/AddOns/EZOTools/media/guild_overlays/children_of_lamae.dds",
+        "EZOTools/media/guild_overlays/children_of_lamae.dds",
+    },
+    ["fuego"] = {
+        "/AddOns/EZOTools/media/guild_overlays/fuego.dds",
+        "EZOTools/media/guild_overlays/fuego.dds",
+    },
+    ["hojablanca"] = {
+        "/AddOns/EZOTools/media/guild_overlays/hojablanca.dds",
+        "EZOTools/media/guild_overlays/hojablanca.dds",
+    },
+    ["liga latina"] = {
+        "/AddOns/EZOTools/media/guild_overlays/liga_latina.dds",
+        "EZOTools/media/guild_overlays/liga_latina.dds",
+    },
+    ["ad-minions"] = {
+        "/AddOns/EZOTools/media/guild_overlays/minion.dds",
+        "EZOTools/media/guild_overlays/minion.dds",
+    },
+    ["sombras de lorkhan"] = {
+        "/AddOns/EZOTools/media/guild_overlays/sombra.dds",
+        "EZOTools/media/guild_overlays/sombra.dds",
+    },
+}
+
 -- Estado de combate (se actualiza vía evento)
 local enCombate = false
 
@@ -137,6 +171,196 @@ local function ObtenerGuildRepresentada()
     return GetGuildName(guildId)
 end
 
+local function NormalizarClaveGuild(nombre)
+    if type(nombre) ~= "string" then return nil end
+    nombre = zo_strtrim(nombre)
+    if nombre == "" then return nil end
+    nombre = zo_strlower(nombre)
+    nombre = nombre:gsub("%s+", " ")
+    return nombre
+end
+
+local function ObtenerRutasLogoGuildRepresentada()
+    if not (EZO.sv and EZO.sv.overlay and EZO.sv.overlay.guildCustomImageEnabled == true) then
+        return nil
+    end
+    if ObtenerGuildTabardo() ~= nil then
+        return nil
+    end
+    local nombreGuild = ObtenerGuildRepresentada()
+    local claveGuild = NormalizarClaveGuild(nombreGuild)
+    if not claveGuild then return nil end
+    return GUILD_OVERLAY_TEXTURES[claveGuild]
+end
+
+local function AplicarTexturaConFallback(ctrl, rutasPreferidas, rutasFallback)
+    if not ctrl then return false end
+
+    local function IntentarRutas(rutas)
+        if type(rutas) ~= "table" then return false end
+        local ultimaRuta = nil
+        for _, ruta in ipairs(rutas) do
+            ultimaRuta = ruta
+            ctrl:SetTexture(ruta)
+            if ctrl:IsTextureLoaded() then
+                return true
+            end
+        end
+        if ultimaRuta then
+            -- Algunas texturas del addon tardan en confirmar carga al cambiar
+            -- en caliente. Dejamos la última ruta preferida aplicada para que
+            -- el siguiente refresco pueda verla ya cargada.
+            ctrl:SetTexture(ultimaRuta)
+            return true
+        end
+        return false
+    end
+
+    if IntentarRutas(rutasPreferidas) then
+        return true
+    end
+
+    return IntentarRutas(rutasFallback)
+end
+
+local function RefrescarTexturaLogoCentral()
+    if not overlayTex then return end
+    AplicarTexturaConFallback(overlayTex, ObtenerRutasLogoGuildRepresentada(), DEFAULT_OVERLAY_TEXTURES)
+end
+
+function MOD.GetRepresentedGuildImageDebugInfo()
+    local info = {
+        enabled = (EZO.sv and EZO.sv.overlay and EZO.sv.overlay.guildCustomImageEnabled == true) or false,
+        tabardName = ObtenerGuildTabardo(),
+        guildName = ObtenerGuildRepresentada(),
+        guildKey = nil,
+        preferredPath = nil,
+        preferredLoaded = nil,
+        fallbackPath = nil,
+        fallbackLoaded = nil,
+    }
+
+    info.guildKey = NormalizarClaveGuild(info.guildName)
+
+    local preferred = ObtenerRutasLogoGuildRepresentada()
+    if type(preferred) == "table" and overlayTex then
+        for _, ruta in ipairs(preferred) do
+            info.preferredPath = ruta
+            overlayTex:SetTexture(ruta)
+            if overlayTex:IsTextureLoaded() then
+                info.preferredLoaded = true
+                break
+            end
+            info.preferredLoaded = false
+        end
+    end
+
+    if overlayTex then
+        for _, ruta in ipairs(DEFAULT_OVERLAY_TEXTURES) do
+            overlayTex:SetTexture(ruta)
+            if overlayTex:IsTextureLoaded() then
+                info.fallbackPath = ruta
+                info.fallbackLoaded = true
+                break
+            end
+            if not info.fallbackPath then
+                info.fallbackPath = ruta
+                info.fallbackLoaded = false
+            end
+        end
+        RefrescarTexturaLogoCentral()
+    end
+
+    return info
+end
+
+local function ObtenerIndiceGuildRepresentada()
+    if type(GetRepresentedGuildId) ~= "function" or type(GetNumGuilds) ~= "function" or type(GetGuildId) ~= "function" then
+        return nil
+    end
+    local representedGuildId = GetRepresentedGuildId()
+    if not representedGuildId or representedGuildId == 0 then return nil end
+    local numGuilds = GetNumGuilds()
+    for i = 1, numGuilds do
+        if GetGuildId(i) == representedGuildId then
+            return i
+        end
+    end
+    return nil
+end
+
+local function DesempaquetarColorGuild(value, g, b, a)
+    if type(value) == "number" and type(g) == "number" and type(b) == "number" then
+        return value, g, b, (type(a) == "number" and a or 1)
+    end
+    if type(value) ~= "table" then return nil end
+    if type(value.UnpackRGBA) == "function" then
+        return value:UnpackRGBA()
+    end
+    if type(value.GetRGBA) == "function" then
+        return value:GetRGBA()
+    end
+    if type(value.r) == "number" and type(value.g) == "number" and type(value.b) == "number" then
+        return value.r, value.g, value.b, (type(value.a) == "number" and value.a or 1)
+    end
+    return nil
+end
+
+local function ObtenerColorGuildRepresentada()
+    local guildIndex = ObtenerIndiceGuildRepresentada()
+    if not guildIndex then return nil end
+    if type(GetChatCategoryColor) ~= "function" then return nil end
+    if type(MultiLevelEventToCategoryMappings) ~= "table" or type(EVENT_CHAT_MESSAGE_CHANNEL) ~= "number" then return nil end
+    local channelMap = MultiLevelEventToCategoryMappings[EVENT_CHAT_MESSAGE_CHANNEL]
+    if type(channelMap) ~= "table" then return nil end
+    local channelIdBase = CHAT_CHANNEL_GUILD_1
+    if type(channelIdBase) ~= "number" then return nil end
+    local categoryId = channelMap[channelIdBase + guildIndex - 1]
+    if categoryId == nil then return nil end
+
+    local c1, c2, c3, c4 = GetChatCategoryColor(categoryId)
+    local r, g, b, a = DesempaquetarColorGuild(c1, c2, c3, c4)
+    if type(r) == "number" and type(g) == "number" and type(b) == "number" then
+        return r, g, b, (type(a) == "number" and a or 1)
+    end
+    return nil
+end
+
+function MOD.GetRepresentedGuildColorDebugInfo()
+    local info = {
+        guildId = nil,
+        guildIndex = nil,
+        guildName = nil,
+        chatCategoryId = nil,
+        colorR = nil,
+        colorG = nil,
+        colorB = nil,
+        colorA = nil,
+    }
+
+    if type(GetRepresentedGuildId) == "function" then
+        info.guildId = GetRepresentedGuildId()
+    end
+    info.guildIndex = ObtenerIndiceGuildRepresentada()
+    if info.guildId and info.guildId ~= 0 and type(GetGuildName) == "function" then
+        info.guildName = GetGuildName(info.guildId)
+    end
+
+    if info.guildIndex and type(GetChatCategoryColor) == "function" and type(MultiLevelEventToCategoryMappings) == "table" and type(EVENT_CHAT_MESSAGE_CHANNEL) == "number" and type(CHAT_CHANNEL_GUILD_1) == "number" then
+        local channelMap = MultiLevelEventToCategoryMappings[EVENT_CHAT_MESSAGE_CHANNEL]
+        if type(channelMap) == "table" then
+            info.chatCategoryId = channelMap[CHAT_CHANNEL_GUILD_1 + info.guildIndex - 1]
+            if info.chatCategoryId ~= nil then
+                local c1, c2, c3, c4 = GetChatCategoryColor(info.chatCategoryId)
+                local r, g, b, a = DesempaquetarColorGuild(c1, c2, c3, c4)
+                info.colorR, info.colorG, info.colorB, info.colorA = r, g, b, a
+            end
+        end
+    end
+
+    return info
+end
+
 -- Actualiza la etiqueta de guild en el overlay.
 -- Lógica de prioridad:
 --   1. Tabardo equipado → nombre de la guild del tabardo (amarillo discreto)
@@ -144,6 +368,7 @@ end
 --   3. Ninguna → "Sin hermandad" / "No guild" en rojo
 local function RefrescarEtiquetaGuild()
     if not overlayGuildLabel then return end
+    RefrescarTexturaLogoCentral()
 
     -- Prioridad 1: tabardo equipado
     local nombreTabardo = ObtenerGuildTabardo()
@@ -163,7 +388,7 @@ local function RefrescarEtiquetaGuild()
     local nombreGuild = ObtenerGuildRepresentada()
     if nombreGuild then
         overlayGuildLabel:SetText(nombreGuild)
-        overlayGuildLabel:SetColor(0.7, 0.7, 0.7, 1)  -- gris discreto
+        overlayGuildLabel:SetColor(0.7, 0.7, 0.7, 1)  -- fallback discreto hasta encontrar la API correcta
         return
     end
 
@@ -240,6 +465,26 @@ local function AsegurarTooltipWidget()
 end
 
 local function ConstruirTooltipPreviewWidget(side, index)
+    for key, slotInfo in pairs(SIDE_WIDGET_ASSIGNMENTS) do
+        if slotInfo and slotInfo.side == side and slotInfo.index == index then
+            if key == "foodBuff" then
+                return GetString(EZO_SIDE_WIDGET_FOOD_PREVIEW_TOOLTIP)
+            end
+            if key == "repairEquipped" then
+                return GetString(EZO_SIDE_WIDGET_REPAIR_EQUIPPED_PREVIEW_TOOLTIP)
+            end
+            if key == "repairKits" then
+                return GetString(EZO_SIDE_WIDGET_REPAIR_KITS_PREVIEW_TOOLTIP)
+            end
+            if key == "rechargeWeapons" then
+                return GetString(EZO_SIDE_WIDGET_RECHARGE_WEAPONS_PREVIEW_TOOLTIP)
+            end
+            if key == "soulGems" then
+                return GetString(EZO_SIDE_WIDGET_SOUL_GEMS_PREVIEW_TOOLTIP)
+            end
+        end
+    end
+
     return zo_strformat(
         GetString(EZO_SIDE_WIDGET_PREVIEW_TOOLTIP),
         ObtenerNombreLadoWidget(side),
@@ -949,19 +1194,7 @@ local function AsegurarControles()
     -- Textura del logo
     overlayTex = WINDOW_MANAGER:CreateControl("$(parent)Tex", overlayWin, CT_TEXTURE)
     overlayTex:SetAnchor(CENTER, overlayWin, CENTER, 0, 10)
-
-    -- Probar rutas del logo en orden hasta que IsTextureLoaded() confirme que cargó.
-    -- La ruta correcta varía según instalación (mayúsculas/minúsculas en "media").
-    local rutasLogo = {
-        "/AddOns/EZOTools/media/ezotools_logo.dds",
-        "/AddOns/EZOTools/Media/ezotools_logo.dds",
-        "EZOTools/media/ezotools_logo.dds",
-        "EZOTools/Media/ezotools_logo.dds",
-    }
-    for _, ruta in ipairs(rutasLogo) do
-        overlayTex:SetTexture(ruta)
-        if overlayTex:IsTextureLoaded() then break end
-    end
+    RefrescarTexturaLogoCentral()
 
     -- Etiqueta de texto bajo el logo
     overlayLabel = WINDOW_MANAGER:CreateControl("$(parent)Label", overlayWin, CT_LABEL)
@@ -1012,22 +1245,23 @@ local function AsegurarControles()
         "/esoui/art/inventory/inventory_tabicon_weapons_up.dds",
     })
 
-    -- Icono mascota: pet_009=perro blanco, pet_027=zorro fennec (verificados en foro ESO oficial)
+    -- Icono mascota: preferimos iconos de categoría del juego, sin tinte, para mantener
+    -- un estilo más coherente con el resto de avisos del overlay.
     overlayPetDot = CrearIcono("EZOToolsPetDot2", {
+        "/esoui/art/treeicons/collections_indexicon_noncombatpets_up.dds",
+        "/esoui/art/treeicons/store_indexicon_vanitypets_up.dds",
         "/esoui/art/icons/pet_009.dds",
-        "/esoui/art/icons/pet_027.dds",
-        "/esoui/art/icons/pet_001.dds",
     })
-    overlayPetDot:SetColor(0.2, 1, 0.2, 1)  -- verde
+    overlayPetDot:SetColor(1, 1, 1, 1)
     overlayPetDot:SetAnchor(TOP, overlayLabel, BOTTOM, -56, 6)
 
-    -- Icono companion/asistente: icono de rol healer de LFG (silueta humana con bastón)
-    -- LFG_icon_healer verificado en sharedtextures.lua del repo oficial esoui/esoui
+    -- Icono companion/asistente: usamos iconos de categoría del juego y sin tinte.
     overlayCompanionDot = CrearIcono("EZOToolsCompDot2", {
-        "/esoui/art/lfg/lfg_icon_healer.dds",
-        "/esoui/art/lfg/lfg_icon_tank.dds",
-        "/esoui/art/lfg/lfg_icon_dps.dds",
+        "/esoui/art/treeicons/collections_indexicon_companions_up.dds",
+        "/esoui/art/treeicons/store_indexicon_assistants_up.dds",
+        "/esoui/art/hud/loothistory_bonusdropsourceicon_companion.dds",
     })
+    overlayCompanionDot:SetColor(1, 1, 1, 1)
     overlayCompanionDot:SetAnchor(TOP, overlayLabel, BOTTOM, 56, 6)
 
     -- Guardar posición al terminar de mover
@@ -1130,6 +1364,7 @@ function MOD.Refresh()
     overlayTex:SetAlpha(a)
     overlayLabel:SetAlpha(a)
     overlayLabel:SetText(ObtenerTextoOverlay())
+    RefrescarTexturaLogoCentral()
     RefrescarEtiquetaGuild()
     AplicarEscalaVisual()
     RefrescarDot()

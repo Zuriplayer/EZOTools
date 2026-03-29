@@ -51,6 +51,18 @@ local function ConstruirOpciones()
         default = 50,
     }
 
+    opciones[#opciones + 1] = {
+        type    = "checkbox",
+        name    = GetString(EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE),
+        tooltip = GetString(EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE_TOOLTIP),
+        getFunc = function() return EZOTools.sv.overlay.guildCustomImageEnabled == true end,
+        setFunc = function(v)
+            EZOTools.sv.overlay.guildCustomImageEnabled = v
+            if EZOTools_Overlay and EZOTools_Overlay.Refresh then EZOTools_Overlay.Refresh() end
+        end,
+        default = false,
+    }
+
     opciones[#opciones + 1] = { type = "description", text = GetString(EZO_OPTION_LOW_STOCK_ALERTS_NOTE), width = "full" }
 
     opciones[#opciones + 1] = {
