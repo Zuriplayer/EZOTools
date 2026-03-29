@@ -54,6 +54,12 @@ EZO_STRINGS_EN = {
     -- LAM panel: Friend Houses section
     -- -------------------------------------------------------------------------
     EZO_OPTION_FRIENDS          = "Friend Houses",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN = "Auto-assign houses from selected guild",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN_TOOLTIP = "If enabled, the addon automatically fills the crafting and secondary house fields using the guild chosen in the selector, as long as you belong to a guild supported by the addon.",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD = "Guild for auto-assignment",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD_TOOLTIP = "Choose one of your guilds supported by the addon. Auto-assignment will use your saved configuration for that guild first and fall back to the addon's internal assignment if no saved configuration exists.",
+    EZO_OPTION_FRIENDS_SAVE_SELECTED = "Save houses for selected guild",
+    EZO_OPTION_FRIENDS_SAVE_SELECTED_TOOLTIP = "Save the current Crafting Hall and Secondary Hall values for the selected guild. Auto-assignment will use this saved configuration before the internal one.",
     EZO_OPTION_FRIENDS_CRAFTING = "Crafting Hall (account name @...)",
     EZO_OPTION_FRIENDS_SECONDARY= "Secondary Hall (account name @...)",
 

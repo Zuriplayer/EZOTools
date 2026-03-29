@@ -17,6 +17,136 @@ end
 -- Guardamos safeChat en el namespace para que otros módulos puedan usarla
 EZO.Print = safeChat
 
+local AUTO_FRIEND_HOUSES_BY_GUILD = {
+    ["hojablanca"] = {
+        craftingHall = "@sunsetlu",
+        secondaryHall = "@grukka",
+    },
+    ["fuego"] = {
+        craftingHall = "@Whasabi",
+        secondaryHall = "",
+    },
+    ["children of lamae"] = {
+        craftingHall = "@HoDPS",
+        secondaryHall = "@LadyRee",
+    },
+    ["ad-minions"] = {
+        craftingHall = "@Jogi1",
+        secondaryHall = "@Stucca",
+    },
+    ["sombras de lorkhan"] = {
+        craftingHall = "@Salander7",
+        secondaryHall = "@RoseDarkSpiryt",
+    },
+}
+
+local function NormalizarClaveGuild(nombre)
+    if type(nombre) ~= "string" then return nil end
+    nombre = zo_strtrim(nombre)
+    if nombre == "" then return nil end
+    nombre = zo_strlower(nombre)
+    nombre = nombre:gsub("%s+", " ")
+    return nombre
+end
+
+function EZO.GetEligibleAutoFriendGuildChoices()
+    local choices, values = {}, {}
+    if type(GetNumGuilds) ~= "function" or type(GetGuildId) ~= "function" or type(GetGuildName) ~= "function" then
+        return choices, values
+    end
+
+    local numGuilds = GetNumGuilds()
+    for i = 1, numGuilds do
+        local guildId = GetGuildId(i)
+        local guildName = guildId and GetGuildName(guildId) or nil
+        local guildKey = NormalizarClaveGuild(guildName)
+        if guildKey and type(AUTO_FRIEND_HOUSES_BY_GUILD[guildKey]) == "table" then
+            choices[#choices + 1] = guildName
+            values[#values + 1] = guildKey
+        end
+    end
+
+    return choices, values
+end
+
+local function ObtenerAsignacionCasasPorGuild(guildKey)
+    guildKey = NormalizarClaveGuild(guildKey)
+    if not guildKey then return nil end
+
+    local custom = EZO.sv and EZO.sv.friends and EZO.sv.friends.customGuildFriendHouses
+    if type(custom) == "table" and type(custom[guildKey]) == "table" then
+        return custom[guildKey]
+    end
+
+    if type(AUTO_FRIEND_HOUSES_BY_GUILD[guildKey]) == "table" then
+        return AUTO_FRIEND_HOUSES_BY_GUILD[guildKey]
+    end
+
+    return nil
+end
+
+function EZO.ApplyAutoFriendHousesSelection()
+    if not (EZO.sv and EZO.sv.friends and EZO.sv.friends.autoAssignFriendHouses == true) then
+        return false
+    end
+
+    local guildKey = NormalizarClaveGuild(EZO.sv.friends.autoAssignFriendGuildKey)
+    if not guildKey then
+        return false
+    end
+
+    local _, playerGuildValues = EZO.GetEligibleAutoFriendGuildChoices()
+    local belongsToGuild = false
+    for _, value in ipairs(playerGuildValues) do
+        if value == guildKey then
+            belongsToGuild = true
+            break
+        end
+    end
+    if not belongsToGuild then
+        return false
+    end
+
+    local config = ObtenerAsignacionCasasPorGuild(guildKey)
+    if type(config) ~= "table" then
+        return false
+    end
+
+    EZO.sv.friends.craftingHall = tostring(config.craftingHall or "")
+    EZO.sv.friends.secondaryHall = tostring(config.secondaryHall or "")
+    return true
+end
+
+function EZO.SaveCurrentFriendHousesForSelectedGuild()
+    if not (EZO.sv and EZO.sv.friends) then
+        return false
+    end
+
+    local guildKey = NormalizarClaveGuild(EZO.sv.friends.autoAssignFriendGuildKey)
+    if not guildKey then
+        return false
+    end
+
+    local _, playerGuildValues = EZO.GetEligibleAutoFriendGuildChoices()
+    local belongsToGuild = false
+    for _, value in ipairs(playerGuildValues) do
+        if value == guildKey then
+            belongsToGuild = true
+            break
+        end
+    end
+    if not belongsToGuild then
+        return false
+    end
+
+    EZO.sv.friends.customGuildFriendHouses = EZO.sv.friends.customGuildFriendHouses or {}
+    EZO.sv.friends.customGuildFriendHouses[guildKey] = {
+        craftingHall = tostring(EZO.sv.friends.craftingHall or ""),
+        secondaryHall = tostring(EZO.sv.friends.secondaryHall or ""),
+    }
+    return true
+end
+
 function EZO:Initialize()
     local world = GetWorldName()
 
@@ -47,6 +177,9 @@ function EZO:Initialize()
         friends = {
             craftingHall   = "",
             secondaryHall  = "",
+            autoAssignFriendHouses = false,
+            autoAssignFriendGuildKey = "",
+            customGuildFriendHouses = {},
         },
     }
 
@@ -62,6 +195,26 @@ function EZO:Initialize()
     if not self.sv.overlay.text or self.sv.overlay.text == "EZOTools" then
         self.sv.overlay.text = GetDisplayName() or GetString(EZO_MSG_INIT)
     end
+
+    do
+        local guildKey = NormalizarClaveGuild(self.sv.friends.autoAssignFriendGuildKey)
+        local _, eligibleValues = self.GetEligibleAutoFriendGuildChoices()
+        local isEligible = false
+        for _, value in ipairs(eligibleValues) do
+            if value == guildKey then
+                isEligible = true
+                break
+            end
+        end
+        if not isEligible then
+            self.sv.friends.autoAssignFriendGuildKey = ""
+            if #eligibleValues == 0 then
+                self.sv.friends.autoAssignFriendHouses = false
+            end
+        end
+    end
+
+    self.ApplyAutoFriendHousesSelection()
 
     -- Inicializar submódulos en orden
     if EZOTools_Menu      and EZOTools_Menu.Init      then EZOTools_Menu.Init()      end

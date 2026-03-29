@@ -53,6 +53,12 @@ EZO_STRINGS_ES = {
     -- Panel LAM: sección Casas de amigos
     -- -------------------------------------------------------------------------
     EZO_OPTION_FRIENDS          = "Casas de amigos",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN = "Autoasignar casas desde guild seleccionada",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN_TOOLTIP = "Si está activado, el addon rellena automáticamente la casa de artesanía y la secundaria usando la guild elegida en el selector, siempre que pertenezcas a una guild soportada por el addon.",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD = "Guild para autoasignación",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD_TOOLTIP = "Selecciona una de tus guilds soportadas por el addon. La autoasignación usará primero la configuración que hayas guardado para esa guild y, si no existe, la asignación interna del addon.",
+    EZO_OPTION_FRIENDS_SAVE_SELECTED = "Guardar casas para la guild seleccionada",
+    EZO_OPTION_FRIENDS_SAVE_SELECTED_TOOLTIP = "Guarda los valores actuales de Crafting Hall y Secondary Hall para la guild seleccionada. La autoasignación usará esta configuración guardada antes que la interna.",
     EZO_OPTION_FRIENDS_CRAFTING = "Crafting Hall (nombre de cuenta @...)",
     EZO_OPTION_FRIENDS_SECONDARY= "Secondary Hall (nombre de cuenta @...)",
 

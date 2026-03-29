@@ -1463,6 +1463,9 @@ function MOD.Init()
         EVENT_GUILD_DATA_LOADED,
         function()
             cachedRepresentedGuildId = nil  -- forzar refresco
+            if EZO and type(EZO.ApplyAutoFriendHousesSelection) == "function" then
+                EZO.ApplyAutoFriendHousesSelection()
+            end
             if overlayWin then RefrescarEtiquetaGuild() end
         end)
 
@@ -1612,6 +1615,74 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
             },
             -- Casas de amigos (agrupadas aquí por proximidad a la config del overlay)
             { type = "header", name = GetString(EZO_OPTION_FRIENDS) },
+            {
+                type    = "checkbox",
+                name    = GetString(EZO_OPTION_FRIENDS_AUTO_ASSIGN),
+                tooltip = GetString(EZO_OPTION_FRIENDS_AUTO_ASSIGN_TOOLTIP),
+                getFunc = function() return EZO.sv.friends.autoAssignFriendHouses == true end,
+                setFunc = function(v)
+                    EZO.sv.friends.autoAssignFriendHouses = v
+                    if v and EZO.ApplyAutoFriendHousesSelection then
+                        EZO.ApplyAutoFriendHousesSelection()
+                    end
+                end,
+                default = false,
+                disabled = function()
+                    local choices = {}
+                    if EZO.GetEligibleAutoFriendGuildChoices then
+                        choices = EZO.GetEligibleAutoFriendGuildChoices()
+                    end
+                    return #choices == 0
+                end,
+            },
+            {
+                type         = "dropdown",
+                name         = GetString(EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD),
+                tooltip      = GetString(EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD_TOOLTIP),
+                choices      = (function()
+                    if EZO.GetEligibleAutoFriendGuildChoices then
+                        local choices = EZO.GetEligibleAutoFriendGuildChoices()
+                        return choices
+                    end
+                    return {}
+                end)(),
+                choicesValues = (function()
+                    if EZO.GetEligibleAutoFriendGuildChoices then
+                        local _, values = EZO.GetEligibleAutoFriendGuildChoices()
+                        return values
+                    end
+                    return {}
+                end)(),
+                getFunc      = function() return EZO.sv.friends.autoAssignFriendGuildKey or "" end,
+                setFunc      = function(v)
+                    EZO.sv.friends.autoAssignFriendGuildKey = tostring(v or "")
+                    if EZO.sv.friends.autoAssignFriendHouses == true and EZO.ApplyAutoFriendHousesSelection then
+                        EZO.ApplyAutoFriendHousesSelection()
+                    end
+                end,
+                default      = "",
+                disabled     = function()
+                    local choices = {}
+                    if EZO.GetEligibleAutoFriendGuildChoices then
+                        choices = EZO.GetEligibleAutoFriendGuildChoices()
+                    end
+                    return EZO.sv.friends.autoAssignFriendHouses ~= true or #choices == 0
+                end,
+            },
+            {
+                type  = "button",
+                name  = GetString(EZO_OPTION_FRIENDS_SAVE_SELECTED),
+                tooltip = GetString(EZO_OPTION_FRIENDS_SAVE_SELECTED_TOOLTIP),
+                func  = function()
+                    if EZO.SaveCurrentFriendHousesForSelectedGuild then
+                        EZO.SaveCurrentFriendHousesForSelectedGuild()
+                    end
+                end,
+                width = "full",
+                disabled = function()
+                    return not (EZO.sv and EZO.sv.friends and EZO.sv.friends.autoAssignFriendGuildKey and EZO.sv.friends.autoAssignFriendGuildKey ~= "")
+                end,
+            },
             {
                 type        = "editbox",
                 name        = GetString(EZO_OPTION_FRIENDS_CRAFTING),
