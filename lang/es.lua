@@ -12,7 +12,6 @@ EZO_STRINGS_ES = {
     -- Nombres de keybinds (aparecen en la pantalla de controles)
     -- -------------------------------------------------------------------------
     SI_BINDING_NAME_EZO_TOGGLE_COMMAND_PANEL    = "Abrir panel de comandos",
-    SI_BINDING_NAME_EZO_COMMAND_PANEL_SELECT    = "Panel de comandos: Ejecutar selección",
     SI_BINDING_NAME_EZO_TRAVEL_PRIMARY_HOUSE    = "Viajar a casa principal",
     SI_BINDING_NAME_EZO_TRAVEL_CRAFTING_HALL    = "Visitar sala de artesanía",
     SI_BINDING_NAME_EZO_TRAVEL_SECONDARY_HALL   = "Visitar sala secundaria",
@@ -20,7 +19,6 @@ EZO_STRINGS_ES = {
     SI_BINDING_NAME_EZO_LEAVE_INSTANCE          = "Salir de instancia",
     SI_BINDING_NAME_EZO_LEAVE_GROUP_INSTANCE    = "Salir del grupo y de la instancia",
     SI_BINDING_NAME_EZO_RELOAD_UI               = "Recargar interfaz",
-    SI_BINDING_NAME_EZO_TOGGLE_OVERLAY          = "Mostrar/Ocultar overlay",
 
     -- -------------------------------------------------------------------------
     -- Mensajes generales del addon
@@ -33,7 +31,7 @@ EZO_STRINGS_ES = {
     -- -------------------------------------------------------------------------
     EZO_OPTION_GENERAL                  = "General",
     EZO_OPTION_LANGUAGE                 = "Idioma",
-    EZO_OPTION_LANGUAGE_TOOLTIP         = "Cambiar el idioma actualiza todos los textos del addon de inmediato. Los nombres de keybind pueden requerir /reloadui.",
+    EZO_OPTION_LANGUAGE_TOOLTIP         = "Cambia los textos del addon al momento. Los nombres de keybind en la pantalla de controles pueden requerir /reloadui.",
 
     -- -------------------------------------------------------------------------
     -- Panel LAM: sección Overlay
@@ -46,9 +44,13 @@ EZO_STRINGS_ES = {
     EZO_OPTION_OVERLAY_HIDE_MENUS       = "Ocultar en menús",
     EZO_OPTION_OVERLAY_ALPHA            = "Opacidad del overlay",
     EZO_OPTION_OVERLAY_SCALE            = "Escala del overlay",
+    EZO_OPTION_OVERLAY_PLAYER_TEXT_COLOR = "Color del nombre del jugador",
+    EZO_OPTION_OVERLAY_PLAYER_TEXT_SIZE = "Tamaño del nombre del jugador",
     EZO_OPTION_OVERLAY_TEXT             = "Texto del overlay",
     EZO_OPTION_OVERLAY_RESET_POS        = "Reiniciar posición del overlay",
     EZO_OPTION_GUILD_OVERLAY            = "Guild Overlay",
+    EZO_OPTION_GUILD_LABEL_COLOR        = "Color del nombre de la guild representada",
+    EZO_OPTION_GUILD_LABEL_COLOR_TOOLTIP = "Sólo se aplica cuando hay una guild representada seleccionada y no llevas tabardo. Los estados de tabardo y sin guild mantienen sus colores actuales.",
 
     -- -------------------------------------------------------------------------
     -- Panel LAM: sección Casas de amigos

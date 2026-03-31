@@ -17,6 +17,16 @@ end
 -- Guardamos safeChat en el namespace para que otros módulos puedan usarla
 EZO.Print = safeChat
 
+local function ObtenerIdiomaPorDefectoCliente()
+    if type(GetCVar) == "function" then
+        local lang = zo_strlower(tostring(GetCVar("Language.2") or ""))
+        if lang == "es" or lang == "en" then
+            return lang
+        end
+    end
+    return "en"
+end
+
 local AUTO_FRIEND_HOUSES_BY_GUILD = {
     ["hojablanca"] = {
         craftingHall = "@sunsetlu",
@@ -149,11 +159,12 @@ end
 
 function EZO:Initialize()
     local world = GetWorldName()
+    local defaultLanguage = ObtenerIdiomaPorDefectoCliente()
 
     -- Valores por defecto de las variables guardadas (por cuenta y mundo)
     local defaults = {
         general = {
-            language          = "en",
+            language          = defaultLanguage,
             repairThreshold   = 25,
             rechargeThreshold = 25,
             repairKitAlertEnabled   = true,
@@ -166,6 +177,9 @@ function EZO:Initialize()
             alpha            = 1.0,
             scale            = 1.0,
             text             = "EZOTools",
+            playerTextScale  = 1.0,
+            playerTextColor  = { 1, 1, 1, 1 },
+            guildLabelColor  = { 0.7, 0.7, 0.7, 1 },
             guildCustomImageEnabled = true,
             simulateGamepad  = false,
             hideInCombat     = false,
@@ -229,10 +243,10 @@ function EZO:Initialize()
     if self.RegisterSlashCommands then self:RegisterSlashCommands() end
 
 
-    -- Asignar keybind por defecto del panel de comandos para gamepad.
-    -- CreateDefaultActionBind solo actúa si el slot está vacío — nunca sobreescribe.
+    -- Asignar keybinds por defecto del panel de comandos.
+    -- CreateDefaultActionBind solo actúa si el slot está vacío y el usuario puede cambiarlo luego.
     -- KEY_GAMEPAD_BUTTON_3_HOLD = X-hold en Xbox / cuadrado-hold en PS.
-    -- ESO traduce automáticamente al icono correcto según el mando conectado.
+    -- En teclado usamos CTRL + ALT + Num 0 como combinación conservadora.
     -- Hay que esperar EVENT_KEYBINDINGS_LOADED para que el sistema de bindings esté listo.
     EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_DefaultBind",
         EVENT_KEYBINDINGS_LOADED,
@@ -242,6 +256,9 @@ function EZO:Initialize()
                 CreateDefaultActionBind("EZO_TOGGLE_COMMAND_PANEL",
                     KEY_GAMEPAD_BUTTON_3_HOLD,  -- X-hold Xbox / cuadrado-hold PS
                     KEY_INVALID, KEY_INVALID, KEY_INVALID, KEY_INVALID)
+                CreateDefaultActionBind("EZO_TOGGLE_COMMAND_PANEL",
+                    KEY_NUMPAD0,
+                    KEY_CTRL, KEY_ALT, KEY_INVALID, KEY_INVALID)
             end
         end)
 end

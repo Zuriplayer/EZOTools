@@ -13,7 +13,6 @@ EZO_STRINGS_EN = {
     -- Keybind names (shown in Controls screen)
     -- -------------------------------------------------------------------------
     SI_BINDING_NAME_EZO_TOGGLE_COMMAND_PANEL    = "Open Command Panel",
-    SI_BINDING_NAME_EZO_COMMAND_PANEL_SELECT    = "Command Panel: Execute Selected",
     SI_BINDING_NAME_EZO_TRAVEL_PRIMARY_HOUSE    = "Travel to Primary House",
     SI_BINDING_NAME_EZO_TRAVEL_CRAFTING_HALL    = "Visit Crafting Hall",
     SI_BINDING_NAME_EZO_TRAVEL_SECONDARY_HALL   = "Visit Secondary Hall",
@@ -21,7 +20,6 @@ EZO_STRINGS_EN = {
     SI_BINDING_NAME_EZO_LEAVE_INSTANCE          = "Leave Instance",
     SI_BINDING_NAME_EZO_LEAVE_GROUP_INSTANCE    = "Leave Group and Instance",
     SI_BINDING_NAME_EZO_RELOAD_UI               = "Reload UI",
-    SI_BINDING_NAME_EZO_TOGGLE_OVERLAY          = "Show/Hide Overlay",
 
     -- -------------------------------------------------------------------------
     -- General addon messages
@@ -34,7 +32,7 @@ EZO_STRINGS_EN = {
     -- -------------------------------------------------------------------------
     EZO_OPTION_GENERAL                  = "General",
     EZO_OPTION_LANGUAGE                 = "Language",
-    EZO_OPTION_LANGUAGE_TOOLTIP         = "Changing the language updates all addon texts immediately. Keybind names may require /reloadui.",
+    EZO_OPTION_LANGUAGE_TOOLTIP         = "Changes addon texts immediately. Keybind names in the controls screen may require /reloadui.",
 
     -- -------------------------------------------------------------------------
     -- LAM panel: Overlay section
@@ -47,9 +45,13 @@ EZO_STRINGS_EN = {
     EZO_OPTION_OVERLAY_HIDE_MENUS       = "Hide in menus",
     EZO_OPTION_OVERLAY_ALPHA            = "Overlay opacity",
     EZO_OPTION_OVERLAY_SCALE            = "Overlay scale",
+    EZO_OPTION_OVERLAY_PLAYER_TEXT_COLOR = "Player name color",
+    EZO_OPTION_OVERLAY_PLAYER_TEXT_SIZE = "Player name size",
     EZO_OPTION_OVERLAY_TEXT             = "Overlay text",
     EZO_OPTION_OVERLAY_RESET_POS        = "Reset overlay position",
     EZO_OPTION_GUILD_OVERLAY            = "Guild Overlay",
+    EZO_OPTION_GUILD_LABEL_COLOR        = "Represented guild name color",
+    EZO_OPTION_GUILD_LABEL_COLOR_TOOLTIP = "Applied only when a represented guild is selected and no tabard is equipped. Tabard and no-guild states keep their current colors.",
 
     -- -------------------------------------------------------------------------
     -- LAM panel: Friend Houses section

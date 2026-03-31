@@ -83,11 +83,26 @@ local BASE_TEX         = 128   -- píxeles base de la textura del logo
 local BASE_FONT_PC     = 20    -- tamaño de fuente base en modo teclado/ratón
 local BASE_FONT_GP     = 32    -- tamaño de fuente base en modo gamepad
 local GUILD_FONT_RATIO = 0.75  -- la fuente de guild es el 75% del tamaño del nombre del jugador
+local PLAYER_TEXT_SCALE_MIN = 0.6
+local PLAYER_TEXT_SCALE_MAX = 1.0
 
 -- Genera la cadena de fuente ESO a partir de un tamaño en píxeles
 local function CadenaFuente(px)
     px = math.max(10, math.floor(px))
     return string.format("$(BOLD_FONT)|%d|soft-shadow-thin", px)
+end
+
+local function ObtenerColorOverlay(configValue, fallback)
+    if type(configValue) == "table" then
+        local r = tonumber(configValue[1])
+        local g = tonumber(configValue[2])
+        local b = tonumber(configValue[3])
+        local a = tonumber(configValue[4])
+        if r and g and b then
+            return r, g, b, a or 1
+        end
+    end
+    return fallback[1], fallback[2], fallback[3], fallback[4]
 end
 
 -- Devuelve true si la escena actual es el HUD (en juego, sin menús)
@@ -388,7 +403,11 @@ local function RefrescarEtiquetaGuild()
     local nombreGuild = ObtenerGuildRepresentada()
     if nombreGuild then
         overlayGuildLabel:SetText(nombreGuild)
-        overlayGuildLabel:SetColor(0.7, 0.7, 0.7, 1)  -- fallback discreto hasta encontrar la API correcta
+        local r, g, b, a = ObtenerColorOverlay(
+            EZO.sv and EZO.sv.overlay and EZO.sv.overlay.guildLabelColor,
+            { 0.7, 0.7, 0.7, 1 }
+        )
+        overlayGuildLabel:SetColor(r, g, b, a)
         return
     end
 
@@ -1134,7 +1153,9 @@ local function AplicarEscalaVisual()
 
     local esGP   = (EZO.sv.overlay.simulateGamepad or IsInGamepadPreferredMode())
     local basePx = esGP and BASE_FONT_GP or BASE_FONT_PC
-    overlayLabel:SetFont(CadenaFuente(basePx * s))
+    local playerScale = tonumber(EZO.sv.overlay.playerTextScale) or 1
+    playerScale = zo_clamp(playerScale, PLAYER_TEXT_SCALE_MIN, PLAYER_TEXT_SCALE_MAX)
+    overlayLabel:SetFont(CadenaFuente(basePx * s * playerScale))
     overlayLabel:ClearAnchors()
     overlayLabel:SetAnchor(TOP, overlayTex, BOTTOM, 0, math.floor(6 * s + 0.5))
     overlayLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
@@ -1200,7 +1221,13 @@ local function AsegurarControles()
     overlayLabel = WINDOW_MANAGER:CreateControl("$(parent)Label", overlayWin, CT_LABEL)
     overlayLabel:SetFont(CadenaFuente(BASE_FONT_PC))
     overlayLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-    overlayLabel:SetColor(1, 1, 1, 1)
+    do
+        local r, g, b, a = ObtenerColorOverlay(
+            EZO.sv and EZO.sv.overlay and EZO.sv.overlay.playerTextColor,
+            { 1, 1, 1, 1 }
+        )
+        overlayLabel:SetColor(r, g, b, a)
+    end
 
     -- Etiqueta de guild encima del logo
     overlayGuildLabel = WINDOW_MANAGER:CreateControl("$(parent)Guild", overlayWin, CT_LABEL)
@@ -1364,6 +1391,13 @@ function MOD.Refresh()
     overlayTex:SetAlpha(a)
     overlayLabel:SetAlpha(a)
     overlayLabel:SetText(ObtenerTextoOverlay())
+    do
+        local r, g, b, alpha = ObtenerColorOverlay(
+            EZO.sv and EZO.sv.overlay and EZO.sv.overlay.playerTextColor,
+            { 1, 1, 1, 1 }
+        )
+        overlayLabel:SetColor(r, g, b, alpha)
+    end
     RefrescarTexturaLogoCentral()
     RefrescarEtiquetaGuild()
     AplicarEscalaVisual()
@@ -1594,6 +1628,30 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
                 decimals = 2,
             },
             {
+                type    = "colorpicker",
+                name    = GetString(EZO_OPTION_OVERLAY_PLAYER_TEXT_COLOR),
+                getFunc = function()
+                    return ObtenerColorOverlay(EZO.sv.overlay.playerTextColor, { 1, 1, 1, 1 })
+                end,
+                setFunc = function(r, g, b, a)
+                    EZO.sv.overlay.playerTextColor = { r, g, b, a or 1 }
+                    EZOTools_Overlay.Refresh()
+                end,
+                default = { 1, 1, 1, 1 },
+            },
+            {
+                type     = "slider",
+                name     = GetString(EZO_OPTION_OVERLAY_PLAYER_TEXT_SIZE),
+                min      = PLAYER_TEXT_SCALE_MIN, max = PLAYER_TEXT_SCALE_MAX, step = 0.05,
+                getFunc  = function() return tonumber(EZO.sv.overlay.playerTextScale) or 1 end,
+                setFunc  = function(v)
+                    EZO.sv.overlay.playerTextScale = zo_clamp(tonumber(v) or 1, PLAYER_TEXT_SCALE_MIN, PLAYER_TEXT_SCALE_MAX)
+                    EZOTools_Overlay.Refresh()
+                end,
+                default  = 1,
+                decimals = 2,
+            },
+            {
                 type       = "editbox",
                 name       = GetString(EZO_OPTION_OVERLAY_TEXT),
                 getFunc    = function() return ObtenerTextoOverlay() end,
@@ -1630,6 +1688,19 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
                     EZOTools_Overlay.Refresh()
                 end,
                 default = true,
+            },
+            {
+                type    = "colorpicker",
+                name    = GetString(EZO_OPTION_GUILD_LABEL_COLOR),
+                tooltip = GetString(EZO_OPTION_GUILD_LABEL_COLOR_TOOLTIP),
+                getFunc = function()
+                    return ObtenerColorOverlay(EZO.sv.overlay.guildLabelColor, { 0.7, 0.7, 0.7, 1 })
+                end,
+                setFunc = function(r, g, b, a)
+                    EZO.sv.overlay.guildLabelColor = { r, g, b, a or 1 }
+                    EZOTools_Overlay.Refresh()
+                end,
+                default = { 0.7, 0.7, 0.7, 1 },
             },
         }
     end)
@@ -1723,7 +1794,6 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
         }
     end)
 end
-
 
 
 
