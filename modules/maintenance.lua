@@ -41,15 +41,30 @@ end
 -- Llama a una función de la API ESO de forma segura.
 -- Intento directo primero; si falla reintenta con CallSecureProtected si está disponible.
 local function LlamarApi(nombreFuncion, ...)
+    local esProtegida = false
+    if type(IsProtectedFunction) == "function" then
+        local okProt, resProt = pcall(IsProtectedFunction, nombreFuncion)
+        if okProt and resProt then
+            esProtegida = true
+        end
+    end
+
     local fn = _G[nombreFuncion]
     if type(fn) == "function" then
         local ok, res = pcall(fn, ...)
-        if ok then return res end
-        if type(CallSecureProtected) == "function" then
+        if ok then
+            if res ~= nil and res ~= false then
+                return res
+            end
+            if res == nil and not esProtegida then
+                return true
+            end
+        end
+        if esProtegida and type(CallSecureProtected) == "function" then
             local ok2, res2 = pcall(CallSecureProtected, nombreFuncion, ...)
             if ok2 then return res2 end
         end
-        return nil
+        return res
     end
     if type(CallSecureProtected) == "function" then
         local ok3, res3 = pcall(CallSecureProtected, nombreFuncion, ...)
@@ -296,7 +311,7 @@ function EZOTools.CanRepairEquipped()
     for _, ranura in ipairs(RANURAS_ARMADURA) do
         if type(DoesItemHaveDurability) == "function" and DoesItemHaveDurability(BAG_WORN, ranura) then
             local cond = GetItemCondition(BAG_WORN, ranura)
-            if cond ~= nil and cond <= umbral then return true end
+            if cond ~= nil and cond < 100 and cond <= umbral then return true end
         end
     end
     return false
@@ -312,7 +327,7 @@ function EZOTools.RepairEquipped()
     for _, ranura in ipairs(RANURAS_ARMADURA) do
         if type(DoesItemHaveDurability) == "function" and DoesItemHaveDurability(BAG_WORN, ranura) then
             local cond = GetItemCondition(BAG_WORN, ranura)
-            if cond ~= nil and cond <= umbral then
+            if cond ~= nil and cond < 100 and cond <= umbral then
                 local kitBag, kitSlot = BuscarKitReparacion()
                 if not kitBag then
                     EZOTools.Print(GetString(EZO_MSG_NO_REPAIR_KITS))
@@ -339,7 +354,7 @@ function EZOTools.CanRechargeWeapons()
     local umbral = ObtenerUmbralRecarga()
     for _, ranura in ipairs(RANURAS_ARMAS) do
         local pct = ObtenerPorcentajeCargaArma(ranura)
-        if pct ~= nil and pct <= umbral then return true end
+        if pct ~= nil and pct < 100 and pct <= umbral then return true end
     end
     return false
 end
@@ -353,7 +368,7 @@ function EZOTools.RechargeWeapons()
     local recargadoAlgo = false
     for _, ranura in ipairs(RANURAS_ARMAS) do
         local pct = ObtenerPorcentajeCargaArma(ranura)
-        if pct ~= nil and pct <= umbral then
+        if pct ~= nil and pct < 100 and pct <= umbral then
             -- Re-buscar gema en cada iteración por si se agotó el stack anterior
             local gemBag, gemSlot = BuscarGemaAlmaCargada()
             if not gemBag then

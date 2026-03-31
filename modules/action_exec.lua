@@ -153,6 +153,20 @@ function X.RegisterCore()
         end
         return false
     end)
+
+    X.Register("REPAIR_EQUIPPED", function()
+        if EZO and type(EZO.RepairEquipped) == "function" then
+            EZO.RepairEquipped()
+        end
+        return false
+    end)
+
+    X.Register("RECHARGE_WEAPONS", function()
+        if EZO and type(EZO.RechargeWeapons) == "function" then
+            EZO.RechargeWeapons()
+        end
+        return false
+    end)
 end
 
 -- Auto-registrar acciones al cargar el módulo
