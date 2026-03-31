@@ -79,6 +79,7 @@ EZO_STRINGS_ES = {
     -- Entradas del panel de comandos
     -- -------------------------------------------------------------------------
     EZO_MENU_TITLE                = "EZOTools",
+    EZO_MENU_DIALOG_SUBTITLE      = "By <<1>>  (v<<2>>)",
     EZO_MENU_SETTINGS             = "Ajustes rápidos",
     EZO_MENU_ADDON_SETTINGS       = "Ajustes completos (LAM)",
     EZO_MENU_TRAVEL_PRIMARY       = "Ir a mi casa",

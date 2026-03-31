@@ -11,6 +11,12 @@ local Dialog = EZO.GamepadDialog
 local NOMBRE_DIALOGO = "EZO_GAMEPAD_CONTEXT_DIALOG"
 Dialog.DIALOG_NAME = NOMBRE_DIALOGO
 
+local function ConstruirSubtituloDialogo()
+    local autor = tostring((EZO and EZO.AUTHOR) or "@Zuriplayer")
+    local version = tostring((EZO and EZO.ADDON_VERSION) or "")
+    return zo_strformat(GetString(EZO_MENU_DIALOG_SUBTITLE), autor, version)
+end
+
 -- Cierra el diálogo actual de forma segura (necesario antes de abrir otro diálogo gamepad)
 local function CerrarDialogoActual()
     if ZO_Dialogs_ReleaseDialog then pcall(ZO_Dialogs_ReleaseDialog, NOMBRE_DIALOGO) end
@@ -72,7 +78,7 @@ local function AsegurarRegistrado()
     ZO_Dialogs_RegisterCustomDialog(NOMBRE_DIALOGO, {
         gamepadInfo    = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
         title          = { text = "E|cB040FFZ|rOTools" },
-        mainText       = { text = GetString(SI_BINDING_CATEGORY_EZOTOOLS) or "E|cB040FFZ|rOTools" },
+        mainText       = { text = ConstruirSubtituloDialogo() },
         parametricList = {},
 
         setup = function(dialog)

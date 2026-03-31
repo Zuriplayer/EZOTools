@@ -11,6 +11,12 @@ local Dialog = EZO.GamepadSettingsDialog
 local NOMBRE_DIALOGO = "EZO_GAMEPAD_SETTINGS_DIALOG"
 Dialog.DIALOG_NAME   = NOMBRE_DIALOGO
 
+local function ConstruirSubtituloDialogo()
+    local autor = tostring((EZO and EZO.AUTHOR) or "@Zuriplayer")
+    local version = tostring((EZO and EZO.ADDON_VERSION) or "")
+    return zo_strformat(GetString(EZO_MENU_DIALOG_SUBTITLE), autor, version)
+end
+
 -- Garantiza que los valores por defecto de mantenimiento existen
 -- AsegurarDefectos disponible como EZOTools_AsegurarDefectos (shared_utils.lua)
 local AsegurarDefectos = EZOTools_AsegurarDefectos
@@ -136,7 +142,7 @@ local function AsegurarRegistrado()
     ZO_Dialogs_RegisterCustomDialog(NOMBRE_DIALOGO, {
         gamepadInfo    = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
         title          = { text = "E|cB040FFZ|rOTools" },
-        mainText       = { text = GetString(EZO_SETTINGS_TITLE) },
+        mainText       = { text = ConstruirSubtituloDialogo() },
         blockDialogReleaseOnPress = true,
         parametricList = {},
 

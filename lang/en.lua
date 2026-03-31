@@ -80,6 +80,7 @@ EZO_STRINGS_EN = {
     -- Command panel menu entries
     -- -------------------------------------------------------------------------
     EZO_MENU_TITLE                = "EZOTools",
+    EZO_MENU_DIALOG_SUBTITLE      = "By <<1>>  (v<<2>>)",
     EZO_MENU_SETTINGS             = "Quick settings",
     EZO_MENU_ADDON_SETTINGS       = "Full settings (LAM)",
     EZO_MENU_TRAVEL_PRIMARY       = "Go to my house",
