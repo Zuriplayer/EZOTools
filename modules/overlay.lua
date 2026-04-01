@@ -9,7 +9,7 @@ local MOD = EZOTools_Overlay
 local EZO = EZOTools
 
 -- Controles de la ventana (se crean en EnsureControls la primera vez)
-local overlayWin, overlayTex, overlayLabel, overlayGuildLabel, overlayMaintDot, overlayChargeDot, overlayFoodDot, overlayPetDot, overlayCompanionDot
+local overlayWin, overlayTex, overlayLabel, overlayGuildLabel, overlayMaintDot, overlayChargeDot, overlayFoodDot, overlayPetDot, overlayCompanionDot, overlayAssistantDot
 local overlaySideSlotsLeft, overlaySideSlotsRight = {}, {}
 local overlaySideWidgetsLeft, overlaySideWidgetsRight = {}, {}
 local overlaySideWidgetTexturesLeft, overlaySideWidgetTexturesRight = {}, {}
@@ -85,6 +85,12 @@ local BASE_FONT_GP     = 32    -- tamaño de fuente base en modo gamepad
 local GUILD_FONT_RATIO = 0.75  -- la fuente de guild es el 75% del tamaño del nombre del jugador
 local PLAYER_TEXT_SCALE_MIN = 0.6
 local PLAYER_TEXT_SCALE_MAX = 1.0
+
+local TieneAsistenteActivo
+local OcultarMascotaActiva
+local OcultarCompanionOAsistenteActivo
+local RefrescarDot
+local ProgramarRefrescoDots
 
 -- Genera la cadena de fuente ESO a partir de un tamaño en píxeles
 local function CadenaFuente(px)
@@ -1177,10 +1183,10 @@ local function AplicarEscalaVisual()
     if overlayLabel then
         local sep     = math.max(20, math.floor(28 * s + 0.5))
         local offsetY = math.floor(6 * s + 0.5)
-        local medioSep = math.max(12, math.floor(sep * 0.5 + 0.5))
         local dots = {
-            { ctrl = overlayPetDot,       x = -medioSep },
-            { ctrl = overlayCompanionDot, x =  medioSep },
+            { ctrl = overlayPetDot,       x = -sep },
+            { ctrl = overlayCompanionDot, x =  0 },
+            { ctrl = overlayAssistantDot, x =  sep },
         }
         for _, d in ipairs(dots) do
             if d.ctrl then
@@ -1282,14 +1288,21 @@ local function AsegurarControles()
     overlayPetDot:SetColor(1, 1, 1, 1)
     overlayPetDot:SetAnchor(TOP, overlayLabel, BOTTOM, -56, 6)
 
-    -- Icono companion/asistente: usamos iconos de categoría del juego y sin tinte.
+    -- Icono companion: seguidor NPC activo.
     overlayCompanionDot = CrearIcono("EZOToolsCompDot2", {
         "/esoui/art/treeicons/collections_indexicon_companions_up.dds",
-        "/esoui/art/treeicons/store_indexicon_assistants_up.dds",
         "/esoui/art/hud/loothistory_bonusdropsourceicon_companion.dds",
     })
     overlayCompanionDot:SetColor(1, 1, 1, 1)
-    overlayCompanionDot:SetAnchor(TOP, overlayLabel, BOTTOM, 56, 6)
+    overlayCompanionDot:SetAnchor(TOP, overlayLabel, BOTTOM, 0, 6)
+
+    -- Icono assistant: banker, merchant, fence, etc.
+    overlayAssistantDot = CrearIcono("EZOToolsAssistDot2", {
+        "/esoui/art/treeicons/gamepad/gp_collection_indexicon_assistants.dds",
+        "/esoui/art/treeicons/store_indexicon_assistants_up.dds",
+    })
+    overlayAssistantDot:SetColor(1, 1, 1, 1)
+    overlayAssistantDot:SetAnchor(TOP, overlayLabel, BOTTOM, 56, 6)
 
     -- Guardar posición al terminar de mover
     overlayWin:SetHandler("OnMoveStop", function()
@@ -1299,8 +1312,45 @@ local function AsegurarControles()
 
     AsegurarTooltipWidget()
 
-    -- Clic derecho abre el menú contextual
+    -- Clic izquierdo: iconos inferiores; clic derecho: menú contextual
     overlayWin:SetHandler("OnMouseUp", function(_, button, upInside)
+        if button == MOUSE_BUTTON_INDEX_LEFT and upInside and type(MouseIsOver) == "function" then
+            if overlayPetDot and not overlayPetDot:IsHidden() and MouseIsOver(overlayPetDot) then
+                if EZO and type(EZO.Print) == "function" then
+                    EZO.Print(GetString(EZO_MSG_HIDE_PET))
+                end
+                if OcultarMascotaActiva() then
+                    if overlayPetDot then
+                        overlayPetDot:SetHidden(true)
+                    end
+                end
+                return
+            end
+
+            if overlayCompanionDot and not overlayCompanionDot:IsHidden() and MouseIsOver(overlayCompanionDot) then
+                if EZO and type(EZO.Print) == "function" then
+                    EZO.Print(GetString(EZO_MSG_HIDE_COMPANION))
+                end
+                if OcultarCompanionOAsistenteActivo() then
+                    if overlayCompanionDot then
+                        overlayCompanionDot:SetHidden(true)
+                    end
+                end
+                return
+            end
+
+            if overlayAssistantDot and not overlayAssistantDot:IsHidden() and MouseIsOver(overlayAssistantDot) then
+                if EZO and type(EZO.Print) == "function" then
+                    EZO.Print(GetString(EZO_MSG_HIDE_ASSISTANT))
+                end
+                if OcultarCompanionOAsistenteActivo() then
+                    if overlayAssistantDot then
+                        overlayAssistantDot:SetHidden(true)
+                    end
+                end
+                return
+            end
+        end
         if button == MOUSE_BUTTON_INDEX_RIGHT and upInside then
             if EZOTools_ContextMenu and EZOTools_ContextMenu.OpenMouse then
                 EZOTools_ContextMenu.OpenMouse(overlayWin)
@@ -1354,18 +1404,66 @@ local function TieneMascotaEnGrupo()
     return petId ~= nil and petId ~= 0
 end
 
--- Companion (NPC seguidor) O asistente activo
-local function TieneCompanion()
-    -- Companion tipo Bastian, Mirri, etc.
-    if HasActiveCompanion and HasActiveCompanion() then return true end
-    -- Asistente (banker, merchant, fence...) — collectible de categoría ASSISTANT
-    local assistId = GetActiveCollectibleByType(
-        COLLECTIBLE_CATEGORY_TYPE_ASSISTANT,
+OcultarMascotaActiva = function()
+    if type(GetActiveCollectibleByType) ~= "function" or type(UseCollectible) ~= "function" then
+        return false
+    end
+    local petId = GetActiveCollectibleByType(
+        COLLECTIBLE_CATEGORY_TYPE_VANITY_PET,
         GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+    if not petId or petId == 0 then
+        return false
+    end
+    UseCollectible(petId)
+    return true
+end
+
+TieneAsistenteActivo = function()
+    if type(GetActiveCollectibleByType) ~= "function" then
+        return false
+    end
+    local assistId = GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_ASSISTANT)
     return assistId ~= nil and assistId ~= 0
 end
 
-local function RefrescarDot()
+-- Companion (NPC seguidor) activo
+local function TieneCompanionActivo()
+    return HasActiveCompanion and HasActiveCompanion() or false
+end
+
+OcultarCompanionOAsistenteActivo = function()
+    if HasActiveCompanion and HasActiveCompanion() then
+        if type(GetActiveCompanionDefId) == "function"
+            and type(GetCompanionCollectibleId) == "function"
+            and type(UseCollectible) == "function" then
+            local companionId = GetActiveCompanionDefId()
+            if companionId and companionId ~= 0 then
+                local collectibleId = GetCompanionCollectibleId(companionId)
+                if collectibleId and collectibleId ~= 0 then
+                    UseCollectible(collectibleId)
+                    return true
+                end
+            end
+        end
+        if type(DismissCompanion) == "function" then
+            DismissCompanion()
+            return true
+        end
+        return false
+    end
+
+    if type(GetActiveCollectibleByType) ~= "function" or type(UseCollectible) ~= "function" then
+        return false
+    end
+    local assistId = GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_ASSISTANT)
+    if not assistId or assistId == 0 then
+        return false
+    end
+    UseCollectible(assistId)
+    return true
+end
+
+RefrescarDot = function()
     if overlayMaintDot then overlayMaintDot:SetHidden(true) end
     if overlayChargeDot then overlayChargeDot:SetHidden(true) end
     if overlayFoodDot then overlayFoodDot:SetHidden(true) end
@@ -1373,12 +1471,27 @@ local function RefrescarDot()
     if overlayPetDot then
         overlayPetDot:SetHidden(not TieneMascotaEnGrupo())
     end
-    -- Icono companion/asistente: visible si companion o asistente activo
+    -- Iconos companion y assistant: visibilidad separada
     if overlayCompanionDot then
-        overlayCompanionDot:SetHidden(not TieneCompanion())
+        overlayCompanionDot:SetHidden(not TieneCompanionActivo())
+    end
+    if overlayAssistantDot then
+        overlayAssistantDot:SetHidden(not TieneAsistenteActivo())
     end
 
     RefrescarWidgetsLateralesEstado()
+end
+
+ProgramarRefrescoDots = function()
+    RefrescarDot()
+    if type(zo_callLater) == "function" then
+        zo_callLater(function()
+            RefrescarDot()
+        end, 500)
+        zo_callLater(function()
+            RefrescarDot()
+        end, 1500)
+    end
 end
 
 -- API pública: refresco completo del overlay (posición, apariencia, visibilidad)
@@ -1418,6 +1531,62 @@ function MOD.RefreshDot()
     RefrescarDot()
 end
 
+function MOD.DebugAssistantDetection()
+    local lines = {}
+    local function push(text)
+        lines[#lines + 1] = text
+    end
+
+    if type(GetActiveCollectibleByType) ~= "function" then
+        push("Assistant debug: GetActiveCollectibleByType unavailable")
+        return lines
+    end
+
+    local idNoActor = GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_ASSISTANT)
+    push(string.format("assistant no-actor=%s", tostring(idNoActor)))
+
+    if type(GAMEPLAY_ACTOR_CATEGORY_PLAYER) ~= "nil" then
+        local ok, idPlayer = pcall(GetActiveCollectibleByType, COLLECTIBLE_CATEGORY_TYPE_ASSISTANT, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+        push(string.format("assistant player-actor ok=%s id=%s", tostring(ok), tostring(idPlayer)))
+    end
+
+    if type(GetCollectibleName) == "function" then
+        if idNoActor and idNoActor ~= 0 then
+            push(string.format("assistant no-actor name=%s", tostring(GetCollectibleName(idNoActor))))
+        end
+    end
+
+    return lines
+end
+
+function MOD.DebugAssistantDotState()
+    local lines = {}
+    local function push(text)
+        lines[#lines + 1] = text
+    end
+
+    if not overlayAssistantDot then
+        push("assistant dot=nil")
+        return lines
+    end
+
+    local hidden = overlayAssistantDot:IsHidden()
+    local alpha = overlayAssistantDot:GetAlpha()
+    local width, height = overlayAssistantDot:GetDimensions()
+    local texture = overlayAssistantDot:GetTextureFileName()
+    local loaded = overlayAssistantDot:IsTextureLoaded()
+    local left = overlayAssistantDot:GetLeft()
+    local top = overlayAssistantDot:GetTop()
+
+    push(string.format("assistant dot hidden=%s alpha=%s", tostring(hidden), tostring(alpha)))
+    push(string.format("assistant dot size=%sx%s", tostring(width), tostring(height)))
+    push(string.format("assistant dot texture=%s", tostring(texture)))
+    push(string.format("assistant dot loaded=%s", tostring(loaded)))
+    push(string.format("assistant dot pos=%s,%s", tostring(left), tostring(top)))
+
+    return lines
+end
+
 -- Inicialización: crea controles, registra eventos
 function MOD.Init()
     AsegurarControles()
@@ -1451,21 +1620,13 @@ function MOD.Init()
     EVENT_MANAGER:RegisterForEvent("EZOTools_Overlay_Pet",
         EVENT_COLLECTIBLE_USE_RESULT,
         function()
-            if overlayPetDot then
-                overlayPetDot:SetHidden(not TieneMascotaEnGrupo())
-            end
-            -- El asistente también es un collectible
-            if overlayCompanionDot then
-                overlayCompanionDot:SetHidden(not TieneCompanion())
-            end
+            ProgramarRefrescoDots()
         end)
 
     EVENT_MANAGER:RegisterForEvent("EZOTools_Overlay_Companion",
         EVENT_ACTIVE_COMPANION_STATE_CHANGED,
         function()
-            if overlayCompanionDot then
-                overlayCompanionDot:SetHidden(not TieneCompanion())
-            end
+            ProgramarRefrescoDots()
         end)
 
     -- Cambio de tamaño de grupo: afecta al icono de mascota
@@ -1794,13 +1955,3 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
         }
     end)
 end
-
-
-
-
-
-
-
-
-
-

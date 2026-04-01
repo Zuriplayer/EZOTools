@@ -26,6 +26,9 @@ EZO_STRINGS_EN = {
     -- -------------------------------------------------------------------------
     EZO_MSG_INIT                = "E|cB040FFZ|rOTools initialized.",
     EZO_MSG_SLASH               = "/ezo command received",
+    EZO_MSG_HIDE_PET            = "Hiding pet",
+    EZO_MSG_HIDE_COMPANION      = "Hiding companion",
+    EZO_MSG_HIDE_ASSISTANT      = "Hiding assistant",
 
     -- -------------------------------------------------------------------------
     -- LAM panel: General section
@@ -80,7 +83,7 @@ EZO_STRINGS_EN = {
     -- Command panel menu entries
     -- -------------------------------------------------------------------------
     EZO_MENU_TITLE                = "EZOTools",
-    EZO_MENU_DIALOG_SUBTITLE      = "By <<1>>  (v<<2>>)",
+    EZO_MENU_DIALOG_SUBTITLE      = "<<1>>  ·  v<<2>>",
     EZO_MENU_SETTINGS             = "Quick settings",
     EZO_MENU_ADDON_SETTINGS       = "Full settings (LAM)",
     EZO_MENU_TRAVEL_PRIMARY       = "Go to my house",

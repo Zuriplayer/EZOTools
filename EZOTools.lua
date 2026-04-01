@@ -505,7 +505,7 @@ local function _comandoVersion()
     safeChat(zo_strformat(GetString(EZO_CMD_VERSION_GAMEPAD), gamepad))
 end
 
-local EjecutarDebugTexload, EjecutarDebugTex, EjecutarDebugDots, EjecutarDebugLayout, EjecutarDebugRepairKitIcon, EjecutarDebugSoulGemIcon, EjecutarDebugFood, EjecutarDebugGuildColor, EjecutarDebugGuildImage
+local EjecutarDebugTexload, EjecutarDebugTex, EjecutarDebugDots, EjecutarDebugLayout, EjecutarDebugRepairKitIcon, EjecutarDebugSoulGemIcon, EjecutarDebugFood, EjecutarDebugGuildColor, EjecutarDebugGuildImage, EjecutarDebugAssistant, EjecutarDebugAssistantDot
 
 local function _mostrarAyudaDebug()
     safeChat(GetString(EZO_CMD_DEBUG_TITLE))
@@ -520,6 +520,8 @@ local function _mostrarAyudaDebug()
     safeChat(GetString(EZO_CMD_DEBUG_FOOD))
     safeChat(GetString(EZO_CMD_DEBUG_GUILDCOLOR))
     safeChat(GetString(EZO_CMD_DEBUG_GUILDIMAGE))
+    safeChat("/ezo debug assistant")
+    safeChat("/ezo debug assistantdot")
 end
 
 local function _ejecutarDebug(sub, arg)
@@ -570,6 +572,14 @@ local function _ejecutarDebug(sub, arg)
     end
     if sub == "guildimage" then
         EjecutarDebugGuildImage()
+        return true
+    end
+    if sub == "assistant" then
+        EjecutarDebugAssistant()
+        return true
+    end
+    if sub == "assistantdot" then
+        EjecutarDebugAssistantDot()
         return true
     end
     _mostrarAyudaDebug()
@@ -688,6 +698,36 @@ EjecutarDebugFood = function(modo)
     EZOTools.Print(zo_strformat(GetString(EZO_CMD_DEBUG_FOOD_SET), modo))
 end
 
+EjecutarDebugAssistant = function()
+    if not (EZOTools_Overlay and EZOTools_Overlay.DebugAssistantDetection) then
+        EZOTools.Print("Assistant debug not available")
+        return
+    end
+    local lines = EZOTools_Overlay.DebugAssistantDetection()
+    if type(lines) ~= "table" or #lines == 0 then
+        EZOTools.Print("Assistant debug returned no data")
+        return
+    end
+    for _, line in ipairs(lines) do
+        EZOTools.Print(line)
+    end
+end
+
+EjecutarDebugAssistantDot = function()
+    if not (EZOTools_Overlay and EZOTools_Overlay.DebugAssistantDotState) then
+        EZOTools.Print("Assistant dot debug not available")
+        return
+    end
+    local lines = EZOTools_Overlay.DebugAssistantDotState()
+    if type(lines) ~= "table" or #lines == 0 then
+        EZOTools.Print("Assistant dot debug returned no data")
+        return
+    end
+    for _, line in ipairs(lines) do
+        EZOTools.Print(line)
+    end
+end
+
 EjecutarDebugGuildColor = function()
     if not (EZOTools_Overlay and EZOTools_Overlay.GetRepresentedGuildColorDebugInfo) then
         EZOTools.Print("Guild color debug info not available")
@@ -769,6 +809,7 @@ EjecutarDebugTex = function()
         {nombre="ChargeDot",   ctrl=EZOTools_ChargeDot},
         {nombre="PetDot",      ctrl=EZOToolsPetDot2},
         {nombre="CompanionDot",ctrl=EZOToolsCompDot2},
+        {nombre="AssistantDot",ctrl=EZOToolsAssistDot2},
     }
     for _, v in ipairs(iconos) do
         if v.ctrl then
@@ -800,8 +841,10 @@ EjecutarDebugDots = function()
     end
     local pet = _G["EZOToolsPetDot2"]
     local comp = _G["EZOToolsCompDot2"]
+    local assist = _G["EZOToolsAssistDot2"]
     EZOTools.Print("PetDot2: " .. tostring(pet))
     EZOTools.Print("CompDot2: " .. tostring(comp))
+    EZOTools.Print("AssistDot2: " .. tostring(assist))
     if pet then
         EZOTools.Print("Pet hidden=" .. tostring(pet:IsHidden()) ..
             " texture=" .. tostring(pet:GetTextureFileName()))
@@ -809,6 +852,10 @@ EjecutarDebugDots = function()
     if comp then
         EZOTools.Print("Comp hidden=" .. tostring(comp:IsHidden()) ..
             " texture=" .. tostring(comp:GetTextureFileName()))
+    end
+    if assist then
+        EZOTools.Print("Assist hidden=" .. tostring(assist:IsHidden()) ..
+            " texture=" .. tostring(assist:GetTextureFileName()))
     end
     local numBuffs = GetNumBuffs and GetNumBuffs("player") or "N/A"
     local groupSize = GetGroupSize and GetGroupSize() or "N/A"
