@@ -88,7 +88,8 @@ local PLAYER_TEXT_SCALE_MAX = 1.0
 
 local TieneAsistenteActivo
 local OcultarMascotaActiva
-local OcultarCompanionOAsistenteActivo
+local OcultarCompanionActivo
+local OcultarAsistenteActivo
 local RefrescarDot
 local ProgramarRefrescoDots
 
@@ -1331,7 +1332,7 @@ local function AsegurarControles()
                 if EZO and type(EZO.Print) == "function" then
                     EZO.Print(GetString(EZO_MSG_HIDE_COMPANION))
                 end
-                if OcultarCompanionOAsistenteActivo() then
+                if OcultarCompanionActivo() then
                     if overlayCompanionDot then
                         overlayCompanionDot:SetHidden(true)
                     end
@@ -1343,7 +1344,7 @@ local function AsegurarControles()
                 if EZO and type(EZO.Print) == "function" then
                     EZO.Print(GetString(EZO_MSG_HIDE_ASSISTANT))
                 end
-                if OcultarCompanionOAsistenteActivo() then
+                if OcultarAsistenteActivo() then
                     if overlayAssistantDot then
                         overlayAssistantDot:SetHidden(true)
                     end
@@ -1404,6 +1405,13 @@ local function TieneMascotaEnGrupo()
     return petId ~= nil and petId ~= 0
 end
 
+local function ObtenerAssistantActivoId()
+    if type(GetActiveCollectibleByType) ~= "function" then
+        return 0
+    end
+    return GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_ASSISTANT) or 0
+end
+
 OcultarMascotaActiva = function()
     if type(GetActiveCollectibleByType) ~= "function" or type(UseCollectible) ~= "function" then
         return false
@@ -1419,10 +1427,7 @@ OcultarMascotaActiva = function()
 end
 
 TieneAsistenteActivo = function()
-    if type(GetActiveCollectibleByType) ~= "function" then
-        return false
-    end
-    local assistId = GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_ASSISTANT)
+    local assistId = ObtenerAssistantActivoId()
     return assistId ~= nil and assistId ~= 0
 end
 
@@ -1431,7 +1436,7 @@ local function TieneCompanionActivo()
     return HasActiveCompanion and HasActiveCompanion() or false
 end
 
-OcultarCompanionOAsistenteActivo = function()
+OcultarCompanionActivo = function()
     if HasActiveCompanion and HasActiveCompanion() then
         if type(GetActiveCompanionDefId) == "function"
             and type(GetCompanionCollectibleId) == "function"
@@ -1451,11 +1456,14 @@ OcultarCompanionOAsistenteActivo = function()
         end
         return false
     end
+    return false
+end
 
+OcultarAsistenteActivo = function()
     if type(GetActiveCollectibleByType) ~= "function" or type(UseCollectible) ~= "function" then
         return false
     end
-    local assistId = GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_ASSISTANT)
+    local assistId = ObtenerAssistantActivoId()
     if not assistId or assistId == 0 then
         return false
     end
@@ -1476,7 +1484,15 @@ RefrescarDot = function()
         overlayCompanionDot:SetHidden(not TieneCompanionActivo())
     end
     if overlayAssistantDot then
-        overlayAssistantDot:SetHidden(not TieneAsistenteActivo())
+        local assistId = ObtenerAssistantActivoId()
+        local visible = assistId ~= 0
+        overlayAssistantDot:SetHidden(not visible)
+        if visible and type(GetCollectibleIcon) == "function" then
+            local icon = GetCollectibleIcon(assistId)
+            if type(icon) == "string" and icon ~= "" then
+                overlayAssistantDot:SetTexture(icon)
+            end
+        end
     end
 
     RefrescarWidgetsLateralesEstado()
@@ -1542,7 +1558,7 @@ function MOD.DebugAssistantDetection()
         return lines
     end
 
-    local idNoActor = GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_ASSISTANT)
+    local idNoActor = ObtenerAssistantActivoId()
     push(string.format("assistant no-actor=%s", tostring(idNoActor)))
 
     if type(GAMEPLAY_ACTOR_CATEGORY_PLAYER) ~= "nil" then
@@ -1577,9 +1593,11 @@ function MOD.DebugAssistantDotState()
     local loaded = overlayAssistantDot:IsTextureLoaded()
     local left = overlayAssistantDot:GetLeft()
     local top = overlayAssistantDot:GetTop()
+    local assistId = ObtenerAssistantActivoId()
 
     push(string.format("assistant dot hidden=%s alpha=%s", tostring(hidden), tostring(alpha)))
     push(string.format("assistant dot size=%sx%s", tostring(width), tostring(height)))
+    push(string.format("assistant dot id=%s", tostring(assistId)))
     push(string.format("assistant dot texture=%s", tostring(texture)))
     push(string.format("assistant dot loaded=%s", tostring(loaded)))
     push(string.format("assistant dot pos=%s,%s", tostring(left), tostring(top)))
