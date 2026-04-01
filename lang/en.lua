@@ -162,8 +162,6 @@ EZO_STRINGS_EN = {
     EZO_CMD_DEBUG_TEXLOAD       = "  /ezo debug texload  — texture loading test",
     EZO_CMD_DEBUG_DOTS          = "  /ezo debug dots     — pet/companion dot state",
     EZO_CMD_DEBUG_LAYOUT        = "  /ezo debug layout   — toggle side-slot layout preview",
-    EZO_CMD_DEBUG_REPAIRKITICON = "  /ezo debug repairkiticon — first repair kit icon path",
-    EZO_CMD_DEBUG_SOULGEMICON   = "  /ezo debug soulgemicon   — first soul gem icon path",
 
     EZO_CMD_GUILDS_NONE         = "You do not belong to any guild.",
     EZO_CMD_GUILDS_HEADER       = "Guilds (<<1>>):",
@@ -231,6 +229,4 @@ EZO_STRINGS_EN["EZO_SIDE_WIDGET_SOUL_GEMS_PREVIEW_TOOLTIP"] = "Preview: low soul
 EZO_STRINGS_EN["EZO_CMD_DEBUG_FOOD"] = "/ezo debug food green|yellow|red|auto - force the food icon state"
 EZO_STRINGS_EN["EZO_CMD_DEBUG_FOOD_USAGE"] = "Usage: /ezo debug food green|yellow|red|auto"
 EZO_STRINGS_EN["EZO_CMD_DEBUG_FOOD_SET"] = "Food debug state: <<1>>"
-EZO_STRINGS_EN["EZO_CMD_DEBUG_GUILDCOLOR"] = "  /ezo debug guildcolor — print the represented guild color read by the addon"
-EZO_STRINGS_EN["EZO_CMD_DEBUG_GUILDIMAGE"] = "  /ezo debug guildimage — print represented guild custom image state"
 EZO_STRINGS_EN["EZO_DEBUG_FOOD_NAME"] = "Debug food"

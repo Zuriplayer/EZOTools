@@ -505,7 +505,7 @@ local function _comandoVersion()
     safeChat(zo_strformat(GetString(EZO_CMD_VERSION_GAMEPAD), gamepad))
 end
 
-local EjecutarDebugTexload, EjecutarDebugTex, EjecutarDebugDots, EjecutarDebugLayout, EjecutarDebugRepairKitIcon, EjecutarDebugSoulGemIcon, EjecutarDebugFood, EjecutarDebugGuildColor, EjecutarDebugGuildImage, EjecutarDebugAssistant, EjecutarDebugAssistantDot
+local EjecutarDebugTexload, EjecutarDebugTex, EjecutarDebugDots, EjecutarDebugLayout, EjecutarDebugFood
 
 local function _mostrarAyudaDebug()
     safeChat(GetString(EZO_CMD_DEBUG_TITLE))
@@ -515,13 +515,7 @@ local function _mostrarAyudaDebug()
     safeChat(GetString(EZO_CMD_DEBUG_TEXLOAD))
     safeChat(GetString(EZO_CMD_DEBUG_DOTS))
     safeChat(GetString(EZO_CMD_DEBUG_LAYOUT))
-    safeChat(GetString(EZO_CMD_DEBUG_REPAIRKITICON))
-    safeChat(GetString(EZO_CMD_DEBUG_SOULGEMICON))
     safeChat(GetString(EZO_CMD_DEBUG_FOOD))
-    safeChat(GetString(EZO_CMD_DEBUG_GUILDCOLOR))
-    safeChat(GetString(EZO_CMD_DEBUG_GUILDIMAGE))
-    safeChat("/ezo debug assistant")
-    safeChat("/ezo debug assistantdot")
 end
 
 local function _ejecutarDebug(sub, arg)
@@ -554,32 +548,8 @@ local function _ejecutarDebug(sub, arg)
         EjecutarDebugLayout()
         return true
     end
-    if sub == "repairkiticon" then
-        EjecutarDebugRepairKitIcon()
-        return true
-    end
-    if sub == "soulgemicon" then
-        EjecutarDebugSoulGemIcon()
-        return true
-    end
     if sub == "food" then
         EjecutarDebugFood(arg)
-        return true
-    end
-    if sub == "guildcolor" then
-        EjecutarDebugGuildColor()
-        return true
-    end
-    if sub == "guildimage" then
-        EjecutarDebugGuildImage()
-        return true
-    end
-    if sub == "assistant" then
-        EjecutarDebugAssistant()
-        return true
-    end
-    if sub == "assistantdot" then
-        EjecutarDebugAssistantDot()
         return true
     end
     _mostrarAyudaDebug()
@@ -651,36 +621,6 @@ function EZOTools_ToggleCommandPanel()
 end
 
 
-EjecutarDebugRepairKitIcon = function()
-    if not (EZOTools.GetFirstRepairKitDebugInfo) then
-        EZOTools.Print("Repair kit debug info not available")
-        return
-    end
-    local info = EZOTools.GetFirstRepairKitDebugInfo()
-    if not info then
-        EZOTools.Print(GetString(EZO_MSG_NO_REPAIR_KITS))
-        return
-    end
-    EZOTools.Print(string.format("RepairKit name=%s", tostring(info.name)))
-    EZOTools.Print(string.format("RepairKit icon=%s", tostring(info.icon)))
-    EZOTools.Print(string.format("RepairKit link=%s", tostring(info.link)))
-end
-
-EjecutarDebugSoulGemIcon = function()
-    if not (EZOTools.GetFirstSoulGemDebugInfo) then
-        EZOTools.Print("Soul gem debug info not available")
-        return
-    end
-    local info = EZOTools.GetFirstSoulGemDebugInfo()
-    if not info then
-        EZOTools.Print(GetString(EZO_MSG_NO_SOUL_GEMS))
-        return
-    end
-    EZOTools.Print(string.format("SoulGem name=%s", tostring(info.name)))
-    EZOTools.Print(string.format("SoulGem icon=%s", tostring(info.icon)))
-    EZOTools.Print(string.format("SoulGem link=%s", tostring(info.link)))
-end
-
 EjecutarDebugFood = function(modo)
     if not (EZOTools_Overlay and EZOTools_Overlay.SetFoodDebugState) then
         EZOTools.Print(GetString(EZO_CMD_LAYOUT_NA))
@@ -696,36 +636,6 @@ EjecutarDebugFood = function(modo)
         return
     end
     EZOTools.Print(zo_strformat(GetString(EZO_CMD_DEBUG_FOOD_SET), modo))
-end
-
-EjecutarDebugAssistant = function()
-    if not (EZOTools_Overlay and EZOTools_Overlay.DebugAssistantDetection) then
-        EZOTools.Print("Assistant debug not available")
-        return
-    end
-    local lines = EZOTools_Overlay.DebugAssistantDetection()
-    if type(lines) ~= "table" or #lines == 0 then
-        EZOTools.Print("Assistant debug returned no data")
-        return
-    end
-    for _, line in ipairs(lines) do
-        EZOTools.Print(line)
-    end
-end
-
-EjecutarDebugAssistantDot = function()
-    if not (EZOTools_Overlay and EZOTools_Overlay.DebugAssistantDotState) then
-        EZOTools.Print("Assistant dot debug not available")
-        return
-    end
-    local lines = EZOTools_Overlay.DebugAssistantDotState()
-    if type(lines) ~= "table" or #lines == 0 then
-        EZOTools.Print("Assistant dot debug returned no data")
-        return
-    end
-    for _, line in ipairs(lines) do
-        EZOTools.Print(line)
-    end
 end
 
 EjecutarDebugGuildColor = function()
