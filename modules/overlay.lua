@@ -552,6 +552,16 @@ local function MostrarTooltipTextoSobreControl(ctrl, texto)
     overlayAllyTooltipActive = true
 end
 
+local function ObtenerNombreCollectible(collectibleId, fallback)
+    if collectibleId and collectibleId ~= 0 and type(GetCollectibleName) == "function" then
+        local nombre = GetCollectibleName(collectibleId)
+        if type(nombre) == "string" and nombre ~= "" then
+            return nombre
+        end
+    end
+    return fallback
+end
+
 local function EjecutarAccionWidget(side, index, data, button)
     if type(data) ~= "table" then return end
 
@@ -1271,6 +1281,39 @@ local function AsegurarControles()
         return ObtenerAssistantActivoId() ~= 0
     end)
 
+    local function RefrescarTooltipAliados()
+        if not (overlayWin and not overlayWin:IsHidden() and type(MouseIsOver) == "function") then
+            if overlayAllyTooltipActive then
+                OcultarTooltipWidget()
+            end
+            return
+        end
+
+        if overlayPetDot and not overlayPetDot:IsHidden() and MouseIsOver(overlayPetDot) then
+            MostrarTooltipTextoSobreControl(overlayPetDot, ObtenerTooltipIconoAliado("pet", ObtenerMascotaActivaId() ~= 0))
+            return
+        end
+        if overlayCompanionDot and not overlayCompanionDot:IsHidden() and MouseIsOver(overlayCompanionDot) then
+            MostrarTooltipTextoSobreControl(overlayCompanionDot, ObtenerTooltipIconoAliado("companion", ObtenerCompanionActivoCollectibleId() ~= 0))
+            return
+        end
+        if overlayAssistantDot and not overlayAssistantDot:IsHidden() and MouseIsOver(overlayAssistantDot) then
+            MostrarTooltipTextoSobreControl(overlayAssistantDot, ObtenerTooltipIconoAliado("assistant", ObtenerAssistantActivoId() ~= 0))
+            return
+        end
+
+        if overlayAllyTooltipActive then
+            OcultarTooltipWidget()
+        end
+    end
+
+    overlayWin:SetHandler("OnMouseMove", function()
+        RefrescarTooltipAliados()
+    end)
+    overlayWin:SetHandler("OnUpdate", function()
+        RefrescarTooltipAliados()
+    end)
+
     overlayWin:SetHandler("OnMouseUp", function(_, button, upInside)
         if button == MOUSE_BUTTON_INDEX_LEFT and upInside and type(MouseIsOver) == "function" then
             if overlayPetDot and not overlayPetDot:IsHidden() and MouseIsOver(overlayPetDot) then
@@ -1490,14 +1533,29 @@ local function AplicarEstadoVisualIconoAliado(ctrl, activo, collectibleId)
 end
 
 ObtenerTooltipIconoAliado = function(tipo, activo)
+    local collectibleId = 0
+    local fallbackName = nil
+
     if tipo == "pet" then
-        return GetString(activo and EZO_DOT_PET_ACTIVE_TOOLTIP or EZO_DOT_PET_INACTIVE_TOOLTIP)
+        collectibleId = activo and ObtenerMascotaActivaId() or ObtenerCollectibleRecordado("lastPetCollectibleId")
+        fallbackName = GetString(EZO_DOT_PET_FALLBACK_NAME)
+    elseif tipo == "companion" then
+        collectibleId = activo and ObtenerCompanionActivoCollectibleId() or ObtenerCollectibleRecordado("lastCompanionCollectibleId")
+        fallbackName = GetString(EZO_DOT_COMPANION_FALLBACK_NAME)
+    elseif tipo == "assistant" then
+        collectibleId = activo and ObtenerAssistantActivoId() or ObtenerCollectibleRecordado("lastAssistantCollectibleId")
+        fallbackName = GetString(EZO_DOT_ASSISTANT_FALLBACK_NAME)
+    end
+
+    local nombre = ObtenerNombreCollectible(collectibleId, fallbackName)
+    if tipo == "pet" then
+        return zo_strformat(GetString(activo and EZO_DOT_PET_ACTIVE_TOOLTIP or EZO_DOT_PET_INACTIVE_TOOLTIP), nombre)
     end
     if tipo == "companion" then
-        return GetString(activo and EZO_DOT_COMPANION_ACTIVE_TOOLTIP or EZO_DOT_COMPANION_INACTIVE_TOOLTIP)
+        return zo_strformat(GetString(activo and EZO_DOT_COMPANION_ACTIVE_TOOLTIP or EZO_DOT_COMPANION_INACTIVE_TOOLTIP), nombre)
     end
     if tipo == "assistant" then
-        return GetString(activo and EZO_DOT_ASSISTANT_ACTIVE_TOOLTIP or EZO_DOT_ASSISTANT_INACTIVE_TOOLTIP)
+        return zo_strformat(GetString(activo and EZO_DOT_ASSISTANT_ACTIVE_TOOLTIP or EZO_DOT_ASSISTANT_INACTIVE_TOOLTIP), nombre)
     end
     return nil
 end
