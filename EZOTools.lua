@@ -185,6 +185,9 @@ function EZO:Initialize()
             hideInCombat     = false,
             hideInMenus      = false,
             locked           = false,
+            lastPetCollectibleId = 0,
+            lastCompanionCollectibleId = 0,
+            lastAssistantCollectibleId = 0,
             x                = nil,
             y                = nil,
         },
@@ -336,7 +339,7 @@ function EZOTools.CanJumpToLeader()
             return CanJumpToGroupMember(leaderTag)
         end
     end
-    -- Fallback: si la API no expone CanJumpToGroupMember, permitir si hay función de salto
+    -- Si la API no expone CanJumpToGroupMember, dejamos que el juego lo resuelva al saltar.
     return (JumpToGroupLeader ~= nil)
 end
 
@@ -359,7 +362,7 @@ function EZOTools.JumpToLeader()
         end
     end
 
-    -- Fallback a JumpToGroupLeader si no podemos resolver el nombre
+    -- Si no podemos resolver el nombre, prueba la variante general de salto al líder.
     if JumpToGroupLeader then
         JumpToGroupLeader("")
         return
@@ -424,8 +427,8 @@ local function _mostrarAyudaPrincipal()
     safeChat(GetString(EZO_CMD_HELP_HELP))
 end
 
--- Muestra las guilds del jugador e indica cuál está representando actualmente.
--- GetRepresentedGuildId() es la API que corresponde al Guild Nameplate de U49.
+-- Muestra las hermandades del jugador e indica cuál está representando actualmente.
+-- GetRepresentedGuildId() es la API asociada al nombre de hermandad visible desde U49.
 local function _comandoGuilds()
     local numGuilds = GetNumGuilds and GetNumGuilds() or 0
     if numGuilds == 0 then
@@ -600,7 +603,7 @@ function EZO:RegisterSlashCommands()
         local cmd = LSC:Register({"/ezo", "/ezotools"}, _manejadorSlash, "EZOTools")
         -- Sin subcomandos adicionales por ahora
     else
-        -- Fallback nativo sin LibSlashCommander
+        -- Variante nativa si LibSlashCommander no está disponible.
         SLASH_COMMANDS["/ezo"]      = _manejadorSlash
         SLASH_COMMANDS["/ezotools"] = _manejadorSlash
     end
@@ -638,42 +641,7 @@ EjecutarDebugFood = function(modo)
     EZOTools.Print(zo_strformat(GetString(EZO_CMD_DEBUG_FOOD_SET), modo))
 end
 
-EjecutarDebugGuildColor = function()
-    if not (EZOTools_Overlay and EZOTools_Overlay.GetRepresentedGuildColorDebugInfo) then
-        EZOTools.Print("Guild color debug info not available")
-        return
-    end
-    local info = EZOTools_Overlay.GetRepresentedGuildColorDebugInfo()
-    EZOTools.Print(string.format("GuildColor guildId=%s", tostring(info.guildId)))
-    EZOTools.Print(string.format("GuildColor guildIndex=%s", tostring(info.guildIndex)))
-    EZOTools.Print(string.format("GuildColor guildName=%s", tostring(info.guildName)))
-    EZOTools.Print(string.format("GuildColor chatCategoryId=%s", tostring(info.chatCategoryId)))
-    EZOTools.Print(string.format(
-        "GuildColor rgba=%s,%s,%s,%s",
-        tostring(info.colorR),
-        tostring(info.colorG),
-        tostring(info.colorB),
-        tostring(info.colorA)
-    ))
-end
-
-EjecutarDebugGuildImage = function()
-    if not (EZOTools_Overlay and EZOTools_Overlay.GetRepresentedGuildImageDebugInfo) then
-        EZOTools.Print("Guild image debug info not available")
-        return
-    end
-    local info = EZOTools_Overlay.GetRepresentedGuildImageDebugInfo()
-    EZOTools.Print(string.format("GuildImage enabled=%s", tostring(info.enabled)))
-    EZOTools.Print(string.format("GuildImage tabard=%s", tostring(info.tabardName)))
-    EZOTools.Print(string.format("GuildImage guildName=%s", tostring(info.guildName)))
-    EZOTools.Print(string.format("GuildImage guildKey=%s", tostring(info.guildKey)))
-    EZOTools.Print(string.format("GuildImage preferredPath=%s", tostring(info.preferredPath)))
-    EZOTools.Print(string.format("GuildImage preferredLoaded=%s", tostring(info.preferredLoaded)))
-    EZOTools.Print(string.format("GuildImage fallbackPath=%s", tostring(info.fallbackPath)))
-    EZOTools.Print(string.format("GuildImage fallbackLoaded=%s", tostring(info.fallbackLoaded)))
-end
-
--- Diagnóstico: prueba carga de texturas de pet y companion
+-- Diagnóstico: comprueba la carga de texturas del overlay.
 EjecutarDebugTexload = function()
     local ventana = _G["EZOTexTest"]
     if ventana and not ventana:IsHidden() then
@@ -742,7 +710,7 @@ EjecutarDebugLayout = function()
     EZOTools.Print(activo and GetString(EZO_CMD_LAYOUT_ON) or GetString(EZO_CMD_LAYOUT_OFF))
 end
 
--- Diagnóstico iconos pet/companion: /ezodots
+-- Diagnóstico rápido del estado de iconos inferiores.
 EjecutarDebugDots = function()
     local EZO_Overlay = EZOTools_Overlay
     if not EZO_Overlay then

@@ -17,6 +17,7 @@ local overlaySideWidgetData = { left = {}, right = {} }
 local overlaySideWidgetRegistry = { left = {}, right = {} }
 local overlayLayoutPreviewEnabled = false
 local overlayWidgetTooltipWin, overlayWidgetTooltipBackdrop, overlayWidgetTooltipLabel
+local overlayAllyTooltipActive = false
 local overlayFoodDebugState = nil
 
 local DEFAULT_OVERLAY_TEXTURES = {
@@ -85,11 +86,27 @@ local BASE_FONT_GP     = 32    -- tamaño de fuente base en modo gamepad
 local GUILD_FONT_RATIO = 0.75  -- la fuente de guild es el 75% del tamaño del nombre del jugador
 local PLAYER_TEXT_SCALE_MIN = 0.6
 local PLAYER_TEXT_SCALE_MAX = 1.0
+local ALLY_ICON_INACTIVE_ALPHA = 0.45
+local ALLY_SWITCH_INITIAL_DELAY_MS = 1500
+local ALLY_SWITCH_RETRY_DELAY_MS = 500
+local ALLY_SWITCH_MAX_RETRIES = 6
+local allySwitchPending = false
+local OVERLAY_TOP_PADDING = 4
+local OVERLAY_ROW_GAP_SMALL = 4
+local OVERLAY_ROW_GAP_NORMAL = 6
+local OVERLAY_BOTTOM_PADDING = 18
 
 local TieneAsistenteActivo
 local OcultarMascotaActiva
 local OcultarCompanionActivo
 local OcultarAsistenteActivo
+local ObtenerMascotaActivaId
+local ObtenerAssistantActivoId
+local ObtenerCompanionActivoCollectibleId
+local ObtenerTooltipIconoAliado
+local InvocarMascotaRecordada
+local InvocarCompanionRecordado
+local InvocarAsistenteRecordada
 local RefrescarDot
 local ProgramarRefrescoDots
 
@@ -250,139 +267,6 @@ local function RefrescarTexturaLogoCentral()
     AplicarTexturaConFallback(overlayTex, ObtenerRutasLogoGuildRepresentada(), DEFAULT_OVERLAY_TEXTURES)
 end
 
-function MOD.GetRepresentedGuildImageDebugInfo()
-    local info = {
-        enabled = (EZO.sv and EZO.sv.overlay and EZO.sv.overlay.guildCustomImageEnabled == true) or false,
-        tabardName = ObtenerGuildTabardo(),
-        guildName = ObtenerGuildRepresentada(),
-        guildKey = nil,
-        preferredPath = nil,
-        preferredLoaded = nil,
-        fallbackPath = nil,
-        fallbackLoaded = nil,
-    }
-
-    info.guildKey = NormalizarClaveGuild(info.guildName)
-
-    local preferred = ObtenerRutasLogoGuildRepresentada()
-    if type(preferred) == "table" and overlayTex then
-        for _, ruta in ipairs(preferred) do
-            info.preferredPath = ruta
-            overlayTex:SetTexture(ruta)
-            if overlayTex:IsTextureLoaded() then
-                info.preferredLoaded = true
-                break
-            end
-            info.preferredLoaded = false
-        end
-    end
-
-    if overlayTex then
-        for _, ruta in ipairs(DEFAULT_OVERLAY_TEXTURES) do
-            overlayTex:SetTexture(ruta)
-            if overlayTex:IsTextureLoaded() then
-                info.fallbackPath = ruta
-                info.fallbackLoaded = true
-                break
-            end
-            if not info.fallbackPath then
-                info.fallbackPath = ruta
-                info.fallbackLoaded = false
-            end
-        end
-        RefrescarTexturaLogoCentral()
-    end
-
-    return info
-end
-
-local function ObtenerIndiceGuildRepresentada()
-    if type(GetRepresentedGuildId) ~= "function" or type(GetNumGuilds) ~= "function" or type(GetGuildId) ~= "function" then
-        return nil
-    end
-    local representedGuildId = GetRepresentedGuildId()
-    if not representedGuildId or representedGuildId == 0 then return nil end
-    local numGuilds = GetNumGuilds()
-    for i = 1, numGuilds do
-        if GetGuildId(i) == representedGuildId then
-            return i
-        end
-    end
-    return nil
-end
-
-local function DesempaquetarColorGuild(value, g, b, a)
-    if type(value) == "number" and type(g) == "number" and type(b) == "number" then
-        return value, g, b, (type(a) == "number" and a or 1)
-    end
-    if type(value) ~= "table" then return nil end
-    if type(value.UnpackRGBA) == "function" then
-        return value:UnpackRGBA()
-    end
-    if type(value.GetRGBA) == "function" then
-        return value:GetRGBA()
-    end
-    if type(value.r) == "number" and type(value.g) == "number" and type(value.b) == "number" then
-        return value.r, value.g, value.b, (type(value.a) == "number" and value.a or 1)
-    end
-    return nil
-end
-
-local function ObtenerColorGuildRepresentada()
-    local guildIndex = ObtenerIndiceGuildRepresentada()
-    if not guildIndex then return nil end
-    if type(GetChatCategoryColor) ~= "function" then return nil end
-    if type(MultiLevelEventToCategoryMappings) ~= "table" or type(EVENT_CHAT_MESSAGE_CHANNEL) ~= "number" then return nil end
-    local channelMap = MultiLevelEventToCategoryMappings[EVENT_CHAT_MESSAGE_CHANNEL]
-    if type(channelMap) ~= "table" then return nil end
-    local channelIdBase = CHAT_CHANNEL_GUILD_1
-    if type(channelIdBase) ~= "number" then return nil end
-    local categoryId = channelMap[channelIdBase + guildIndex - 1]
-    if categoryId == nil then return nil end
-
-    local c1, c2, c3, c4 = GetChatCategoryColor(categoryId)
-    local r, g, b, a = DesempaquetarColorGuild(c1, c2, c3, c4)
-    if type(r) == "number" and type(g) == "number" and type(b) == "number" then
-        return r, g, b, (type(a) == "number" and a or 1)
-    end
-    return nil
-end
-
-function MOD.GetRepresentedGuildColorDebugInfo()
-    local info = {
-        guildId = nil,
-        guildIndex = nil,
-        guildName = nil,
-        chatCategoryId = nil,
-        colorR = nil,
-        colorG = nil,
-        colorB = nil,
-        colorA = nil,
-    }
-
-    if type(GetRepresentedGuildId) == "function" then
-        info.guildId = GetRepresentedGuildId()
-    end
-    info.guildIndex = ObtenerIndiceGuildRepresentada()
-    if info.guildId and info.guildId ~= 0 and type(GetGuildName) == "function" then
-        info.guildName = GetGuildName(info.guildId)
-    end
-
-    if info.guildIndex and type(GetChatCategoryColor) == "function" and type(MultiLevelEventToCategoryMappings) == "table" and type(EVENT_CHAT_MESSAGE_CHANNEL) == "number" and type(CHAT_CHANNEL_GUILD_1) == "number" then
-        local channelMap = MultiLevelEventToCategoryMappings[EVENT_CHAT_MESSAGE_CHANNEL]
-        if type(channelMap) == "table" then
-            info.chatCategoryId = channelMap[CHAT_CHANNEL_GUILD_1 + info.guildIndex - 1]
-            if info.chatCategoryId ~= nil then
-                local c1, c2, c3, c4 = GetChatCategoryColor(info.chatCategoryId)
-                local r, g, b, a = DesempaquetarColorGuild(c1, c2, c3, c4)
-                info.colorR, info.colorG, info.colorB, info.colorA = r, g, b, a
-            end
-        end
-    end
-
-    return info
-end
-
 -- Actualiza la etiqueta de guild en el overlay.
 -- Lógica de prioridad:
 --   1. Tabardo equipado → nombre de la guild del tabardo (amarillo discreto)
@@ -460,6 +344,7 @@ local function OcultarTooltipWidget()
     if overlayWidgetTooltipWin then
         overlayWidgetTooltipWin:SetHidden(true)
     end
+    overlayAllyTooltipActive = false
 end
 
 local function AsegurarTooltipWidget()
@@ -645,6 +530,26 @@ local function MostrarTooltipWidget(ctrl, side, index, data)
         overlayWidgetTooltipWin:SetAnchor(TOPLEFT, ctrl, TOPRIGHT, 8, -4)
     end
     overlayWidgetTooltipWin:SetHidden(false)
+end
+
+local function MostrarTooltipTextoSobreControl(ctrl, texto)
+    if not ctrl or type(texto) ~= "string" or texto == "" then
+        OcultarTooltipWidget()
+        return
+    end
+
+    AsegurarTooltipWidget()
+    overlayWidgetTooltipLabel:SetText(texto)
+    overlayWidgetTooltipLabel:SetDimensions(220, 0)
+    local textW, textH = overlayWidgetTooltipLabel:GetTextDimensions()
+    local width = zo_clamp((textW or 0) + 24, 150, 240)
+    local height = math.max(32, (textH or 0) + 16)
+    overlayWidgetTooltipWin:SetDimensions(width, height)
+    overlayWidgetTooltipLabel:SetDimensions(width - 20, height - 12)
+    overlayWidgetTooltipWin:ClearAnchors()
+    overlayWidgetTooltipWin:SetAnchor(BOTTOM, ctrl, TOP, 0, -8)
+    overlayWidgetTooltipWin:SetHidden(false)
+    overlayAllyTooltipActive = true
 end
 
 local function EjecutarAccionWidget(side, index, data, button)
@@ -1162,19 +1067,29 @@ local function AplicarEscalaVisual()
     local basePx = esGP and BASE_FONT_GP or BASE_FONT_PC
     local playerScale = tonumber(EZO.sv.overlay.playerTextScale) or 1
     playerScale = zo_clamp(playerScale, PLAYER_TEXT_SCALE_MIN, PLAYER_TEXT_SCALE_MAX)
-    overlayLabel:SetFont(CadenaFuente(basePx * s * playerScale))
-    overlayLabel:ClearAnchors()
-    overlayLabel:SetAnchor(TOP, overlayTex, BOTTOM, 0, math.floor(6 * s + 0.5))
+    local playerPx = math.floor(basePx * s * playerScale + 0.5)
+    overlayLabel:SetFont(CadenaFuente(playerPx))
     overlayLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
 
     local guildPx = math.floor(basePx * GUILD_FONT_RATIO * s + 0.5)
     if overlayGuildLabel then
         overlayGuildLabel:SetFont(CadenaFuente(guildPx))
         overlayGuildLabel:ClearAnchors()
-        -- Ancla: borde inferior de la guild = borde superior del logo con pequeño margen
-        overlayGuildLabel:SetAnchor(BOTTOM, overlayTex, TOP, 0, -math.floor(4 * s + 0.5))
+        overlayGuildLabel:SetAnchor(TOP, overlayWin, TOP, 0, OVERLAY_TOP_PADDING)
         overlayGuildLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     end
+
+    overlayTex:ClearAnchors()
+    overlayTex:SetAnchor(
+        TOP,
+        overlayGuildLabel or overlayWin,
+        overlayGuildLabel and BOTTOM or TOP,
+        0,
+        math.floor(OVERLAY_ROW_GAP_SMALL * s + 0.5)
+    )
+
+    overlayLabel:ClearAnchors()
+    overlayLabel:SetAnchor(TOP, overlayTex, BOTTOM, 0, math.floor(OVERLAY_ROW_GAP_NORMAL * s + 0.5))
 
     local sideExtent, sideSlotSize = AplicarLayoutSlotsLaterales(texPx)
 
@@ -1201,7 +1116,16 @@ local function AplicarEscalaVisual()
     if overlayWin then
         local margin   = math.max(16, math.floor(SIDE_SLOT_MARGIN * s + 0.5))
         local halfW    = math.max(math.floor(texPx * 0.5 + 0.5), sideExtent) + margin
-        local totalH   = texPx + guildPx + math.floor(basePx * s + 0.5) + math.max(dotSize, sideSlotSize) + math.floor(84 * s + 0.5)
+        local totalH   =
+            OVERLAY_TOP_PADDING +
+            guildPx +
+            math.floor(OVERLAY_ROW_GAP_SMALL * s + 0.5) +
+            texPx +
+            math.floor(OVERLAY_ROW_GAP_NORMAL * s + 0.5) +
+            playerPx +
+            math.floor(OVERLAY_ROW_GAP_NORMAL * s + 0.5) +
+            math.max(dotSize, sideSlotSize) +
+            math.floor(OVERLAY_BOTTOM_PADDING * s + 0.5)
         overlayWin:SetDimensions(math.max(256, halfW * 2), math.max(256, totalH))
     end
 end
@@ -1242,10 +1166,11 @@ local function AsegurarControles()
     -- Color gris claro discreto; rojo cuando no hay guild seleccionada
     overlayGuildLabel:SetColor(0.7, 0.7, 0.7, 1)
 
-    -- Helper: asigna textura desde lista, color rojo advertencia, oculto por defecto
+    -- Crea un icono sencillo a partir de una lista de texturas; queda oculto por defecto.
     local function CrearIcono(nombre, texturas)
         local ctrl = WINDOW_MANAGER:CreateControl(nombre, overlayWin, CT_TEXTURE)
         ctrl:SetDimensions(28, 28)
+        ctrl:SetMouseEnabled(false)
         for _, ruta in ipairs(texturas) do
             ctrl:SetTexture(ruta)
             if ctrl:IsTextureLoaded() then break end
@@ -1253,6 +1178,30 @@ local function AsegurarControles()
         ctrl:SetColor(1, 0.15, 0.15, 1)  -- rojo advertencia
         ctrl:SetHidden(true)
         return ctrl
+    end
+
+    local function EjecutarClickIconoAliado(tipo, estaActivoFn, ocultarFn, invocarFn, msgOcultarId, msgInvocarId)
+        local activo = estaActivoFn()
+        if EZO and type(EZO.Print) == "function" then
+            EZO.Print(GetString(activo and msgOcultarId or msgInvocarId))
+        end
+
+        local ok = false
+        if activo then
+            ok = ocultarFn()
+        else
+            ok = invocarFn()
+        end
+        if ok then
+            ProgramarRefrescoDots()
+        end
+        return ok
+    end
+
+    local function ConfigurarTooltipIconoAliado(ctrl, tipo, estaActivoFn)
+        if not ctrl then return end
+        ctrl:SetHandler("OnMouseEnter", nil)
+        ctrl:SetHandler("OnMouseExit", nil)
     end
 
     -- Icono reparación armadura
@@ -1289,7 +1238,7 @@ local function AsegurarControles()
     overlayPetDot:SetColor(1, 1, 1, 1)
     overlayPetDot:SetAnchor(TOP, overlayLabel, BOTTOM, -56, 6)
 
-    -- Icono companion: seguidor NPC activo.
+    -- Icono del compañero activo.
     overlayCompanionDot = CrearIcono("EZOToolsCompDot2", {
         "/esoui/art/treeicons/collections_indexicon_companions_up.dds",
         "/esoui/art/hud/loothistory_bonusdropsourceicon_companion.dds",
@@ -1297,7 +1246,7 @@ local function AsegurarControles()
     overlayCompanionDot:SetColor(1, 1, 1, 1)
     overlayCompanionDot:SetAnchor(TOP, overlayLabel, BOTTOM, 0, 6)
 
-    -- Icono assistant: banker, merchant, fence, etc.
+    -- Icono del asistente activo (banquero, mercader, desguazador, etc.).
     overlayAssistantDot = CrearIcono("EZOToolsAssistDot2", {
         "/esoui/art/treeicons/gamepad/gp_collection_indexicon_assistants.dds",
         "/esoui/art/treeicons/store_indexicon_assistants_up.dds",
@@ -1312,43 +1261,49 @@ local function AsegurarControles()
     end)
 
     AsegurarTooltipWidget()
+    ConfigurarTooltipIconoAliado(overlayPetDot, "pet", function()
+        return ObtenerMascotaActivaId() ~= 0
+    end)
+    ConfigurarTooltipIconoAliado(overlayCompanionDot, "companion", function()
+        return ObtenerCompanionActivoCollectibleId() ~= 0
+    end)
+    ConfigurarTooltipIconoAliado(overlayAssistantDot, "assistant", function()
+        return ObtenerAssistantActivoId() ~= 0
+    end)
 
-    -- Clic izquierdo: iconos inferiores; clic derecho: menú contextual
     overlayWin:SetHandler("OnMouseUp", function(_, button, upInside)
         if button == MOUSE_BUTTON_INDEX_LEFT and upInside and type(MouseIsOver) == "function" then
             if overlayPetDot and not overlayPetDot:IsHidden() and MouseIsOver(overlayPetDot) then
-                if EZO and type(EZO.Print) == "function" then
-                    EZO.Print(GetString(EZO_MSG_HIDE_PET))
-                end
-                if OcultarMascotaActiva() then
-                    if overlayPetDot then
-                        overlayPetDot:SetHidden(true)
-                    end
-                end
+                EjecutarClickIconoAliado(
+                    "pet",
+                    function() return ObtenerMascotaActivaId() ~= 0 end,
+                    function() return OcultarMascotaActiva() end,
+                    function() return InvocarMascotaRecordada() end,
+                    EZO_MSG_HIDE_PET,
+                    EZO_MSG_SUMMON_PET
+                )
                 return
             end
-
             if overlayCompanionDot and not overlayCompanionDot:IsHidden() and MouseIsOver(overlayCompanionDot) then
-                if EZO and type(EZO.Print) == "function" then
-                    EZO.Print(GetString(EZO_MSG_HIDE_COMPANION))
-                end
-                if OcultarCompanionActivo() then
-                    if overlayCompanionDot then
-                        overlayCompanionDot:SetHidden(true)
-                    end
-                end
+                EjecutarClickIconoAliado(
+                    "companion",
+                    function() return ObtenerCompanionActivoCollectibleId() ~= 0 end,
+                    function() return OcultarCompanionActivo() end,
+                    function() return InvocarCompanionRecordado() end,
+                    EZO_MSG_HIDE_COMPANION,
+                    EZO_MSG_SUMMON_COMPANION
+                )
                 return
             end
-
             if overlayAssistantDot and not overlayAssistantDot:IsHidden() and MouseIsOver(overlayAssistantDot) then
-                if EZO and type(EZO.Print) == "function" then
-                    EZO.Print(GetString(EZO_MSG_HIDE_ASSISTANT))
-                end
-                if OcultarAsistenteActivo() then
-                    if overlayAssistantDot then
-                        overlayAssistantDot:SetHidden(true)
-                    end
-                end
+                EjecutarClickIconoAliado(
+                    "assistant",
+                    function() return ObtenerAssistantActivoId() ~= 0 end,
+                    function() return OcultarAsistenteActivo() end,
+                    function() return InvocarAsistenteRecordada() end,
+                    EZO_MSG_HIDE_ASSISTANT,
+                    EZO_MSG_SUMMON_ASSISTANT
+                )
                 return
             end
         end
@@ -1405,20 +1360,153 @@ local function TieneMascotaEnGrupo()
     return petId ~= nil and petId ~= 0
 end
 
-local function ObtenerAssistantActivoId()
+ObtenerMascotaActivaId = function()
+    if type(GetActiveCollectibleByType) ~= "function" then
+        return 0
+    end
+    return GetActiveCollectibleByType(
+        COLLECTIBLE_CATEGORY_TYPE_VANITY_PET,
+        GAMEPLAY_ACTOR_CATEGORY_PLAYER) or 0
+end
+
+ObtenerAssistantActivoId = function()
     if type(GetActiveCollectibleByType) ~= "function" then
         return 0
     end
     return GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_ASSISTANT) or 0
 end
 
+ObtenerCompanionActivoCollectibleId = function()
+    if not (HasActiveCompanion and HasActiveCompanion()) then
+        return 0
+    end
+    if type(GetActiveCompanionDefId) ~= "function"
+        or type(GetCompanionCollectibleId) ~= "function" then
+        return 0
+    end
+    local companionId = GetActiveCompanionDefId()
+    if not companionId or companionId == 0 then
+        return 0
+    end
+    return GetCompanionCollectibleId(companionId) or 0
+end
+
+local function GuardarCollectibleRecordado(clave, collectibleId)
+    if not (EZO and EZO.sv and EZO.sv.overlay) then return end
+    collectibleId = tonumber(collectibleId) or 0
+    if collectibleId > 0 then
+        EZO.sv.overlay[clave] = collectibleId
+    end
+end
+
+local function ObtenerCollectibleRecordado(clave)
+    if not (EZO and EZO.sv and EZO.sv.overlay) then return 0 end
+    local collectibleId = tonumber(EZO.sv.overlay[clave]) or 0
+    if collectibleId < 0 then return 0 end
+    return collectibleId
+end
+
+local function InvocarCollectibleRecordado(clave)
+    if type(UseCollectible) ~= "function" then
+        return false
+    end
+    local collectibleId = ObtenerCollectibleRecordado(clave)
+    if collectibleId == 0 then
+        return false
+    end
+    UseCollectible(collectibleId)
+    return true
+end
+
+local function ProgramarInvocacionCollectible(clave, retrasoMs)
+    if type(UseCollectible) ~= "function" then
+        return false
+    end
+    local collectibleId = ObtenerCollectibleRecordado(clave)
+    if collectibleId == 0 then
+        return false
+    end
+    local delay = math.max(0, tonumber(retrasoMs) or 0)
+    if delay > 0 and type(zo_callLater) == "function" then
+        zo_callLater(function()
+            UseCollectible(collectibleId)
+        end, delay)
+    else
+        UseCollectible(collectibleId)
+    end
+    return true
+end
+
+local function ProgramarCambioEntreAliados(claveDestino, sigueActivoFn, ocultarActivoFn)
+    if allySwitchPending then
+        return false
+    end
+    if type(ocultarActivoFn) ~= "function" or type(sigueActivoFn) ~= "function" then
+        return false
+    end
+    if not ocultarActivoFn() then
+        return false
+    end
+    allySwitchPending = true
+
+    local function IntentarInvocarRestante(intentos)
+        if sigueActivoFn() then
+            if intentos > 0 and type(zo_callLater) == "function" then
+                zo_callLater(function()
+                    IntentarInvocarRestante(intentos - 1)
+                end, ALLY_SWITCH_RETRY_DELAY_MS)
+            else
+                allySwitchPending = false
+            end
+            return
+        end
+        ProgramarInvocacionCollectible(claveDestino, 100)
+        allySwitchPending = false
+    end
+
+    if type(zo_callLater) == "function" then
+        zo_callLater(function()
+            IntentarInvocarRestante(ALLY_SWITCH_MAX_RETRIES)
+        end, ALLY_SWITCH_INITIAL_DELAY_MS)
+    else
+        IntentarInvocarRestante(0)
+    end
+    return true
+end
+
+local function AplicarEstadoVisualIconoAliado(ctrl, activo, collectibleId)
+    if not ctrl then return end
+
+    if collectibleId and collectibleId ~= 0 and type(GetCollectibleIcon) == "function" then
+        local icon = GetCollectibleIcon(collectibleId)
+        if type(icon) == "string" and icon ~= "" then
+            ctrl:SetTexture(icon)
+        end
+    end
+
+    local alpha = activo and 1 or ALLY_ICON_INACTIVE_ALPHA
+    ctrl:SetColor(1, 1, 1, alpha)
+    ctrl:SetAlpha(alpha)
+end
+
+ObtenerTooltipIconoAliado = function(tipo, activo)
+    if tipo == "pet" then
+        return GetString(activo and EZO_DOT_PET_ACTIVE_TOOLTIP or EZO_DOT_PET_INACTIVE_TOOLTIP)
+    end
+    if tipo == "companion" then
+        return GetString(activo and EZO_DOT_COMPANION_ACTIVE_TOOLTIP or EZO_DOT_COMPANION_INACTIVE_TOOLTIP)
+    end
+    if tipo == "assistant" then
+        return GetString(activo and EZO_DOT_ASSISTANT_ACTIVE_TOOLTIP or EZO_DOT_ASSISTANT_INACTIVE_TOOLTIP)
+    end
+    return nil
+end
+
 OcultarMascotaActiva = function()
     if type(GetActiveCollectibleByType) ~= "function" or type(UseCollectible) ~= "function" then
         return false
     end
-    local petId = GetActiveCollectibleByType(
-        COLLECTIBLE_CATEGORY_TYPE_VANITY_PET,
-        GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+    local petId = ObtenerMascotaActivaId()
     if not petId or petId == 0 then
         return false
     end
@@ -1431,23 +1519,18 @@ TieneAsistenteActivo = function()
     return assistId ~= nil and assistId ~= 0
 end
 
--- Companion (NPC seguidor) activo
+-- Devuelve si hay un compañero activo.
 local function TieneCompanionActivo()
     return HasActiveCompanion and HasActiveCompanion() or false
 end
 
 OcultarCompanionActivo = function()
     if HasActiveCompanion and HasActiveCompanion() then
-        if type(GetActiveCompanionDefId) == "function"
-            and type(GetCompanionCollectibleId) == "function"
-            and type(UseCollectible) == "function" then
-            local companionId = GetActiveCompanionDefId()
-            if companionId and companionId ~= 0 then
-                local collectibleId = GetCompanionCollectibleId(companionId)
-                if collectibleId and collectibleId ~= 0 then
-                    UseCollectible(collectibleId)
-                    return true
-                end
+        if type(UseCollectible) == "function" then
+            local collectibleId = ObtenerCompanionActivoCollectibleId()
+            if collectibleId ~= 0 then
+                UseCollectible(collectibleId)
+                return true
             end
         end
         if type(DismissCompanion) == "function" then
@@ -1471,27 +1554,73 @@ OcultarAsistenteActivo = function()
     return true
 end
 
+InvocarMascotaRecordada = function()
+    return InvocarCollectibleRecordado("lastPetCollectibleId")
+end
+
+InvocarCompanionRecordado = function()
+    if ObtenerAssistantActivoId() ~= 0 then
+        return ProgramarCambioEntreAliados(
+            "lastCompanionCollectibleId",
+            function() return ObtenerAssistantActivoId() ~= 0 end,
+            OcultarAsistenteActivo
+        )
+    end
+    return InvocarCollectibleRecordado("lastCompanionCollectibleId")
+end
+
+InvocarAsistenteRecordada = function()
+    if ObtenerCompanionActivoCollectibleId() ~= 0 then
+        return ProgramarCambioEntreAliados(
+            "lastAssistantCollectibleId",
+            function() return ObtenerCompanionActivoCollectibleId() ~= 0 end,
+            OcultarCompanionActivo
+        )
+    end
+    return InvocarCollectibleRecordado("lastAssistantCollectibleId")
+end
+
 RefrescarDot = function()
     if overlayMaintDot then overlayMaintDot:SetHidden(true) end
     if overlayChargeDot then overlayChargeDot:SetHidden(true) end
     if overlayFoodDot then overlayFoodDot:SetHidden(true) end
-    -- Icono mascota: visible si vanity pet activa (en grupo en producción)
+
+    local petId = ObtenerMascotaActivaId()
+    if petId ~= 0 then
+        GuardarCollectibleRecordado("lastPetCollectibleId", petId)
+    end
+    local petRecordadoId = (petId ~= 0) and petId or ObtenerCollectibleRecordado("lastPetCollectibleId")
     if overlayPetDot then
-        overlayPetDot:SetHidden(not TieneMascotaEnGrupo())
+        local visible = petRecordadoId ~= 0
+        overlayPetDot:SetHidden(not visible)
+        if visible then
+            AplicarEstadoVisualIconoAliado(overlayPetDot, petId ~= 0, petRecordadoId)
+        end
     end
-    -- Iconos companion y assistant: visibilidad separada
+
+    local companionCollectibleId = ObtenerCompanionActivoCollectibleId()
+    if companionCollectibleId ~= 0 then
+        GuardarCollectibleRecordado("lastCompanionCollectibleId", companionCollectibleId)
+    end
+    local companionRecordadoId = (companionCollectibleId ~= 0) and companionCollectibleId or ObtenerCollectibleRecordado("lastCompanionCollectibleId")
     if overlayCompanionDot then
-        overlayCompanionDot:SetHidden(not TieneCompanionActivo())
+        local visible = companionRecordadoId ~= 0
+        overlayCompanionDot:SetHidden(not visible)
+        if visible then
+            AplicarEstadoVisualIconoAliado(overlayCompanionDot, companionCollectibleId ~= 0, companionRecordadoId)
+        end
     end
+
+    local assistId = ObtenerAssistantActivoId()
+    if assistId ~= 0 then
+        GuardarCollectibleRecordado("lastAssistantCollectibleId", assistId)
+    end
+    local assistRecordadoId = (assistId ~= 0) and assistId or ObtenerCollectibleRecordado("lastAssistantCollectibleId")
     if overlayAssistantDot then
-        local assistId = ObtenerAssistantActivoId()
-        local visible = assistId ~= 0
+        local visible = assistRecordadoId ~= 0
         overlayAssistantDot:SetHidden(not visible)
-        if visible and type(GetCollectibleIcon) == "function" then
-            local icon = GetCollectibleIcon(assistId)
-            if type(icon) == "string" and icon ~= "" then
-                overlayAssistantDot:SetTexture(icon)
-            end
+        if visible then
+            AplicarEstadoVisualIconoAliado(overlayAssistantDot, assistId ~= 0, assistRecordadoId)
         end
     end
 
@@ -1593,16 +1722,12 @@ function MOD.Init()
     EVENT_MANAGER:RegisterForEvent("EZOTools_Overlay_Group",
         EVENT_GROUP_MEMBER_LEFT,
         function()
-            if overlayPetDot then
-                overlayPetDot:SetHidden(not TieneMascotaEnGrupo())
-            end
+            RefrescarDot()
         end)
     EVENT_MANAGER:RegisterForEvent("EZOTools_Overlay_GroupJoin",
         EVENT_GROUP_MEMBER_JOINED,
         function()
-            if overlayPetDot then
-                overlayPetDot:SetHidden(not TieneMascotaEnGrupo())
-            end
+            RefrescarDot()
         end)
 
     -- Buff comida/bebida: refresco reactivo al ganar o perder cualquier efecto

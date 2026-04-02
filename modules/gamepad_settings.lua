@@ -224,7 +224,7 @@ function Dialog.OpenMouse(anchor)
     AsegurarDefectos()
 
     if type(AddMenuItem) ~= "function" or type(ShowMenu) ~= "function" then
-        -- Fallback: abrir el panel LAM completo si está disponible
+        -- Si no se puede abrir el menú contextual, intenta abrir el panel completo de LAM.
         local LAM = _G.LibAddonMenu2
         if LAM and type(LAM.OpenToPanel) == "function" then
             local panel = _G.EZOTools_Panel
