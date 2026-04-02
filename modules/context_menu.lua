@@ -90,7 +90,7 @@ local function AbrirMenuContextualGamepad()
     return false
 end
 
--- Abre el diálogo gamepad paramétrico (fallback si no hay ZO_GamepadContextMenu)
+-- Abre el diálogo paramétrico de gamepad si no está disponible ZO_GamepadContextMenu.
 local function AbrirDialogoGamepad()
     local nombre = "EZO_GAMEPAD_MENU"
     if not ZO_Dialogs_IsDialogRegistered(nombre) then

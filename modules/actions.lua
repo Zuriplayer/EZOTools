@@ -50,7 +50,7 @@ local function AgregarEntrada(lista, texto, callback, clave)
     lista[#lista + 1] = { text = texto, callback = callback, key = clave }
 end
 
--- Helper: dispara una acción a través del InputRouter
+-- Lanza una acción a través del InputRouter.
 local function Trigger(accion, ctx)
     return (EZOTools_InputRouter and EZOTools_InputRouter.Trigger
         and EZOTools_InputRouter.Trigger("MENU", accion, ctx or {})) or false

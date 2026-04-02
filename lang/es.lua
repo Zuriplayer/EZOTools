@@ -26,8 +26,11 @@ EZO_STRINGS_ES = {
     EZO_MSG_INIT                = "E|cB040FFZ|rOTools inicializado.",
     EZO_MSG_SLASH               = "Comando /ezo recibido",
     EZO_MSG_HIDE_PET            = "Ocultando mascota",
-    EZO_MSG_HIDE_COMPANION      = "Ocultando companion",
+    EZO_MSG_HIDE_COMPANION      = "Ocultando compañero",
     EZO_MSG_HIDE_ASSISTANT      = "Ocultando asistente",
+    EZO_MSG_SUMMON_PET          = "Invocando mascota",
+    EZO_MSG_SUMMON_COMPANION    = "Invocando compañero",
+    EZO_MSG_SUMMON_ASSISTANT    = "Invocando asistente",
 
     -- -------------------------------------------------------------------------
     -- Panel LAM: sección General
@@ -51,22 +54,22 @@ EZO_STRINGS_ES = {
     EZO_OPTION_OVERLAY_PLAYER_TEXT_SIZE = "Tamaño del nombre del jugador",
     EZO_OPTION_OVERLAY_TEXT             = "Texto del overlay",
     EZO_OPTION_OVERLAY_RESET_POS        = "Reiniciar posición del overlay",
-    EZO_OPTION_GUILD_OVERLAY            = "Guild Overlay",
-    EZO_OPTION_GUILD_LABEL_COLOR        = "Color del nombre de la guild representada",
-    EZO_OPTION_GUILD_LABEL_COLOR_TOOLTIP = "Sólo se aplica cuando hay una guild representada seleccionada y no llevas tabardo. Los estados de tabardo y sin guild mantienen sus colores actuales.",
+    EZO_OPTION_GUILD_OVERLAY            = "Imagen de hermandad",
+    EZO_OPTION_GUILD_LABEL_COLOR        = "Color del nombre de la hermandad representada",
+    EZO_OPTION_GUILD_LABEL_COLOR_TOOLTIP = "Sólo se aplica cuando hay una hermandad representada seleccionada y no llevas tabardo. Los estados de tabardo y sin hermandad mantienen sus colores actuales.",
 
     -- -------------------------------------------------------------------------
     -- Panel LAM: sección Casas de amigos
     -- -------------------------------------------------------------------------
     EZO_OPTION_FRIENDS          = "Casas de amigos",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN = "Autoasignar casas desde guild seleccionada",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN_TOOLTIP = "Si está activado, el addon rellena automáticamente la casa de artesanía y la secundaria usando la guild elegida en el selector, siempre que pertenezcas a una guild soportada por el addon.",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD = "Guild para autoasignación",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD_TOOLTIP = "Selecciona una de tus guilds soportadas por el addon. La autoasignación usará primero la configuración que hayas guardado para esa guild y, si no existe, la asignación interna del addon.",
-    EZO_OPTION_FRIENDS_SAVE_SELECTED = "Guardar casas para la guild seleccionada",
-    EZO_OPTION_FRIENDS_SAVE_SELECTED_TOOLTIP = "Guarda los valores actuales de Crafting Hall y Secondary Hall para la guild seleccionada. La autoasignación usará esta configuración guardada antes que la interna.",
-    EZO_OPTION_FRIENDS_CRAFTING = "Crafting Hall (nombre de cuenta @...)",
-    EZO_OPTION_FRIENDS_SECONDARY= "Secondary Hall (nombre de cuenta @...)",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN = "Autoasignar casas desde la hermandad seleccionada",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN_TOOLTIP = "Si está activado, el addon rellena automáticamente la casa de artesanía y la secundaria usando la hermandad elegida en el selector, siempre que pertenezcas a una hermandad soportada por el addon.",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD = "Hermandad para autoasignación",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD_TOOLTIP = "Selecciona una de tus hermandades soportadas por el addon. La autoasignación usará primero la configuración que hayas guardado para esa hermandad y, si no existe, la asignación interna del addon.",
+    EZO_OPTION_FRIENDS_SAVE_SELECTED = "Guardar casas para la hermandad seleccionada",
+    EZO_OPTION_FRIENDS_SAVE_SELECTED_TOOLTIP = "Guarda los valores actuales de Casa de artesanía y Casa secundaria para la hermandad seleccionada. La autoasignación usará esta configuración guardada antes que la interna.",
+    EZO_OPTION_FRIENDS_CRAFTING = "Casa de artesanía (nombre de cuenta @...)",
+    EZO_OPTION_FRIENDS_SECONDARY= "Casa secundaria (nombre de cuenta @...)",
 
     -- -------------------------------------------------------------------------
     -- Panel LAM: sección Mantenimiento
@@ -116,8 +119,8 @@ EZO_STRINGS_ES = {
     -- Mensajes de chat: viajes
     -- -------------------------------------------------------------------------
     EZO_MSG_NO_PRIMARY_HOUSE    = "No hay casa principal configurada.",
-    EZO_MSG_NO_CRAFTING_HALL    = "Configura una Crafting Hall en los ajustes.",
-    EZO_MSG_NO_SECONDARY_HALL   = "Configura una Secondary Hall en los ajustes.",
+    EZO_MSG_NO_CRAFTING_HALL    = "Configura una casa de artesanía en los ajustes.",
+    EZO_MSG_NO_SECONDARY_HALL   = "Configura una casa secundaria en los ajustes.",
 
     -- -------------------------------------------------------------------------
     -- Mensajes de chat: grupo
@@ -155,11 +158,11 @@ EZO_STRINGS_ES = {
     EZO_CMD_HELP_HELP           = "  /ezo help",
 
     EZO_CMD_DEBUG_TITLE         = "Comandos de diagnóstico:",
-    EZO_CMD_DEBUG_INFO          = "  /ezo debug info     — diagnóstico: zona, grupo, mantenimiento, guild",
-    EZO_CMD_DEBUG_GUILDS        = "  /ezo debug guilds   — lista tus guilds y cuál está representada",
+    EZO_CMD_DEBUG_INFO          = "  /ezo debug info     — diagnóstico: zona, grupo, mantenimiento y hermandad",
+    EZO_CMD_DEBUG_GUILDS        = "  /ezo debug guilds   — lista tus hermandades y cuál está representada",
     EZO_CMD_DEBUG_TEX           = "  /ezo debug tex      — estado de iconos del overlay",
     EZO_CMD_DEBUG_TEXLOAD       = "  /ezo debug texload  — prueba de carga de texturas",
-    EZO_CMD_DEBUG_DOTS          = "  /ezo debug dots     — estado de dots pet/companion",
+    EZO_CMD_DEBUG_DOTS          = "  /ezo debug dots     — estado de iconos de mascota y aliados",
     EZO_CMD_DEBUG_LAYOUT        = "  /ezo debug layout   — alterna preview de slots laterales",
 
     EZO_CMD_GUILDS_NONE         = "No perteneces a ninguna hermandad.",
@@ -186,18 +189,18 @@ EZO_STRINGS_ES = {
     EZO_CMD_VERSION_LAM         = "  LibAddonMenu: <<1>>",
     EZO_CMD_VERSION_OVERLAY     = "  Módulo overlay: <<1>>",
     EZO_CMD_VERSION_GAMEPAD     = "  Diálogo gamepad: <<1>>",
-    EZO_CMD_LAYOUT_ON           = "Preview layout: ON",
-    EZO_CMD_LAYOUT_OFF          = "Preview layout: OFF",
-    EZO_CMD_LAYOUT_NA           = "Preview layout no disponible.",
+    EZO_CMD_LAYOUT_ON           = "Previsualización del diseño: ACTIVADA",
+    EZO_CMD_LAYOUT_OFF          = "Previsualización del diseño: DESACTIVADA",
+    EZO_CMD_LAYOUT_NA           = "La previsualización del diseño no está disponible.",
     EZO_SIDE_WIDGET_LEFT        = "Izquierda",
     EZO_SIDE_WIDGET_RIGHT       = "Derecha",
-    EZO_SIDE_WIDGET_PREVIEW_TOOLTIP = "Widget preview: <<1>> #<<2>>",
+    EZO_SIDE_WIDGET_PREVIEW_TOOLTIP = "Vista previa del icono: <<1>> #<<2>>",
     EZO_SIDE_WIDGET_SOUL_GEMS_TOOLTIP = "Gemas de alma cargadas bajas: <<1>> disponibles (umbral <<2>>). Clic para abrir ajustes.",
     EZO_SIDE_WIDGET_REPAIR_KITS_TOOLTIP = "Kits de reparación bajos: <<1>> disponibles (umbral <<2>>). Clic para abrir ajustes.",
 }
-EZO_STRINGS_ES["EZO_OPTION_LOW_STOCK_ALERTS_NOTE"] = "Las alertas de stock bajo controlan los widgets laterales. Las gemas se cuentan como gemas cargadas utilizables. Los kits de reparación se cuentan por unidades detectadas, sin distinguir todavía entre kits de una pieza y kits de reparación completa."
-EZO_STRINGS_ES["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE"] = "Usar imagen personalizada de la guild representada"
-EZO_STRINGS_ES["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE_TOOLTIP"] = "Si está activado y la guild representada tiene una imagen registrada en el addon, el logo central se sustituye por esa imagen. Si falta la imagen o hay cualquier duda, se mantiene el logo normal de EZOTools."
+EZO_STRINGS_ES["EZO_OPTION_LOW_STOCK_ALERTS_NOTE"] = "Las alertas de stock bajo controlan los iconos laterales. Las gemas de alma se cuentan como gemas cargadas utilizables. Los kits de reparación se cuentan por unidades detectadas, sin distinguir todavía entre kits de una pieza y kits de reparación completa."
+EZO_STRINGS_ES["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE"] = "Usar imagen personalizada para la hermandad representada"
+EZO_STRINGS_ES["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE_TOOLTIP"] = "Si está activado y la hermandad representada tiene una imagen registrada en el addon, el logo central se sustituye por esa imagen. Si falta la imagen o hay cualquier duda, se mantiene el logo normal de EZOTools."
 EZO_STRINGS_ES["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE"] = "Mostrar alerta de kits bajos"
 EZO_STRINGS_ES["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE_TOOLTIP"] = "Muestra u oculta el widget lateral cuando los kits de reparación estén bajos."
 EZO_STRINGS_ES["EZO_OPTION_REPAIR_KIT_ALERT_THRESHOLD"] = "Umbral alerta kits reparación"
@@ -214,11 +217,17 @@ EZO_STRINGS_ES["EZO_SIDE_WIDGET_FOOD_ACTIVE_NO_TIME_TOOLTIP"] = "Comida o bebida
 EZO_STRINGS_ES["EZO_TIME_REMAINING_HM"] = "<<1>>h <<2>>m"
 EZO_STRINGS_ES["EZO_TIME_REMAINING_MS"] = "<<1>>m <<2>>s"
 EZO_STRINGS_ES["EZO_TIME_REMAINING_S"] = "<<1>>s"
-EZO_STRINGS_ES["EZO_SIDE_WIDGET_FOOD_PREVIEW_TOOLTIP"] = "Preview: estado de comida o bebida."
-EZO_STRINGS_ES["EZO_SIDE_WIDGET_REPAIR_EQUIPPED_PREVIEW_TOOLTIP"] = "Preview: reparación de armadura."
-EZO_STRINGS_ES["EZO_SIDE_WIDGET_REPAIR_KITS_PREVIEW_TOOLTIP"] = "Preview: stock bajo de kits de reparación."
-EZO_STRINGS_ES["EZO_SIDE_WIDGET_RECHARGE_WEAPONS_PREVIEW_TOOLTIP"] = "Preview: recarga de armas."
-EZO_STRINGS_ES["EZO_SIDE_WIDGET_SOUL_GEMS_PREVIEW_TOOLTIP"] = "Preview: stock bajo de gemas de alma."
+EZO_STRINGS_ES["EZO_SIDE_WIDGET_FOOD_PREVIEW_TOOLTIP"] = "Vista previa: estado de comida o bebida."
+EZO_STRINGS_ES["EZO_SIDE_WIDGET_REPAIR_EQUIPPED_PREVIEW_TOOLTIP"] = "Vista previa: reparación de armadura."
+EZO_STRINGS_ES["EZO_SIDE_WIDGET_REPAIR_KITS_PREVIEW_TOOLTIP"] = "Vista previa: stock bajo de kits de reparación."
+EZO_STRINGS_ES["EZO_SIDE_WIDGET_RECHARGE_WEAPONS_PREVIEW_TOOLTIP"] = "Vista previa: recarga de armas."
+EZO_STRINGS_ES["EZO_SIDE_WIDGET_SOUL_GEMS_PREVIEW_TOOLTIP"] = "Vista previa: stock bajo de gemas de alma."
+EZO_STRINGS_ES["EZO_DOT_PET_ACTIVE_TOOLTIP"] = "Mascota activa. Clic izquierdo: ocultar."
+EZO_STRINGS_ES["EZO_DOT_PET_INACTIVE_TOOLTIP"] = "Mascota recordada. Clic izquierdo: invocar."
+EZO_STRINGS_ES["EZO_DOT_COMPANION_ACTIVE_TOOLTIP"] = "Compañero activo. Clic izquierdo: ocultar."
+EZO_STRINGS_ES["EZO_DOT_COMPANION_INACTIVE_TOOLTIP"] = "Compañero recordado. Clic izquierdo: invocar."
+EZO_STRINGS_ES["EZO_DOT_ASSISTANT_ACTIVE_TOOLTIP"] = "Asistente activo. Clic izquierdo: ocultar."
+EZO_STRINGS_ES["EZO_DOT_ASSISTANT_INACTIVE_TOOLTIP"] = "Asistente recordado. Clic izquierdo: invocar."
 EZO_STRINGS_ES["EZO_CMD_DEBUG_FOOD"] = "/ezo debug food green|yellow|red|auto - fuerza el estado del icono de comida"
 EZO_STRINGS_ES["EZO_CMD_DEBUG_FOOD_USAGE"] = "Uso: /ezo debug food green|yellow|red|auto"
 EZO_STRINGS_ES["EZO_CMD_DEBUG_FOOD_SET"] = "Estado debug de comida: <<1>>"

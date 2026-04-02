@@ -5,7 +5,7 @@
 local EZO = EZOTools
 
 -- ============================================================
--- Helpers privados
+-- Utilidades internas del módulo.
 -- ============================================================
 
 local function ObtenerUmbralReparacion()
@@ -124,7 +124,7 @@ local function BuscarGemaAlmaCargada()
                 return BAG_BACKPACK, slot
             end
         elseif type(GetSoulGemItemInfo) == "function" then
-            -- Fallback para versiones sin IsItemSoulGem
+            -- Compatibilidad con clientes donde no exista IsItemSoulGem.
             local _, soulGemType = GetSoulGemItemInfo(BAG_BACKPACK, slot)
             if soulGemType == SOUL_GEM_TYPE_FILLED then
                 return BAG_BACKPACK, slot
@@ -390,7 +390,6 @@ function EZOTools.RechargeWeapons()
     end
     if recargadoAlgo then EZOTools.Print(GetString(EZO_MSG_RECHARGE_DONE)) end
 end
-
 
 
 

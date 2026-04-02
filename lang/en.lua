@@ -29,6 +29,9 @@ EZO_STRINGS_EN = {
     EZO_MSG_HIDE_PET            = "Hiding pet",
     EZO_MSG_HIDE_COMPANION      = "Hiding companion",
     EZO_MSG_HIDE_ASSISTANT      = "Hiding assistant",
+    EZO_MSG_SUMMON_PET          = "Summoning pet",
+    EZO_MSG_SUMMON_COMPANION    = "Summoning companion",
+    EZO_MSG_SUMMON_ASSISTANT    = "Summoning assistant",
 
     -- -------------------------------------------------------------------------
     -- LAM panel: General section
@@ -52,7 +55,7 @@ EZO_STRINGS_EN = {
     EZO_OPTION_OVERLAY_PLAYER_TEXT_SIZE = "Player name size",
     EZO_OPTION_OVERLAY_TEXT             = "Overlay text",
     EZO_OPTION_OVERLAY_RESET_POS        = "Reset overlay position",
-    EZO_OPTION_GUILD_OVERLAY            = "Guild Overlay",
+    EZO_OPTION_GUILD_OVERLAY            = "Guild Image",
     EZO_OPTION_GUILD_LABEL_COLOR        = "Represented guild name color",
     EZO_OPTION_GUILD_LABEL_COLOR_TOOLTIP = "Applied only when a represented guild is selected and no tabard is equipped. Tabard and no-guild states keep their current colors.",
 
@@ -87,8 +90,8 @@ EZO_STRINGS_EN = {
     EZO_MENU_SETTINGS             = "Quick settings",
     EZO_MENU_ADDON_SETTINGS       = "Full settings (LAM)",
     EZO_MENU_TRAVEL_PRIMARY       = "Go to my house",
-    EZO_MENU_TRAVEL_CRAFTING      = "Go to crafting house",
-    EZO_MENU_TRAVEL_SECONDARY     = "Go to secondary house",
+    EZO_MENU_TRAVEL_CRAFTING      = "Travel to Crafting House",
+    EZO_MENU_TRAVEL_SECONDARY     = "Travel to Secondary House",
     EZO_MENU_JUMP_LEADER          = "Jump to Leader",
     EZO_MENU_LEAVE_GROUP          = "Leave group",
     EZO_MENU_LEAVE_INSTANCE       = "Leave instance",
@@ -160,8 +163,8 @@ EZO_STRINGS_EN = {
     EZO_CMD_DEBUG_GUILDS        = "  /ezo debug guilds   — list your guilds and which is represented",
     EZO_CMD_DEBUG_TEX           = "  /ezo debug tex      — overlay icon state",
     EZO_CMD_DEBUG_TEXLOAD       = "  /ezo debug texload  — texture loading test",
-    EZO_CMD_DEBUG_DOTS          = "  /ezo debug dots     — pet/companion dot state",
-    EZO_CMD_DEBUG_LAYOUT        = "  /ezo debug layout   — toggle side-slot layout preview",
+    EZO_CMD_DEBUG_DOTS          = "  /ezo debug dots     — pet/ally icon state",
+    EZO_CMD_DEBUG_LAYOUT        = "  /ezo debug layout   — toggle side icon preview",
 
     EZO_CMD_GUILDS_NONE         = "You do not belong to any guild.",
     EZO_CMD_GUILDS_HEADER       = "Guilds (<<1>>):",
@@ -189,19 +192,15 @@ EZO_STRINGS_EN = {
     EZO_CMD_VERSION_GAMEPAD     = "  Gamepad dialog: <<1>>",
     EZO_CMD_LAYOUT_ON           = "Layout preview: ON",
     EZO_CMD_LAYOUT_OFF          = "Layout preview: OFF",
-    EZO_CMD_LAYOUT_NA           = "Layout preview not available.",
+    EZO_CMD_LAYOUT_NA           = "Layout preview is not available.",
     EZO_SIDE_WIDGET_LEFT        = "Left",
     EZO_SIDE_WIDGET_RIGHT       = "Right",
-    EZO_SIDE_WIDGET_PREVIEW_TOOLTIP = "Preview widget: <<1>> #<<2>>",
+    EZO_SIDE_WIDGET_PREVIEW_TOOLTIP = "Icon preview: <<1>> #<<2>>",
     EZO_SIDE_WIDGET_SOUL_GEMS_TOOLTIP = "Filled Soul Gems low: <<1>> left (threshold <<2>>). Click to open settings.",
     EZO_SIDE_WIDGET_REPAIR_KITS_TOOLTIP = "Repair Kits low: <<1>> left (threshold <<2>>). Click to open settings.",
 }
 
--- NOTE: appended by patch -- tabard indicator
--- (add inside EZO_STRINGS_EN table manually if regenerating)
 EZO_STRINGS_EN["EZO_OVERLAY_TABARD"] = "Tabard"
--- Food buff indicator (added v3.5.0)
--- No new strings needed: food dot is visual only, no LAM option yet
 EZO_STRINGS_EN["EZO_OPTION_LOW_STOCK_ALERTS_NOTE"] = "Low stock alerts drive the side widgets. Soul gems are counted by usable filled gems. Repair kits are currently counted by item units, without distinguishing single-piece kits from full-repair kits yet."
 EZO_STRINGS_EN["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE"] = "Use custom image for represented guild"
 EZO_STRINGS_EN["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE_TOOLTIP"] = "If enabled and the represented guild has an image registered in the addon, the central logo is replaced by that image. If anything is missing or unclear, the normal EZOTools logo stays in place."
@@ -226,6 +225,12 @@ EZO_STRINGS_EN["EZO_SIDE_WIDGET_REPAIR_EQUIPPED_PREVIEW_TOOLTIP"] = "Preview: ar
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_REPAIR_KITS_PREVIEW_TOOLTIP"] = "Preview: low repair kit stock."
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_RECHARGE_WEAPONS_PREVIEW_TOOLTIP"] = "Preview: weapon recharge state."
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_SOUL_GEMS_PREVIEW_TOOLTIP"] = "Preview: low soul gem stock."
+EZO_STRINGS_EN["EZO_DOT_PET_ACTIVE_TOOLTIP"] = "Active pet. Left click hides it."
+EZO_STRINGS_EN["EZO_DOT_PET_INACTIVE_TOOLTIP"] = "Remembered pet. Left click summons it."
+EZO_STRINGS_EN["EZO_DOT_COMPANION_ACTIVE_TOOLTIP"] = "Active companion. Left click hides it."
+EZO_STRINGS_EN["EZO_DOT_COMPANION_INACTIVE_TOOLTIP"] = "Remembered companion. Left click summons it."
+EZO_STRINGS_EN["EZO_DOT_ASSISTANT_ACTIVE_TOOLTIP"] = "Active assistant. Left click hides it."
+EZO_STRINGS_EN["EZO_DOT_ASSISTANT_INACTIVE_TOOLTIP"] = "Remembered assistant. Left click summons it."
 EZO_STRINGS_EN["EZO_CMD_DEBUG_FOOD"] = "/ezo debug food green|yellow|red|auto - force the food icon state"
 EZO_STRINGS_EN["EZO_CMD_DEBUG_FOOD_USAGE"] = "Usage: /ezo debug food green|yellow|red|auto"
 EZO_STRINGS_EN["EZO_CMD_DEBUG_FOOD_SET"] = "Food debug state: <<1>>"
