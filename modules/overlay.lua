@@ -19,6 +19,10 @@ local overlayLayoutPreviewEnabled = false
 local overlayWidgetTooltipWin, overlayWidgetTooltipBackdrop, overlayWidgetTooltipLabel
 local overlayAllyTooltipActive = false
 local overlayFoodDebugState = nil
+local overlayFoodPulseLastRefreshMs = 0
+local overlayAllyTooltipLastRefreshMs = 0
+local overlayFoodPulseState = nil
+local ObtenerInfoBuffComida
 
 local DEFAULT_OVERLAY_TEXTURES = {
     "/AddOns/EZOTools/media/ezotools_logo.dds",
@@ -87,6 +91,9 @@ local GUILD_FONT_RATIO = 0.75  -- la fuente de guild es el 75% del tamaño del n
 local PLAYER_TEXT_SCALE_MIN = 0.6
 local PLAYER_TEXT_SCALE_MAX = 1.0
 local ALLY_ICON_INACTIVE_ALPHA = 0.45
+local ALLY_ICON_BASE_SIZE = 30
+local ALLY_ICON_SCALE_WEIGHT_DOWN = 0.22
+local ALLY_ICON_SCALE_WEIGHT_UP = 0.60
 local ALLY_SWITCH_INITIAL_DELAY_MS = 1500
 local ALLY_SWITCH_RETRY_DELAY_MS = 500
 local ALLY_SWITCH_MAX_RETRIES = 6
@@ -95,6 +102,9 @@ local OVERLAY_TOP_PADDING = 4
 local OVERLAY_ROW_GAP_SMALL = 4
 local OVERLAY_ROW_GAP_NORMAL = 6
 local OVERLAY_BOTTOM_PADDING = 18
+local FOOD_ALERT_SECONDS = 5 * 60
+local FOOD_PULSE_REFRESH_MS = 120
+local ALLY_TOOLTIP_REFRESH_MS = 80
 
 local TieneAsistenteActivo
 local OcultarMascotaActiva
@@ -127,6 +137,10 @@ local function ObtenerColorOverlay(configValue, fallback)
         end
     end
     return fallback[1], fallback[2], fallback[3], fallback[4]
+end
+
+local function EstanActivosLosTooltipsContextuales()
+    return not (EZO and EZO.sv and EZO.sv.overlay and EZO.sv.overlay.contextualIconTooltips == false)
 end
 
 -- Devuelve true si la escena actual es el HUD (en juego, sin menús)
@@ -416,6 +430,73 @@ local function FormatearTiempoRestanteCorto(segundos)
     return zo_strformat(GetString(EZO_TIME_REMAINING_S), tostring(secs))
 end
 
+local function CalcularPulsoAlfa(periodoSeg, minAlpha, maxAlpha)
+    if type(GetFrameTimeSeconds) ~= "function" then
+        return maxAlpha
+    end
+    local periodo = math.max(0.1, tonumber(periodoSeg) or 1)
+    local minimo = tonumber(minAlpha) or 0.6
+    local maximo = tonumber(maxAlpha) or 1.0
+    local fase = (GetFrameTimeSeconds() % periodo) / periodo
+    local onda = (math.sin(fase * math.pi * 2 - math.pi / 2) + 1) * 0.5
+    return minimo + (maximo - minimo) * onda
+end
+
+local function ObtenerEstadoVisualComida(foodInfo)
+    local estado = {
+        color = { 1.0, 0.30, 0.30, 0.95 },
+        alpha = 1,
+        tooltip = GetString(EZO_SIDE_WIDGET_FOOD_NONE_TOOLTIP),
+        pulse = nil,
+    }
+
+    if not (type(foodInfo) == "table" and foodInfo.active) then
+        estado.alpha = CalcularPulsoAlfa(0.85, 0.35, 1.0)
+        estado.pulse = {
+            color = estado.color,
+            period = 0.85,
+            minAlpha = 0.35,
+            maxAlpha = 1.0,
+        }
+        return estado
+    end
+
+    local remainingSeconds = tonumber(foodInfo.remainingSeconds)
+    if remainingSeconds ~= nil then
+        if remainingSeconds > FOOD_ALERT_SECONDS then
+            estado.color = { 0.35, 0.85, 0.35, 0.95 }
+            estado.alpha = 1
+        else
+            estado.color = { 1.0, 0.62, 0.10, 1.0 }
+            estado.alpha = CalcularPulsoAlfa(0.7, 0.45, 1.0)
+            estado.pulse = {
+                color = estado.color,
+                period = 0.7,
+                minAlpha = 0.45,
+                maxAlpha = 1.0,
+            }
+        end
+        estado.tooltip = zo_strformat(
+            GetString(EZO_SIDE_WIDGET_FOOD_ACTIVE_TOOLTIP),
+            tostring(foodInfo.name or ""),
+            FormatearTiempoRestanteCorto(remainingSeconds)
+        )
+        return estado
+    end
+
+    estado.color = { 0.35, 0.85, 0.35, 0.95 }
+    estado.alpha = 1
+    estado.tooltip = zo_strformat(
+        GetString(EZO_SIDE_WIDGET_FOOD_ACTIVE_NO_TIME_TOOLTIP),
+        tostring(foodInfo.name or "")
+    )
+    return estado
+end
+
+local function NecesitaPulsoComida()
+    return type(overlayFoodPulseState) == "table"
+end
+
 local function CalcularSegundosRestantesBuff(endTime)
     if type(endTime) ~= "number" then return nil end
     local candidatos = {}
@@ -445,7 +526,7 @@ local function CalcularSegundosRestantesBuff(endTime)
     return candidatos[1]
 end
 
-local function ObtenerInfoBuffComida()
+ObtenerInfoBuffComida = function()
     if overlayFoodDebugState == "green" then
         return {
             active = true,
@@ -492,6 +573,9 @@ local function ObtenerInfoBuffComida()
 end
 
 local function ObtenerTooltipWidget(side, index, data)
+    if not EstanActivosLosTooltipsContextuales() then
+        return nil
+    end
     if type(data) ~= "table" then
         if overlayLayoutPreviewEnabled then
             return ConstruirTooltipPreviewWidget(side, index)
@@ -533,6 +617,10 @@ local function MostrarTooltipWidget(ctrl, side, index, data)
 end
 
 local function MostrarTooltipTextoSobreControl(ctrl, texto)
+    if not EstanActivosLosTooltipsContextuales() then
+        OcultarTooltipWidget()
+        return
+    end
     if not ctrl or type(texto) ~= "string" or texto == "" then
         OcultarTooltipWidget()
         return
@@ -560,6 +648,116 @@ local function ObtenerNombreCollectible(collectibleId, fallback)
         end
     end
     return fallback
+end
+
+local function EsConsumibleDeComidaOBebida(bagId, slotIndex)
+    if type(GetItemType) ~= "function" then return false end
+    local itemType = GetItemType(bagId, slotIndex)
+    if itemType ~= ITEMTYPE_FOOD and itemType ~= ITEMTYPE_DRINK then
+        return false
+    end
+    if type(IsItemUsable) == "function" and not IsItemUsable(bagId, slotIndex) then
+        return false
+    end
+    return true
+end
+
+local function ObtenerNombreItem(bagId, slotIndex, itemLink)
+    if type(GetItemLinkName) == "function" and type(itemLink) == "string" and itemLink ~= "" then
+        local nombreLink = GetItemLinkName(itemLink)
+        if type(nombreLink) == "string" and nombreLink ~= "" then
+            return nombreLink
+        end
+    end
+    if type(GetItemName) == "function" then
+        local nombreItem = GetItemName(bagId, slotIndex)
+        if type(nombreItem) == "string" and nombreItem ~= "" then
+            return nombreItem
+        end
+    end
+    return nil
+end
+
+local function GuardarComidaRecordada(itemLink, itemName)
+    if not (EZO and EZO.sv and EZO.sv.overlay) then return end
+    EZO.sv.overlay.lastFoodItemLink = tostring(itemLink or "")
+    EZO.sv.overlay.lastFoodItemName = tostring(itemName or "")
+end
+
+local function BuscarConsumibleRecordadoComida()
+    if type(GetBagSize) ~= "function" then return nil end
+
+    local targetLink = tostring(EZO and EZO.sv and EZO.sv.overlay and EZO.sv.overlay.lastFoodItemLink or "")
+    local targetName = tostring(EZO and EZO.sv and EZO.sv.overlay and EZO.sv.overlay.lastFoodItemName or "")
+    if targetLink == "" and targetName == "" then
+        return nil
+    end
+
+    local bagSize = GetBagSize(BAG_BACKPACK)
+    if type(bagSize) ~= "number" or bagSize <= 0 then return nil end
+
+    local fallbackBag, fallbackSlot, fallbackName = nil, nil, nil
+    for slotIndex = 0, bagSize - 1 do
+        if EsConsumibleDeComidaOBebida(BAG_BACKPACK, slotIndex) then
+            local itemLink = ""
+            if type(GetItemLink) == "function" then
+                itemLink = tostring(GetItemLink(BAG_BACKPACK, slotIndex, LINK_STYLE_DEFAULT) or "")
+            end
+            local itemName = ObtenerNombreItem(BAG_BACKPACK, slotIndex, itemLink)
+            if targetLink ~= "" and itemLink == targetLink then
+                return BAG_BACKPACK, slotIndex, itemName or targetName, itemLink
+            end
+            if not fallbackBag and targetName ~= "" and type(itemName) == "string" and itemName == targetName then
+                fallbackBag, fallbackSlot, fallbackName = BAG_BACKPACK, slotIndex, itemName
+            end
+        end
+    end
+
+    if fallbackBag then
+        local itemLink = ""
+        if type(GetItemLink) == "function" then
+            itemLink = tostring(GetItemLink(fallbackBag, fallbackSlot, LINK_STYLE_DEFAULT) or "")
+        end
+        return fallbackBag, fallbackSlot, fallbackName, itemLink
+    end
+    return nil
+end
+
+local function RecordarComidaActiva()
+    local foodInfo = ObtenerInfoBuffComida()
+    if not (type(foodInfo) == "table" and foodInfo.active and type(foodInfo.name) == "string" and foodInfo.name ~= "") then
+        return false
+    end
+    if type(GetBagSize) ~= "function" then return false end
+
+    local bagSize = GetBagSize(BAG_BACKPACK)
+    if type(bagSize) ~= "number" or bagSize <= 0 then return false end
+
+    for slotIndex = 0, bagSize - 1 do
+        if EsConsumibleDeComidaOBebida(BAG_BACKPACK, slotIndex) then
+            local itemLink = ""
+            if type(GetItemLink) == "function" then
+                itemLink = tostring(GetItemLink(BAG_BACKPACK, slotIndex, LINK_STYLE_DEFAULT) or "")
+            end
+            local itemName = ObtenerNombreItem(BAG_BACKPACK, slotIndex, itemLink)
+            if type(itemName) == "string" and itemName == foodInfo.name then
+                GuardarComidaRecordada(itemLink, itemName)
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function ConsumirComidaRecordada()
+    if type(UseItem) ~= "function" then return false end
+    local bagId, slotIndex, itemName, itemLink = BuscarConsumibleRecordadoComida()
+    if not bagId or slotIndex == nil then
+        return false
+    end
+    GuardarComidaRecordada(itemLink, itemName)
+    UseItem(bagId, slotIndex)
+    return true
 end
 
 local function EjecutarAccionWidget(side, index, data, button)
@@ -708,38 +906,42 @@ local function RefrescarWidgetsLateralesEstado()
     local canRepairEquipped = type(EZOTools.CanRepairEquipped) == "function" and EZOTools.CanRepairEquipped() or false
     local canRechargeWeapons = type(EZOTools.CanRechargeWeapons) == "function" and EZOTools.CanRechargeWeapons() or false
     local foodInfo = ObtenerInfoBuffComida()
-    local foodColor = { 1.0, 0.30, 0.30, 0.95 }
-    local foodTooltip = GetString(EZO_SIDE_WIDGET_FOOD_NONE_TOOLTIP)
+    RecordarComidaActiva()
+    local foodState = ObtenerEstadoVisualComida(foodInfo)
+    overlayFoodPulseState = foodState.pulse
+    local foodPrimaryHandler = nil
+    local foodContextualTooltip = foodState.tooltip
+    local remainingSeconds = tonumber(foodInfo.remainingSeconds)
+    local foodRecordadoBag, _, foodRecordadoNombre = BuscarConsumibleRecordadoComida()
+    local foodRecordadoDisponible = foodRecordadoBag ~= nil
 
-    if foodInfo.active then
-        local remainingSeconds = tonumber(foodInfo.remainingSeconds)
-        if remainingSeconds ~= nil then
-            if remainingSeconds > 5 * 60 then
-                foodColor = { 0.35, 0.85, 0.35, 0.95 }
-            else
-                foodColor = { 1.0, 0.85, 0.25, 0.95 }
-            end
-            foodTooltip = zo_strformat(
-                GetString(EZO_SIDE_WIDGET_FOOD_ACTIVE_TOOLTIP),
-                tostring(foodInfo.name or ""),
-                FormatearTiempoRestanteCorto(remainingSeconds)
-            )
-        else
-            foodColor = { 0.35, 0.85, 0.35, 0.95 }
-            foodTooltip = zo_strformat(
-                GetString(EZO_SIDE_WIDGET_FOOD_ACTIVE_NO_TIME_TOOLTIP),
-                tostring(foodInfo.name or "")
-            )
+    if type(foodInfo) == "table" and foodInfo.active and remainingSeconds ~= nil and remainingSeconds <= FOOD_ALERT_SECONDS and foodRecordadoDisponible then
+        foodPrimaryHandler = function()
+            return ConsumirComidaRecordada()
         end
+        foodContextualTooltip = zo_strformat(
+            GetString(EZO_SIDE_WIDGET_FOOD_ALERT_REUSE_TOOLTIP),
+            tostring(foodInfo.name or "")
+        )
+    elseif not foodInfo.active and foodRecordadoDisponible then
+        foodPrimaryHandler = function()
+            return ConsumirComidaRecordada()
+        end
+        foodContextualTooltip = zo_strformat(
+            GetString(EZO_SIDE_WIDGET_FOOD_RECALL_TOOLTIP),
+            tostring(foodRecordadoNombre or EZO.sv.overlay.lastFoodItemName or "")
+        )
     end
 
     AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.foodBuff, {
         slotKey = "food_buff",
         visible = true,
         texture = "/esoui/art/inventory/inventory_tabIcon_Craftbag_provisioning_up.dds",
-        color = foodColor,
-        alpha = 1,
-        tooltipText = foodTooltip,
+        color = foodState.color,
+        alpha = foodState.alpha,
+        tooltipText = foodContextualTooltip,
+        primaryHandler = foodPrimaryHandler,
+        secondaryActionId = "OPEN_ADDON_SETTINGS",
     })
 
     if lowRepairKits and type(repairKitCount) == "number" and type(repairKitThreshold) == "number" then
@@ -965,6 +1167,34 @@ local function AplicarLayoutSlotsLaterales(texPx)
     return maxExtent, slotSize
 end
 
+local function AplicarPulsoWidgetComida()
+    if type(overlayFoodPulseState) ~= "table" then return end
+
+    local slotInfo = SIDE_WIDGET_ASSIGNMENTS.foodBuff
+    if not slotInfo then return end
+
+    local textures = ObtenerTexturasWidgetLaterales(slotInfo.side)
+    local tex = textures and textures[slotInfo.index] or nil
+    if not tex or tex:IsHidden() then return end
+
+    local color = overlayFoodPulseState.color or { 1, 1, 1, 1 }
+    local alpha = CalcularPulsoAlfa(
+        overlayFoodPulseState.period,
+        overlayFoodPulseState.minAlpha,
+        overlayFoodPulseState.maxAlpha
+    )
+
+    tex:SetColor(color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1)
+    tex:SetAlpha(alpha)
+
+    local dataList = ObtenerDatosWidgetLaterales(slotInfo.side)
+    local data = dataList and dataList[slotInfo.index] or nil
+    if type(data) == "table" then
+        data.color = color
+        data.alpha = alpha
+    end
+end
+
 function MOD.GetSideSlot(side, index)
     local lista = ObtenerSlotsLaterales(side)
     return lista and lista[index] or nil
@@ -1105,7 +1335,13 @@ local function AplicarEscalaVisual()
 
     -- Tres iconos centrados bajo overlayLabel (@ZuriPlayer), distribuidos uniformemente.
     -- Sep = distancia centro-a-centro entre iconos adyacentes.
-    local dotSize = math.max(18, math.floor(24 * s + 0.5))
+    local allyScale
+    if s < 1 then
+        allyScale = 1 - ((1 - s) * ALLY_ICON_SCALE_WEIGHT_DOWN)
+    else
+        allyScale = 1 + ((s - 1) * ALLY_ICON_SCALE_WEIGHT_UP)
+    end
+    local dotSize = math.max(18, math.floor(ALLY_ICON_BASE_SIZE * allyScale + 0.5))
     if overlayLabel then
         local sep     = math.max(20, math.floor(28 * s + 0.5))
         local offsetY = math.floor(6 * s + 0.5)
@@ -1281,12 +1517,26 @@ local function AsegurarControles()
         return ObtenerAssistantActivoId() ~= 0
     end)
 
-    local function RefrescarTooltipAliados()
+    local function RefrescarTooltipAliados(forzar)
+        if not EstanActivosLosTooltipsContextuales() then
+            if overlayAllyTooltipActive then
+                OcultarTooltipWidget()
+            end
+            return
+        end
         if not (overlayWin and not overlayWin:IsHidden() and type(MouseIsOver) == "function") then
             if overlayAllyTooltipActive then
                 OcultarTooltipWidget()
             end
             return
+        end
+
+        if not forzar and type(GetFrameTimeMilliseconds) == "function" then
+            local nowMs = GetFrameTimeMilliseconds()
+            if (nowMs - overlayAllyTooltipLastRefreshMs) < ALLY_TOOLTIP_REFRESH_MS then
+                return
+            end
+            overlayAllyTooltipLastRefreshMs = nowMs
         end
 
         if overlayPetDot and not overlayPetDot:IsHidden() and MouseIsOver(overlayPetDot) then
@@ -1308,10 +1558,25 @@ local function AsegurarControles()
     end
 
     overlayWin:SetHandler("OnMouseMove", function()
-        RefrescarTooltipAliados()
+        RefrescarTooltipAliados(true)
     end)
     overlayWin:SetHandler("OnUpdate", function()
         RefrescarTooltipAliados()
+        if not (overlayWin and not overlayWin:IsHidden()) then
+            return
+        end
+        if not NecesitaPulsoComida() then
+            return
+        end
+        if type(GetFrameTimeMilliseconds) ~= "function" then
+            return
+        end
+        local nowMs = GetFrameTimeMilliseconds()
+        if (nowMs - overlayFoodPulseLastRefreshMs) < FOOD_PULSE_REFRESH_MS then
+            return
+        end
+        overlayFoodPulseLastRefreshMs = nowMs
+        AplicarPulsoWidgetComida()
     end)
 
     overlayWin:SetHandler("OnMouseUp", function(_, button, upInside)
@@ -1702,7 +1967,7 @@ function MOD.Refresh()
     AsegurarControles()
     AplicarPosicion()
     AplicarEstadoBloqueo()
-    local a = tonumber(EZO.sv.overlay.alpha) or 1
+    local a = 1
     overlayWin:SetAlpha(a)
     overlayTex:SetAlpha(a)
     overlayLabel:SetAlpha(a)
@@ -1916,12 +2181,15 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
                 default = false,
             },
             {
-                type     = "slider",
-                name     = GetString(EZO_OPTION_OVERLAY_ALPHA),
-                min      = 0.0, max = 1.0, step = 0.05,
-                getFunc  = function() return EZO.sv.overlay.alpha end,
-                setFunc  = function(v) EZO.sv.overlay.alpha = v; EZOTools_Overlay.Refresh() end,
-                decimals = 2,
+                type    = "checkbox",
+                name    = GetString(EZO_OPTION_OVERLAY_CONTEXTUAL_TOOLTIPS),
+                tooltip = GetString(EZO_OPTION_OVERLAY_CONTEXTUAL_TOOLTIPS_TOOLTIP),
+                getFunc = function() return EZO.sv.overlay.contextualIconTooltips ~= false end,
+                setFunc = function(v)
+                    EZO.sv.overlay.contextualIconTooltips = v and true or false
+                    EZOTools_Overlay.Refresh()
+                end,
+                default = true,
             },
             {
                 type     = "slider",
