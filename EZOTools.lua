@@ -191,6 +191,7 @@ function EZO:Initialize()
             lastAssistantCollectibleId = 0,
             lastFoodItemLink = "",
             lastFoodItemName = "",
+            recentFoodItems = {},
             x                = nil,
             y                = nil,
         },
