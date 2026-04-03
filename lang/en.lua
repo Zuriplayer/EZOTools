@@ -32,6 +32,9 @@ EZO_STRINGS_EN = {
     EZO_MSG_SUMMON_PET          = "Summoning pet",
     EZO_MSG_SUMMON_COMPANION    = "Summoning companion",
     EZO_MSG_SUMMON_ASSISTANT    = "Summoning assistant",
+    EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT = "Trying to consume <<1>>",
+    EZO_MSG_DEBUG_FOOD_CONSUME_FAILED = "Food debug: consumption was not confirmed or the buff did not refresh.",
+    EZO_MSG_DEBUG_FOOD_NO_RECORDED = "Food debug: no remembered food or drink is available.",
 
     -- -------------------------------------------------------------------------
     -- LAM panel: General section
@@ -219,7 +222,14 @@ EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_NONE_TOOLTIP"] = "No food or drink buff is 
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_ACTIVE_TOOLTIP"] = "Active food or drink: <<1>>. Time remaining: <<2>>."
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_ACTIVE_NO_TIME_TOOLTIP"] = "Active food or drink: <<1>>."
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_ALERT_REUSE_TOOLTIP"] = "<<1>>|nLeft click to consume it again."
+EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_ALERT_REUSE_LEGENDARY_TOOLTIP"] = "<<1>>|nLeft click to consume it again. Legendary food will ask for confirmation."
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_RECALL_TOOLTIP"] = "No food or drink buff is active.|nLeft click to consume <<1>> again."
+EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_RECALL_LEGENDARY_TOOLTIP"] = "No food or drink buff is active.|nLeft click to consume <<1>> again. Legendary food will ask for confirmation."
+EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_ACTIVE_REUSE_TOOLTIP"] = "Active food or drink: <<1>>. Time remaining: <<2>>.|nLeft click to consume it again."
+EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_ACTIVE_REUSE_LEGENDARY_TOOLTIP"] = "Active food or drink: <<1>>. Time remaining: <<2>>.|nLeft click to consume it again. Legendary food will ask for confirmation."
+EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_CONFIRM_TITLE"] = "Confirm Consumption"
+EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT"] = "You are about to consume <<1>>."
+EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT_WITH_EFFECT"] = "You are about to consume <<1>>.|n|nEffect: <<2>>"
 EZO_STRINGS_EN["EZO_TIME_REMAINING_HM"] = "<<1>>h <<2>>m"
 EZO_STRINGS_EN["EZO_TIME_REMAINING_MS"] = "<<1>>m <<2>>s"
 EZO_STRINGS_EN["EZO_TIME_REMAINING_S"] = "<<1>>s"
