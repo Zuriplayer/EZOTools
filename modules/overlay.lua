@@ -30,6 +30,7 @@ local ObtenerInfoBuffComida
 local ConstruirTooltipComida
 local BuscarConsumibleRecordadoComida
 local BuscarConsumibleComidaPorReferencia
+local AbrirMenuHistorialAliado
 local TOOLTIP_ICON_WIDTH = 360
 local TOOLTIP_ICON_HEIGHT = 120
 local FOOD_PENDING_WINDOW_MS = 4000
@@ -702,6 +703,16 @@ local function ObtenerNombreCollectible(collectibleId, fallback)
     return fallback
 end
 
+local function ObtenerDescripcionCollectible(collectibleId)
+    if collectibleId and collectibleId ~= 0 and type(GetCollectibleDescription) == "function" then
+        local descripcion = GetCollectibleDescription(collectibleId)
+        if type(descripcion) == "string" and descripcion ~= "" then
+            return descripcion
+        end
+    end
+    return nil
+end
+
 local function EsConsumibleDeComidaOBebida(bagId, slotIndex)
     if type(GetItemType) ~= "function" then return false end
     local itemType = GetItemType(bagId, slotIndex)
@@ -1332,6 +1343,21 @@ local function MostrarTooltipItemSobreControl(ctrl, itemLink)
     ItemTooltip:SetLink(itemLink)
 end
 
+local function MostrarTooltipCollectibleSobreControl(ctrl, collectibleId, fallbackName)
+    if not ctrl then
+        return
+    end
+    local nombre = tostring(ObtenerNombreCollectible(collectibleId, fallbackName) or "")
+    local descripcion = ObtenerDescripcionCollectible(collectibleId)
+    local texto = nombre
+    if nombre ~= "" and type(descripcion) == "string" and descripcion ~= "" then
+        texto = string.format("%s|n%s", nombre, descripcion)
+    end
+    if texto ~= "" then
+        MostrarTooltipTextoSobreControl(ctrl, texto)
+    end
+end
+
 local function AbrirMenuRecientes(anchor, entries, emptyLabel)
     if ClearMenu then
         ClearMenu()
@@ -1407,6 +1433,31 @@ local function AbrirMenuHistorialComida(anchor)
     end
 
     AbrirMenuRecientes(anchor, entries, GetString(EZO_SIDE_WIDGET_FOOD_HISTORY_EMPTY))
+end
+
+local ALLY_ICON_MENU_CONFIG = {
+    pet = {
+        rememberedKey = "lastPetCollectibleId",
+        historyKey = "recentPetCollectibles",
+        fallbackNameId = EZO_DOT_PET_FALLBACK_NAME,
+        historyEmptyId = EZO_DOT_PET_HISTORY_EMPTY,
+    },
+    companion = {
+        rememberedKey = "lastCompanionCollectibleId",
+        historyKey = "recentCompanionCollectibles",
+        fallbackNameId = EZO_DOT_COMPANION_FALLBACK_NAME,
+        historyEmptyId = EZO_DOT_COMPANION_HISTORY_EMPTY,
+    },
+    assistant = {
+        rememberedKey = "lastAssistantCollectibleId",
+        historyKey = "recentAssistantCollectibles",
+        fallbackNameId = EZO_DOT_ASSISTANT_FALLBACK_NAME,
+        historyEmptyId = EZO_DOT_ASSISTANT_HISTORY_EMPTY,
+    },
+}
+
+local function ObtenerConfiguracionAliado(tipo)
+    return ALLY_ICON_MENU_CONFIG[tipo]
 end
 
 local function EjecutarAccionWidget(side, index, data, button)
@@ -2266,16 +2317,20 @@ local function AsegurarControles()
     end)
 
     overlayWin:SetHandler("OnMouseUp", function(_, button, upInside)
-        if button == MOUSE_BUTTON_INDEX_LEFT and upInside and type(MouseIsOver) == "function" then
+        if upInside and type(MouseIsOver) == "function" then
             for _, icono in ipairs(ObtenerDefinicionesIconosAliados()) do
                 if icono.ctrl and not icono.ctrl:IsHidden() and MouseIsOver(icono.ctrl) then
-                    EjecutarClickIconoAliado(
-                        icono.activoFn,
-                        icono.ocultarFn,
-                        icono.invocarFn,
-                        icono.msgOcultarId,
-                        icono.msgInvocarId
-                    )
+                    if button == MOUSE_BUTTON_INDEX_LEFT then
+                        EjecutarClickIconoAliado(
+                            icono.activoFn,
+                            icono.ocultarFn,
+                            icono.invocarFn,
+                            icono.msgOcultarId,
+                            icono.msgInvocarId
+                        )
+                    elseif button == MOUSE_BUTTON_INDEX_RIGHT then
+                        AbrirMenuHistorialAliado(icono.ctrl, icono.tipo)
+                    end
                     return
                 end
             end
@@ -2372,6 +2427,44 @@ local function GuardarCollectibleRecordado(clave, collectibleId)
     end
 end
 
+local function GuardarCollectibleEnHistorial(clave, collectibleId)
+    if not (EZO and EZO.sv and EZO.sv.overlay) then return end
+    collectibleId = tonumber(collectibleId) or 0
+    if collectibleId <= 0 then
+        return
+    end
+
+    local history = EZO.sv.overlay[clave]
+    if type(history) ~= "table" then
+        history = {}
+        EZO.sv.overlay[clave] = history
+    end
+
+    local newHistory = { collectibleId }
+    for _, entryId in ipairs(history) do
+        local value = tonumber(entryId) or 0
+        if value > 0 and value ~= collectibleId then
+            newHistory[#newHistory + 1] = value
+        end
+        if #newHistory >= 5 then
+            break
+        end
+    end
+
+    EZO.sv.overlay[clave] = newHistory
+end
+
+local function ObtenerHistorialCollectibles(clave)
+    if not (EZO and EZO.sv and EZO.sv.overlay) then
+        return {}
+    end
+    local history = EZO.sv.overlay[clave]
+    if type(history) ~= "table" then
+        return {}
+    end
+    return history
+end
+
 local function ObtenerCollectibleRecordado(clave)
     if not (EZO and EZO.sv and EZO.sv.overlay) then return 0 end
     local collectibleId = tonumber(EZO.sv.overlay[clave]) or 0
@@ -2384,6 +2477,18 @@ local function InvocarCollectibleRecordado(clave)
         return false
     end
     local collectibleId = ObtenerCollectibleRecordado(clave)
+    if collectibleId == 0 then
+        return false
+    end
+    UseCollectible(collectibleId)
+    return true
+end
+
+local function InvocarCollectiblePorId(collectibleId)
+    if type(UseCollectible) ~= "function" then
+        return false
+    end
+    collectibleId = tonumber(collectibleId) or 0
     if collectibleId == 0 then
         return false
     end
@@ -2410,7 +2515,26 @@ local function ProgramarInvocacionCollectible(clave, retrasoMs)
     return true
 end
 
-local function ProgramarCambioEntreAliados(claveDestino, sigueActivoFn, ocultarActivoFn)
+local function ProgramarInvocacionCollectiblePorId(collectibleId, retrasoMs)
+    if type(UseCollectible) ~= "function" then
+        return false
+    end
+    collectibleId = tonumber(collectibleId) or 0
+    if collectibleId == 0 then
+        return false
+    end
+    local delay = math.max(0, tonumber(retrasoMs) or 0)
+    if delay > 0 and type(zo_callLater) == "function" then
+        zo_callLater(function()
+            UseCollectible(collectibleId)
+        end, delay)
+    else
+        UseCollectible(collectibleId)
+    end
+    return true
+end
+
+local function ProgramarCambioEntreAliados(claveDestino, sigueActivoFn, ocultarActivoFn, collectibleIdDestino)
     if allySwitchPending then
         return false
     end
@@ -2433,7 +2557,11 @@ local function ProgramarCambioEntreAliados(claveDestino, sigueActivoFn, ocultarA
             end
             return
         end
-        ProgramarInvocacionCollectible(claveDestino, 100)
+        if collectibleIdDestino and collectibleIdDestino ~= 0 then
+            ProgramarInvocacionCollectiblePorId(collectibleIdDestino, 100)
+        else
+            ProgramarInvocacionCollectible(claveDestino, 100)
+        end
         allySwitchPending = false
     end
 
@@ -2465,6 +2593,17 @@ end
 local function RefrescarEstadoIconoAliado(ctrl, activeId, rememberedKey)
     if activeId ~= 0 then
         GuardarCollectibleRecordado(rememberedKey, activeId)
+        local tipo = nil
+        for allyType, cfg in pairs(ALLY_ICON_MENU_CONFIG or {}) do
+            if cfg.rememberedKey == rememberedKey then
+                tipo = allyType
+                break
+            end
+        end
+        local config = tipo and ObtenerConfiguracionAliado(tipo) or nil
+        if config then
+            GuardarCollectibleEnHistorial(config.historyKey, activeId)
+        end
     end
     local collectibleId = (activeId ~= 0) and activeId or ObtenerCollectibleRecordado(rememberedKey)
     if not ctrl then
@@ -2475,6 +2614,81 @@ local function RefrescarEstadoIconoAliado(ctrl, activeId, rememberedKey)
     if visible then
         AplicarEstadoVisualIconoAliado(ctrl, activeId ~= 0, collectibleId)
     end
+end
+
+local function InvocarAliadoDesdeHistorial(tipo, collectibleId)
+    local config = ObtenerConfiguracionAliado(tipo)
+    if not config then
+        return false
+    end
+
+    collectibleId = tonumber(collectibleId) or 0
+    if collectibleId == 0 then
+        return false
+    end
+
+    GuardarCollectibleRecordado(config.rememberedKey, collectibleId)
+    GuardarCollectibleEnHistorial(config.historyKey, collectibleId)
+
+    if tipo == "pet" then
+        return InvocarCollectiblePorId(collectibleId)
+    end
+    if tipo == "companion" then
+        if ObtenerAssistantActivoId() ~= 0 then
+            return ProgramarCambioEntreAliados(
+                config.rememberedKey,
+                function() return ObtenerAssistantActivoId() ~= 0 end,
+                OcultarAsistenteActivo,
+                collectibleId
+            )
+        end
+        return InvocarCollectiblePorId(collectibleId)
+    end
+    if tipo == "assistant" then
+        if ObtenerCompanionActivoCollectibleId() ~= 0 then
+            return ProgramarCambioEntreAliados(
+                config.rememberedKey,
+                function() return ObtenerCompanionActivoCollectibleId() ~= 0 end,
+                OcultarCompanionActivo,
+                collectibleId
+            )
+        end
+        return InvocarCollectiblePorId(collectibleId)
+    end
+    return false
+end
+
+AbrirMenuHistorialAliado = function(anchor, tipo)
+    local config = ObtenerConfiguracionAliado(tipo)
+    if not config then
+        return
+    end
+
+    local entries = {}
+    for _, collectibleId in ipairs(ObtenerHistorialCollectibles(config.historyKey)) do
+        local finalId = tonumber(collectibleId) or 0
+        if finalId > 0 then
+            local label = tostring(ObtenerNombreCollectible(finalId, GetString(config.fallbackNameId)) or "")
+            if label ~= "" then
+                entries[#entries + 1] = {
+                    label = label,
+                    onEnter = function(control)
+                        MostrarTooltipCollectibleSobreControl(control, finalId, GetString(config.fallbackNameId))
+                    end,
+                    onExit = function()
+                        if type(ClearTooltip) == "function" and (InformationTooltip or overlayWidgetTooltipWin) then
+                            OcultarTooltipWidget()
+                        end
+                    end,
+                    onSelect = function()
+                        InvocarAliadoDesdeHistorial(tipo, finalId)
+                    end,
+                }
+            end
+        end
+    end
+
+    AbrirMenuRecientes(anchor, entries, GetString(config.historyEmptyId))
 end
 
 ObtenerTooltipIconoAliado = function(tipo, activo)
