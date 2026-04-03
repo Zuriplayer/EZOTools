@@ -18,6 +18,7 @@ local overlaySideWidgetRegistry = { left = {}, right = {} }
 local overlayLayoutPreviewEnabled = false
 local overlayWidgetTooltipWin, overlayWidgetTooltipBackdrop, overlayWidgetTooltipLabel
 local overlayAllyTooltipActive = false
+local overlaySideWidgetTooltipActive = false
 local overlayFoodDebugState = nil
 local overlayFoodPulseLastRefreshMs = 0
 local overlayAllyTooltipLastRefreshMs = 0
@@ -25,6 +26,8 @@ local overlayFoodPulseState = nil
 local overlayFoodConfirmDialogRegistered = false
 local ObtenerInfoBuffComida
 local ConstruirTooltipComida
+local TOOLTIP_ICON_WIDTH = 360
+local TOOLTIP_ICON_HEIGHT = 120
 
 local DEFAULT_OVERLAY_TEXTURES = {
     "/AddOns/EZOTools/media/ezotools_logo.dds",
@@ -357,17 +360,21 @@ local function ObtenerNombreLadoWidget(side)
 end
 
 local function OcultarTooltipWidget()
+    if type(ClearTooltip) == "function" and InformationTooltip then
+        ClearTooltip(InformationTooltip)
+    end
     if overlayWidgetTooltipWin then
         overlayWidgetTooltipWin:SetHidden(true)
     end
     overlayAllyTooltipActive = false
+    overlaySideWidgetTooltipActive = false
 end
 
 local function AsegurarTooltipWidget()
     if overlayWidgetTooltipWin then return end
 
     overlayWidgetTooltipWin = WINDOW_MANAGER:CreateTopLevelWindow("EZOToolsOverlayWidgetTooltip")
-    overlayWidgetTooltipWin:SetDimensions(320, 92)
+    overlayWidgetTooltipWin:SetDimensions(TOOLTIP_ICON_WIDTH, TOOLTIP_ICON_HEIGHT)
     overlayWidgetTooltipWin:SetMouseEnabled(false)
     overlayWidgetTooltipWin:SetMovable(false)
     overlayWidgetTooltipWin:SetClampedToScreen(true)
@@ -384,11 +391,17 @@ local function AsegurarTooltipWidget()
 
     overlayWidgetTooltipLabel = WINDOW_MANAGER:CreateControl("$(parent)Label", overlayWidgetTooltipWin, CT_LABEL)
     overlayWidgetTooltipLabel:SetAnchor(TOPLEFT, overlayWidgetTooltipWin, TOPLEFT, 10, 8)
-    overlayWidgetTooltipLabel:SetDimensions(296, 72)
+    overlayWidgetTooltipLabel:SetDimensions(TOOLTIP_ICON_WIDTH - 20, TOOLTIP_ICON_HEIGHT - 16)
     overlayWidgetTooltipLabel:SetFont(CadenaFuente(16))
     overlayWidgetTooltipLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-    overlayWidgetTooltipLabel:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    overlayWidgetTooltipLabel:SetVerticalAlignment(TEXT_ALIGN_TOP)
     overlayWidgetTooltipLabel:SetColor(1, 1, 1, 1)
+end
+
+local function AplicarTamanoFijoTooltipIconos()
+    if not (overlayWidgetTooltipWin and overlayWidgetTooltipLabel) then return end
+    overlayWidgetTooltipWin:SetDimensions(TOOLTIP_ICON_WIDTH, TOOLTIP_ICON_HEIGHT)
+    overlayWidgetTooltipLabel:SetDimensions(TOOLTIP_ICON_WIDTH - 20, TOOLTIP_ICON_HEIGHT - 16)
 end
 
 local function ConstruirTooltipPreviewWidget(side, index)
@@ -622,7 +635,19 @@ local function MostrarTooltipWidget(ctrl, side, index, data)
         return
     end
 
+    if type(InitializeTooltip) == "function" and type(SetTooltipText) == "function" and InformationTooltip then
+        if side == "left" then
+            InitializeTooltip(InformationTooltip, ctrl, RIGHT, -8, -4)
+        else
+            InitializeTooltip(InformationTooltip, ctrl, LEFT, 8, -4)
+        end
+        SetTooltipText(InformationTooltip, NormalizarTextoTooltip(texto))
+        overlaySideWidgetTooltipActive = true
+        return
+    end
+
     AsegurarTooltipWidget()
+    AplicarTamanoFijoTooltipIconos()
     overlayWidgetTooltipLabel:SetText(NormalizarTextoTooltip(texto))
     overlayWidgetTooltipWin:ClearAnchors()
     if side == "left" then
@@ -631,6 +656,7 @@ local function MostrarTooltipWidget(ctrl, side, index, data)
         overlayWidgetTooltipWin:SetAnchor(TOPLEFT, ctrl, TOPRIGHT, 8, -4)
     end
     overlayWidgetTooltipWin:SetHidden(false)
+    overlaySideWidgetTooltipActive = true
 end
 
 local function MostrarTooltipTextoSobreControl(ctrl, texto)
@@ -643,18 +669,22 @@ local function MostrarTooltipTextoSobreControl(ctrl, texto)
         return
     end
 
+    if type(InitializeTooltip) == "function" and type(SetTooltipText) == "function" and InformationTooltip then
+        InitializeTooltip(InformationTooltip, ctrl, BOTTOM, 0, -8, TOP)
+        SetTooltipText(InformationTooltip, NormalizarTextoTooltip(texto))
+        overlayAllyTooltipActive = true
+        overlaySideWidgetTooltipActive = false
+        return
+    end
+
     AsegurarTooltipWidget()
+    AplicarTamanoFijoTooltipIconos()
     overlayWidgetTooltipLabel:SetText(NormalizarTextoTooltip(texto))
-    overlayWidgetTooltipLabel:SetDimensions(220, 0)
-    local textW, textH = overlayWidgetTooltipLabel:GetTextDimensions()
-    local width = zo_clamp((textW or 0) + 24, 150, 240)
-    local height = math.max(32, (textH or 0) + 16)
-    overlayWidgetTooltipWin:SetDimensions(width, height)
-    overlayWidgetTooltipLabel:SetDimensions(width - 20, height - 12)
     overlayWidgetTooltipWin:ClearAnchors()
     overlayWidgetTooltipWin:SetAnchor(BOTTOM, ctrl, TOP, 0, -8)
     overlayWidgetTooltipWin:SetHidden(false)
     overlayAllyTooltipActive = true
+    overlaySideWidgetTooltipActive = false
 end
 
 local function ObtenerNombreCollectible(collectibleId, fallback)
@@ -945,7 +975,7 @@ local function AsegurarDialogoConfirmacionComida()
     overlayFoodConfirmDialogRegistered = true
 end
 
-local function PedirConfirmacionComidaLegendaria(itemName, effectDescription, onConfirm)
+local function PedirConfirmacionComidaLegendaria(itemName, effectDescription, remainingSeconds, onConfirm)
     if type(onConfirm) ~= "function" then
         return false
     end
@@ -954,11 +984,26 @@ local function PedirConfirmacionComidaLegendaria(itemName, effectDescription, on
 
     local descripcion = tostring(effectDescription or "")
     local texto
-    if descripcion ~= "" then
+    local tiempoRestante = tonumber(remainingSeconds)
+    local incluirTiempo = tiempoRestante ~= nil and tiempoRestante > FOOD_ALERT_SECONDS
+    if descripcion ~= "" and incluirTiempo then
+        texto = zo_strformat(
+            GetString(EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT_WITH_EFFECT_AND_TIME),
+            tostring(itemName or ""),
+            descripcion,
+            FormatearTiempoRestanteCorto(tiempoRestante)
+        )
+    elseif descripcion ~= "" then
         texto = zo_strformat(
             GetString(EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT_WITH_EFFECT),
             tostring(itemName or ""),
             descripcion
+        )
+    elseif incluirTiempo then
+        texto = zo_strformat(
+            GetString(EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT_WITH_TIME),
+            tostring(itemName or ""),
+            FormatearTiempoRestanteCorto(tiempoRestante)
         )
     else
         texto = zo_strformat(
@@ -991,7 +1036,8 @@ local function ReusarComidaRecordadaConSeguridad()
 
     local qualityLegendary = (type(ITEM_QUALITY_LEGENDARY) == "number") and ITEM_QUALITY_LEGENDARY or nil
     if qualityLegendary and quality == qualityLegendary then
-        return PedirConfirmacionComidaLegendaria(itemName, effectDescription, function()
+        local remainingSeconds = type(foodInfoAntes) == "table" and tonumber(foodInfoAntes.remainingSeconds) or nil
+        return PedirConfirmacionComidaLegendaria(itemName, effectDescription, remainingSeconds, function()
             if EZO and type(EZO.Print) == "function" then
                 EZO.Print(zo_strformat(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT), tostring(itemName or "")))
             end
@@ -1052,6 +1098,25 @@ local function EjecutarAccionWidget(side, index, data, button)
         widgetIndex = index,
         button = button,
     })
+end
+
+local function ConstruirWidgetLateralData(config)
+    if type(config) ~= "table" then return nil end
+    return {
+        slotKey = config.slotKey,
+        visible = config.visible ~= false,
+        texture = config.texture,
+        color = config.color,
+        alpha = config.alpha or 1,
+        tooltipText = config.tooltipText,
+        tooltipStringId = config.tooltipStringId,
+        tooltipArgs = config.tooltipArgs,
+        actionId = config.actionId,
+        secondaryActionId = config.secondaryActionId,
+        gamepadActionId = config.gamepadActionId,
+        primaryHandler = config.primaryHandler,
+        secondaryHandler = config.secondaryHandler,
+    }
 end
 
 local function ObtenerPreviewWidgetData(side, index)
@@ -1187,7 +1252,7 @@ local function RefrescarWidgetsLateralesEstado()
         foodLegendaria
     )
 
-    AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.foodBuff, {
+    AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.foodBuff, ConstruirWidgetLateralData({
         slotKey = "food_buff",
         visible = true,
         texture = "/esoui/art/inventory/inventory_tabIcon_Craftbag_provisioning_up.dds",
@@ -1196,10 +1261,10 @@ local function RefrescarWidgetsLateralesEstado()
         tooltipText = foodContextualTooltip,
         primaryHandler = foodPrimaryHandler,
         secondaryHandler = foodSecondaryHandler,
-    })
+    }))
 
     if lowRepairKits and type(repairKitCount) == "number" and type(repairKitThreshold) == "number" then
-        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairKits, {
+        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairKits, ConstruirWidgetLateralData({
             slotKey = "repair_kits",
             visible = true,
             texture = "/esoui/art/icons/quest_crate_001.dds",
@@ -1209,13 +1274,13 @@ local function RefrescarWidgetsLateralesEstado()
             tooltipArgs = { tostring(repairKitCount), tostring(repairKitThreshold) },
             actionId = "OPEN_ADDON_SETTINGS",
             gamepadActionId = "OPEN_ADDON_SETTINGS",
-        })
+        }))
     else
         AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairKits, nil)
     end
 
     if lowSoulGems and type(soulGemCount) == "number" and type(soulGemThreshold) == "number" then
-        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.soulGems, {
+        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.soulGems, ConstruirWidgetLateralData({
             slotKey = "soul_gems",
             visible = true,
             texture = "/esoui/art/icons/soulgem_006_filled.dds",
@@ -1225,13 +1290,13 @@ local function RefrescarWidgetsLateralesEstado()
             tooltipArgs = { tostring(soulGemCount), tostring(soulGemThreshold) },
             actionId = "OPEN_ADDON_SETTINGS",
             gamepadActionId = "OPEN_ADDON_SETTINGS",
-        })
+        }))
     else
         AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.soulGems, nil)
     end
 
     if canRepairEquipped then
-        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairEquipped, {
+        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairEquipped, ConstruirWidgetLateralData({
             slotKey = "repair_equipped",
             visible = true,
             texture = "/esoui/art/hud/broken_armor.dds",
@@ -1242,13 +1307,13 @@ local function RefrescarWidgetsLateralesEstado()
             actionId = "REPAIR_EQUIPPED",
             secondaryActionId = "OPEN_ADDON_SETTINGS",
             gamepadActionId = "REPAIR_EQUIPPED",
-        })
+        }))
     else
         AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairEquipped, nil)
     end
 
     if canRechargeWeapons then
-        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.rechargeWeapons, {
+        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.rechargeWeapons, ConstruirWidgetLateralData({
             slotKey = "recharge_weapons",
             visible = true,
             texture = "/esoui/art/hud/broken_weapon.dds",
@@ -1259,7 +1324,7 @@ local function RefrescarWidgetsLateralesEstado()
             actionId = "RECHARGE_WEAPONS",
             secondaryActionId = "OPEN_ADDON_SETTINGS",
             gamepadActionId = "RECHARGE_WEAPONS",
-        })
+        }))
     else
         AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.rechargeWeapons, nil)
     end
@@ -1680,7 +1745,7 @@ local function AsegurarControles()
         return ctrl
     end
 
-    local function EjecutarClickIconoAliado(tipo, estaActivoFn, ocultarFn, invocarFn, msgOcultarId, msgInvocarId)
+    local function EjecutarClickIconoAliado(estaActivoFn, ocultarFn, invocarFn, msgOcultarId, msgInvocarId)
         local activo = estaActivoFn()
         if EZO and type(EZO.Print) == "function" then
             EZO.Print(GetString(activo and msgOcultarId or msgInvocarId))
@@ -1696,12 +1761,6 @@ local function AsegurarControles()
             ProgramarRefrescoDots()
         end
         return ok
-    end
-
-    local function ConfigurarTooltipIconoAliado(ctrl, tipo, estaActivoFn)
-        if not ctrl then return end
-        ctrl:SetHandler("OnMouseEnter", nil)
-        ctrl:SetHandler("OnMouseExit", nil)
     end
 
     -- Icono reparación armadura
@@ -1761,15 +1820,38 @@ local function AsegurarControles()
     end)
 
     AsegurarTooltipWidget()
-    ConfigurarTooltipIconoAliado(overlayPetDot, "pet", function()
-        return ObtenerMascotaActivaId() ~= 0
-    end)
-    ConfigurarTooltipIconoAliado(overlayCompanionDot, "companion", function()
-        return ObtenerCompanionActivoCollectibleId() ~= 0
-    end)
-    ConfigurarTooltipIconoAliado(overlayAssistantDot, "assistant", function()
-        return ObtenerAssistantActivoId() ~= 0
-    end)
+
+    local function ObtenerDefinicionesIconosAliados()
+        return {
+            {
+                tipo = "pet",
+                ctrl = overlayPetDot,
+                activoFn = function() return ObtenerMascotaActivaId() ~= 0 end,
+                ocultarFn = OcultarMascotaActiva,
+                invocarFn = InvocarMascotaRecordada,
+                msgOcultarId = EZO_MSG_HIDE_PET,
+                msgInvocarId = EZO_MSG_SUMMON_PET,
+            },
+            {
+                tipo = "companion",
+                ctrl = overlayCompanionDot,
+                activoFn = function() return ObtenerCompanionActivoCollectibleId() ~= 0 end,
+                ocultarFn = OcultarCompanionActivo,
+                invocarFn = InvocarCompanionRecordado,
+                msgOcultarId = EZO_MSG_HIDE_COMPANION,
+                msgInvocarId = EZO_MSG_SUMMON_COMPANION,
+            },
+            {
+                tipo = "assistant",
+                ctrl = overlayAssistantDot,
+                activoFn = function() return ObtenerAssistantActivoId() ~= 0 end,
+                ocultarFn = OcultarAsistenteActivo,
+                invocarFn = InvocarAsistenteRecordada,
+                msgOcultarId = EZO_MSG_HIDE_ASSISTANT,
+                msgInvocarId = EZO_MSG_SUMMON_ASSISTANT,
+            },
+        }
+    end
 
     local function RefrescarTooltipAliados(forzar)
         if not EstanActivosLosTooltipsContextuales() then
@@ -1785,6 +1867,10 @@ local function AsegurarControles()
             return
         end
 
+        if overlaySideWidgetTooltipActive then
+            return
+        end
+
         if not forzar and type(GetFrameTimeMilliseconds) == "function" then
             local nowMs = GetFrameTimeMilliseconds()
             if (nowMs - overlayAllyTooltipLastRefreshMs) < ALLY_TOOLTIP_REFRESH_MS then
@@ -1793,17 +1879,11 @@ local function AsegurarControles()
             overlayAllyTooltipLastRefreshMs = nowMs
         end
 
-        if overlayPetDot and not overlayPetDot:IsHidden() and MouseIsOver(overlayPetDot) then
-            MostrarTooltipTextoSobreControl(overlayPetDot, ObtenerTooltipIconoAliado("pet", ObtenerMascotaActivaId() ~= 0))
-            return
-        end
-        if overlayCompanionDot and not overlayCompanionDot:IsHidden() and MouseIsOver(overlayCompanionDot) then
-            MostrarTooltipTextoSobreControl(overlayCompanionDot, ObtenerTooltipIconoAliado("companion", ObtenerCompanionActivoCollectibleId() ~= 0))
-            return
-        end
-        if overlayAssistantDot and not overlayAssistantDot:IsHidden() and MouseIsOver(overlayAssistantDot) then
-            MostrarTooltipTextoSobreControl(overlayAssistantDot, ObtenerTooltipIconoAliado("assistant", ObtenerAssistantActivoId() ~= 0))
-            return
+        for _, icono in ipairs(ObtenerDefinicionesIconosAliados()) do
+            if icono.ctrl and not icono.ctrl:IsHidden() and MouseIsOver(icono.ctrl) then
+                MostrarTooltipTextoSobreControl(icono.ctrl, ObtenerTooltipIconoAliado(icono.tipo, icono.activoFn()))
+                return
+            end
         end
 
         if overlayAllyTooltipActive then
@@ -1835,38 +1915,17 @@ local function AsegurarControles()
 
     overlayWin:SetHandler("OnMouseUp", function(_, button, upInside)
         if button == MOUSE_BUTTON_INDEX_LEFT and upInside and type(MouseIsOver) == "function" then
-            if overlayPetDot and not overlayPetDot:IsHidden() and MouseIsOver(overlayPetDot) then
-                EjecutarClickIconoAliado(
-                    "pet",
-                    function() return ObtenerMascotaActivaId() ~= 0 end,
-                    function() return OcultarMascotaActiva() end,
-                    function() return InvocarMascotaRecordada() end,
-                    EZO_MSG_HIDE_PET,
-                    EZO_MSG_SUMMON_PET
-                )
-                return
-            end
-            if overlayCompanionDot and not overlayCompanionDot:IsHidden() and MouseIsOver(overlayCompanionDot) then
-                EjecutarClickIconoAliado(
-                    "companion",
-                    function() return ObtenerCompanionActivoCollectibleId() ~= 0 end,
-                    function() return OcultarCompanionActivo() end,
-                    function() return InvocarCompanionRecordado() end,
-                    EZO_MSG_HIDE_COMPANION,
-                    EZO_MSG_SUMMON_COMPANION
-                )
-                return
-            end
-            if overlayAssistantDot and not overlayAssistantDot:IsHidden() and MouseIsOver(overlayAssistantDot) then
-                EjecutarClickIconoAliado(
-                    "assistant",
-                    function() return ObtenerAssistantActivoId() ~= 0 end,
-                    function() return OcultarAsistenteActivo() end,
-                    function() return InvocarAsistenteRecordada() end,
-                    EZO_MSG_HIDE_ASSISTANT,
-                    EZO_MSG_SUMMON_ASSISTANT
-                )
-                return
+            for _, icono in ipairs(ObtenerDefinicionesIconosAliados()) do
+                if icono.ctrl and not icono.ctrl:IsHidden() and MouseIsOver(icono.ctrl) then
+                    EjecutarClickIconoAliado(
+                        icono.activoFn,
+                        icono.ocultarFn,
+                        icono.invocarFn,
+                        icono.msgOcultarId,
+                        icono.msgInvocarId
+                    )
+                    return
+                end
             end
         end
         if button == MOUSE_BUTTON_INDEX_RIGHT and upInside then
@@ -2051,6 +2110,21 @@ local function AplicarEstadoVisualIconoAliado(ctrl, activo, collectibleId)
     ctrl:SetAlpha(alpha)
 end
 
+local function RefrescarEstadoIconoAliado(ctrl, activeId, rememberedKey)
+    if activeId ~= 0 then
+        GuardarCollectibleRecordado(rememberedKey, activeId)
+    end
+    local collectibleId = (activeId ~= 0) and activeId or ObtenerCollectibleRecordado(rememberedKey)
+    if not ctrl then
+        return
+    end
+    local visible = collectibleId ~= 0
+    ctrl:SetHidden(not visible)
+    if visible then
+        AplicarEstadoVisualIconoAliado(ctrl, activeId ~= 0, collectibleId)
+    end
+end
+
 ObtenerTooltipIconoAliado = function(tipo, activo)
     local collectibleId = 0
     local fallbackName = nil
@@ -2163,43 +2237,13 @@ RefrescarDot = function()
     if overlayFoodDot then overlayFoodDot:SetHidden(true) end
 
     local petId = ObtenerMascotaActivaId()
-    if petId ~= 0 then
-        GuardarCollectibleRecordado("lastPetCollectibleId", petId)
-    end
-    local petRecordadoId = (petId ~= 0) and petId or ObtenerCollectibleRecordado("lastPetCollectibleId")
-    if overlayPetDot then
-        local visible = petRecordadoId ~= 0
-        overlayPetDot:SetHidden(not visible)
-        if visible then
-            AplicarEstadoVisualIconoAliado(overlayPetDot, petId ~= 0, petRecordadoId)
-        end
-    end
+    RefrescarEstadoIconoAliado(overlayPetDot, petId, "lastPetCollectibleId")
 
     local companionCollectibleId = ObtenerCompanionActivoCollectibleId()
-    if companionCollectibleId ~= 0 then
-        GuardarCollectibleRecordado("lastCompanionCollectibleId", companionCollectibleId)
-    end
-    local companionRecordadoId = (companionCollectibleId ~= 0) and companionCollectibleId or ObtenerCollectibleRecordado("lastCompanionCollectibleId")
-    if overlayCompanionDot then
-        local visible = companionRecordadoId ~= 0
-        overlayCompanionDot:SetHidden(not visible)
-        if visible then
-            AplicarEstadoVisualIconoAliado(overlayCompanionDot, companionCollectibleId ~= 0, companionRecordadoId)
-        end
-    end
+    RefrescarEstadoIconoAliado(overlayCompanionDot, companionCollectibleId, "lastCompanionCollectibleId")
 
     local assistId = ObtenerAssistantActivoId()
-    if assistId ~= 0 then
-        GuardarCollectibleRecordado("lastAssistantCollectibleId", assistId)
-    end
-    local assistRecordadoId = (assistId ~= 0) and assistId or ObtenerCollectibleRecordado("lastAssistantCollectibleId")
-    if overlayAssistantDot then
-        local visible = assistRecordadoId ~= 0
-        overlayAssistantDot:SetHidden(not visible)
-        if visible then
-            AplicarEstadoVisualIconoAliado(overlayAssistantDot, assistId ~= 0, assistRecordadoId)
-        end
-    end
+    RefrescarEstadoIconoAliado(overlayAssistantDot, assistId, "lastAssistantCollectibleId")
 
     RefrescarWidgetsLateralesEstado()
 end
