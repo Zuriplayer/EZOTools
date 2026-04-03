@@ -1293,13 +1293,91 @@ local function ConsumirComidaHistorialConSeguridad(itemLink, itemName)
     return ok
 end
 
-local function AbrirMenuHistorialComida(anchor)
-    local history = EZO and EZO.sv and EZO.sv.overlay and EZO.sv.overlay.recentFoodItems or nil
+local function AnadirEntradaMenuReciente(label, onSelect, tooltipText, enabled, onEnter, onExit)
+    if type(label) ~= "string" or label == "" then
+        return false
+    end
+
+    local index = nil
+    if type(AddCustomMenuItem) == "function" then
+        index = AddCustomMenuItem(label, onSelect, MENU_ADD_OPTION_LABEL, nil, nil, nil, nil, nil, nil, onEnter, onExit, enabled ~= false)
+    elseif type(AddMenuItem) == "function" then
+        index = AddMenuItem(label, onSelect)
+    else
+        return false
+    end
+
+    if type(index) == "number" and type(AddCustomMenuTooltip) == "function" and type(tooltipText) == "string" and tooltipText ~= "" then
+        AddCustomMenuTooltip(NormalizarTextoTooltip(tooltipText), index)
+    end
+
+    return true
+end
+
+local function MostrarTooltipItemSobreControl(ctrl, itemLink)
+    if type(itemLink) ~= "string" or itemLink == "" then
+        return
+    end
+    if not (ctrl and ItemTooltip and type(InitializeTooltip) == "function" and ItemTooltip.SetLink) then
+        return
+    end
+
+    local guiRootWidth = GuiRoot and select(1, GuiRoot:GetDimensions()) or 0
+    local centerX = ctrl:GetCenter()
+    if type(centerX) == "number" and guiRootWidth > 0 and centerX > (guiRootWidth / 2) then
+        InitializeTooltip(ItemTooltip, ctrl, TOPRIGHT, -12, 0, TOPLEFT)
+    else
+        InitializeTooltip(ItemTooltip, ctrl, TOPLEFT, 12, 0, TOPRIGHT)
+    end
+    ItemTooltip:SetLink(itemLink)
+end
+
+local function AbrirMenuRecientes(anchor, entries, emptyLabel)
     if ClearMenu then
         ClearMenu()
     end
 
     local entriesAdded = 0
+    if type(entries) == "table" then
+        for _, entry in ipairs(entries) do
+            if type(entry) == "table" and AnadirEntradaMenuReciente(
+                tostring(entry.label or ""),
+                entry.onSelect,
+                entry.tooltipText,
+                entry.enabled,
+                entry.onEnter,
+                entry.onExit
+            ) then
+                entriesAdded = entriesAdded + 1
+            end
+        end
+    end
+
+    if entriesAdded == 0 then
+        AnadirEntradaMenuReciente(tostring(emptyLabel or ""), function() return true end, nil, false)
+    end
+
+    if ShowMenu then
+        ShowMenu(anchor)
+    end
+end
+
+local function ObtenerTooltipEntradaComidaHistorial(itemLink, itemName)
+    local _, _, resolvedName, _, _, effectDescription = BuscarConsumibleComidaPorReferencia(itemLink, itemName)
+    local tooltipParts = {}
+    local finalName = tostring(resolvedName or itemName or "")
+    if finalName ~= "" then
+        tooltipParts[#tooltipParts + 1] = finalName
+    end
+    if type(effectDescription) == "string" and effectDescription ~= "" then
+        tooltipParts[#tooltipParts + 1] = effectDescription
+    end
+    return table.concat(tooltipParts, "|n")
+end
+
+local function AbrirMenuHistorialComida(anchor)
+    local history = EZO and EZO.sv and EZO.sv.overlay and EZO.sv.overlay.recentFoodItems or nil
+    local entries = {}
     if type(history) == "table" then
         for _, entry in ipairs(history) do
             if type(entry) == "table" then
@@ -1307,23 +1385,28 @@ local function AbrirMenuHistorialComida(anchor)
                 local itemName = tostring(entry.itemName or "")
                 local _, _, resolvedName = BuscarConsumibleComidaPorReferencia(itemLink, itemName)
                 local label = tostring(resolvedName or itemName or "")
-                if label ~= "" and type(AddMenuItem) == "function" then
-                    AddMenuItem(label, function()
-                        ConsumirComidaHistorialConSeguridad(itemLink, itemName)
-                    end)
-                    entriesAdded = entriesAdded + 1
+                if label ~= "" then
+                    local itemLinkTooltip = itemLink
+                    entries[#entries + 1] = {
+                        label = label,
+                        onEnter = function(control)
+                            MostrarTooltipItemSobreControl(control, itemLinkTooltip)
+                        end,
+                        onExit = function()
+                            if type(ClearTooltip) == "function" and ItemTooltip then
+                                ClearTooltip(ItemTooltip)
+                            end
+                        end,
+                        onSelect = function()
+                            ConsumirComidaHistorialConSeguridad(itemLink, itemName)
+                        end,
+                    }
                 end
             end
         end
     end
 
-    if entriesAdded == 0 and type(AddMenuItem) == "function" then
-        AddMenuItem(GetString(EZO_SIDE_WIDGET_FOOD_HISTORY_EMPTY), function() return true end)
-    end
-
-    if ShowMenu then
-        ShowMenu(anchor)
-    end
+    AbrirMenuRecientes(anchor, entries, GetString(EZO_SIDE_WIDGET_FOOD_HISTORY_EMPTY))
 end
 
 local function EjecutarAccionWidget(side, index, data, button)
