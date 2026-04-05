@@ -1325,26 +1325,43 @@ local function AnadirEntradaMenuReciente(label, onSelect, tooltipText, enabled, 
     return true
 end
 
-local function MostrarTooltipItemSobreControl(ctrl, itemLink)
-    if type(itemLink) ~= "string" or itemLink == "" then
-        return
-    end
-    if not (ctrl and ItemTooltip and type(InitializeTooltip) == "function" and ItemTooltip.SetLink) then
-        return
+local function InicializarTooltipEstandarSobreControl(tooltip, ctrl)
+    if not (ctrl and tooltip and type(InitializeTooltip) == "function") then
+        return false
     end
 
     local guiRootWidth = GuiRoot and select(1, GuiRoot:GetDimensions()) or 0
     local centerX = ctrl:GetCenter()
     if type(centerX) == "number" and guiRootWidth > 0 and centerX > (guiRootWidth / 2) then
-        InitializeTooltip(ItemTooltip, ctrl, TOPRIGHT, -12, 0, TOPLEFT)
+        InitializeTooltip(tooltip, ctrl, TOPRIGHT, -12, 0, TOPLEFT)
     else
-        InitializeTooltip(ItemTooltip, ctrl, TOPLEFT, 12, 0, TOPRIGHT)
+        InitializeTooltip(tooltip, ctrl, TOPLEFT, 12, 0, TOPRIGHT)
+    end
+    return true
+end
+
+local function MostrarTooltipItemSobreControl(ctrl, itemLink)
+    if type(itemLink) ~= "string" or itemLink == "" then
+        return
+    end
+    if not (ItemTooltip and ItemTooltip.SetLink) then
+        return
+    end
+    if not InicializarTooltipEstandarSobreControl(ItemTooltip, ctrl) then
+        return
     end
     ItemTooltip:SetLink(itemLink)
 end
 
 local function MostrarTooltipCollectibleSobreControl(ctrl, collectibleId, fallbackName)
     if not ctrl then
+        return
+    end
+    if collectibleId and collectibleId ~= 0
+        and ItemTooltip
+        and type(ItemTooltip.SetCollectible) == "function"
+        and InicializarTooltipEstandarSobreControl(ItemTooltip, ctrl) then
+        ItemTooltip:SetCollectible(collectibleId)
         return
     end
     local nombre = tostring(ObtenerNombreCollectible(collectibleId, fallbackName) or "")
@@ -1388,19 +1405,6 @@ local function AbrirMenuRecientes(anchor, entries, emptyLabel)
     end
 end
 
-local function ObtenerTooltipEntradaComidaHistorial(itemLink, itemName)
-    local _, _, resolvedName, _, _, effectDescription = BuscarConsumibleComidaPorReferencia(itemLink, itemName)
-    local tooltipParts = {}
-    local finalName = tostring(resolvedName or itemName or "")
-    if finalName ~= "" then
-        tooltipParts[#tooltipParts + 1] = finalName
-    end
-    if type(effectDescription) == "string" and effectDescription ~= "" then
-        tooltipParts[#tooltipParts + 1] = effectDescription
-    end
-    return table.concat(tooltipParts, "|n")
-end
-
 local function AbrirMenuHistorialComida(anchor)
     local history = EZO and EZO.sv and EZO.sv.overlay and EZO.sv.overlay.recentFoodItems or nil
     local entries = {}
@@ -1441,18 +1445,24 @@ local ALLY_ICON_MENU_CONFIG = {
         historyKey = "recentPetCollectibles",
         fallbackNameId = EZO_DOT_PET_FALLBACK_NAME,
         historyEmptyId = EZO_DOT_PET_HISTORY_EMPTY,
+        historyLimit = 10,
+        showRecentHoverPreview = true,
     },
     companion = {
         rememberedKey = "lastCompanionCollectibleId",
         historyKey = "recentCompanionCollectibles",
         fallbackNameId = EZO_DOT_COMPANION_FALLBACK_NAME,
         historyEmptyId = EZO_DOT_COMPANION_HISTORY_EMPTY,
+        historyLimit = 5,
+        showRecentHoverPreview = true,
     },
     assistant = {
         rememberedKey = "lastAssistantCollectibleId",
         historyKey = "recentAssistantCollectibles",
         fallbackNameId = EZO_DOT_ASSISTANT_FALLBACK_NAME,
         historyEmptyId = EZO_DOT_ASSISTANT_HISTORY_EMPTY,
+        historyLimit = 5,
+        showRecentHoverPreview = true,
     },
 }
 
@@ -2379,15 +2389,6 @@ local function TieneBuffComida()
     return ObtenerInfoBuffComida().active == true
 end
 
--- Mascota vanity activa (sin requisito de grupo para pruebas)
-local function TieneMascotaEnGrupo()
-    -- TODO: restaurar "if GetGroupSize() <= 1 then return false end" tras pruebas
-    local petId = GetActiveCollectibleByType(
-        COLLECTIBLE_CATEGORY_TYPE_VANITY_PET,
-        GAMEPLAY_ACTOR_CATEGORY_PLAYER)
-    return petId ~= nil and petId ~= 0
-end
-
 ObtenerMascotaActivaId = function()
     if type(GetActiveCollectibleByType) ~= "function" then
         return 0
@@ -2439,6 +2440,14 @@ local function GuardarCollectibleEnHistorial(clave, collectibleId)
         history = {}
         EZO.sv.overlay[clave] = history
     end
+    local config = nil
+    for _, allyConfig in pairs(ALLY_ICON_MENU_CONFIG) do
+        if allyConfig.historyKey == clave then
+            config = allyConfig
+            break
+        end
+    end
+    local maxItems = (config and tonumber(config.historyLimit)) or 5
 
     local newHistory = { collectibleId }
     for _, entryId in ipairs(history) do
@@ -2446,7 +2455,7 @@ local function GuardarCollectibleEnHistorial(clave, collectibleId)
         if value > 0 and value ~= collectibleId then
             newHistory[#newHistory + 1] = value
         end
-        if #newHistory >= 5 then
+        if #newHistory >= maxItems then
             break
         end
     end
@@ -2590,19 +2599,11 @@ local function AplicarEstadoVisualIconoAliado(ctrl, activo, collectibleId)
     ctrl:SetAlpha(alpha)
 end
 
-local function RefrescarEstadoIconoAliado(ctrl, activeId, rememberedKey)
+local function RefrescarEstadoIconoAliado(ctrl, activeId, rememberedKey, historyKey)
     if activeId ~= 0 then
         GuardarCollectibleRecordado(rememberedKey, activeId)
-        local tipo = nil
-        for allyType, cfg in pairs(ALLY_ICON_MENU_CONFIG or {}) do
-            if cfg.rememberedKey == rememberedKey then
-                tipo = allyType
-                break
-            end
-        end
-        local config = tipo and ObtenerConfiguracionAliado(tipo) or nil
-        if config then
-            GuardarCollectibleEnHistorial(config.historyKey, activeId)
+        if type(historyKey) == "string" and historyKey ~= "" then
+            GuardarCollectibleEnHistorial(historyKey, activeId)
         end
     end
     local collectibleId = (activeId ~= 0) and activeId or ObtenerCollectibleRecordado(rememberedKey)
@@ -2670,16 +2671,23 @@ AbrirMenuHistorialAliado = function(anchor, tipo)
         if finalId > 0 then
             local label = tostring(ObtenerNombreCollectible(finalId, GetString(config.fallbackNameId)) or "")
             if label ~= "" then
-                entries[#entries + 1] = {
-                    label = label,
+                local onEnter = nil
+                local onExit = nil
+                if config.showRecentHoverPreview then
                     onEnter = function(control)
                         MostrarTooltipCollectibleSobreControl(control, finalId, GetString(config.fallbackNameId))
-                    end,
+                    end
                     onExit = function()
-                        if type(ClearTooltip) == "function" and (InformationTooltip or overlayWidgetTooltipWin) then
-                            OcultarTooltipWidget()
+                        if type(ClearTooltip) == "function" and ItemTooltip then
+                            ClearTooltip(ItemTooltip)
                         end
-                    end,
+                        OcultarTooltipWidget()
+                    end
+                end
+                entries[#entries + 1] = {
+                    label = label,
+                    onEnter = onEnter,
+                    onExit = onExit,
                     onSelect = function()
                         InvocarAliadoDesdeHistorial(tipo, finalId)
                     end,
@@ -2803,13 +2811,13 @@ RefrescarDot = function()
     if overlayFoodDot then overlayFoodDot:SetHidden(true) end
 
     local petId = ObtenerMascotaActivaId()
-    RefrescarEstadoIconoAliado(overlayPetDot, petId, "lastPetCollectibleId")
+    RefrescarEstadoIconoAliado(overlayPetDot, petId, "lastPetCollectibleId", "recentPetCollectibles")
 
     local companionCollectibleId = ObtenerCompanionActivoCollectibleId()
-    RefrescarEstadoIconoAliado(overlayCompanionDot, companionCollectibleId, "lastCompanionCollectibleId")
+    RefrescarEstadoIconoAliado(overlayCompanionDot, companionCollectibleId, "lastCompanionCollectibleId", "recentCompanionCollectibles")
 
     local assistId = ObtenerAssistantActivoId()
-    RefrescarEstadoIconoAliado(overlayAssistantDot, assistId, "lastAssistantCollectibleId")
+    RefrescarEstadoIconoAliado(overlayAssistantDot, assistId, "lastAssistantCollectibleId", "recentAssistantCollectibles")
 
     RefrescarWidgetsLateralesEstado()
 end
