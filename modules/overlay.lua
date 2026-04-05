@@ -9,7 +9,7 @@ local MOD = EZOTools_Overlay
 local EZO = EZOTools
 
 -- Controles de la ventana (se crean en EnsureControls la primera vez)
-local overlayWin, overlayTex, overlayLabel, overlayGuildLabel, overlayMaintDot, overlayChargeDot, overlayFoodDot, overlayPetDot, overlayCompanionDot, overlayAssistantDot
+local overlayWin, overlayTex, overlayLabel, overlayGuildLabel, overlayMaintDot, overlayChargeDot, overlayFoodDot, overlayMountDot, overlayPetDot, overlayCompanionDot, overlayAssistantDot
 local overlaySideSlotsLeft, overlaySideSlotsRight = {}, {}
 local overlaySideWidgetsLeft, overlaySideWidgetsRight = {}, {}
 local overlaySideWidgetTexturesLeft, overlaySideWidgetTexturesRight = {}, {}
@@ -31,6 +31,7 @@ local ConstruirTooltipComida
 local BuscarConsumibleRecordadoComida
 local BuscarConsumibleComidaPorReferencia
 local AbrirMenuHistorialAliado
+local EstaMontado
 local TOOLTIP_ICON_WIDTH = 360
 local TOOLTIP_ICON_HEIGHT = 120
 local FOOD_PENDING_WINDOW_MS = 4000
@@ -1440,6 +1441,14 @@ local function AbrirMenuHistorialComida(anchor)
 end
 
 local ALLY_ICON_MENU_CONFIG = {
+    mount = {
+        rememberedKey = "lastMountCollectibleId",
+        historyKey = "recentMountCollectibles",
+        fallbackNameId = EZO_DOT_MOUNT_FALLBACK_NAME,
+        historyEmptyId = EZO_DOT_MOUNT_HISTORY_EMPTY,
+        historyLimit = 10,
+        showRecentHoverPreview = true,
+    },
     pet = {
         rememberedKey = "lastPetCollectibleId",
         historyKey = "recentPetCollectibles",
@@ -2065,7 +2074,7 @@ local function AplicarEscalaVisual()
 
     local sideExtent, sideSlotSize = AplicarLayoutSlotsLaterales(texPx)
 
-    -- Tres iconos centrados bajo overlayLabel (@ZuriPlayer), distribuidos uniformemente.
+    -- Cuatro iconos centrados bajo overlayLabel (@ZuriPlayer), distribuidos uniformemente.
     -- Sep = distancia centro-a-centro entre iconos adyacentes.
     local allyScale
     if s < 1 then
@@ -2078,9 +2087,10 @@ local function AplicarEscalaVisual()
         local sep     = math.max(20, math.floor(28 * s + 0.5))
         local offsetY = math.floor(6 * s + 0.5)
         local dots = {
-            { ctrl = overlayPetDot,       x = -sep },
-            { ctrl = overlayCompanionDot, x =  0 },
-            { ctrl = overlayAssistantDot, x =  sep },
+            { ctrl = overlayMountDot,     x = math.floor(-1.5 * sep + 0.5) },
+            { ctrl = overlayPetDot,       x = math.floor(-0.5 * sep + 0.5) },
+            { ctrl = overlayCompanionDot, x = math.floor(0.5 * sep + 0.5) },
+            { ctrl = overlayAssistantDot, x = math.floor(1.5 * sep + 0.5) },
         }
         for _, d in ipairs(dots) do
             if d.ctrl then
@@ -2202,6 +2212,14 @@ local function AsegurarControles()
 
     -- Icono mascota: preferimos iconos de categoría del juego, sin tinte, para mantener
     -- un estilo más coherente con el resto de avisos del overlay.
+    overlayMountDot = CrearIcono("EZOToolsMountDot2", {
+        "/esoui/art/treeicons/collections_indexicon_mounts_up.dds",
+        "/esoui/art/treeicons/gamepad/gp_collection_indexicon_mounts.dds",
+        "/esoui/art/treeicons/store_indexicon_mounts_up.dds",
+    })
+    overlayMountDot:SetColor(1, 1, 1, 1)
+    overlayMountDot:SetAnchor(TOP, overlayLabel, BOTTOM, -84, 6)
+
     overlayPetDot = CrearIcono("EZOToolsPetDot2", {
         "/esoui/art/treeicons/collections_indexicon_noncombatpets_up.dds",
         "/esoui/art/treeicons/store_indexicon_vanitypets_up.dds",
@@ -2236,6 +2254,21 @@ local function AsegurarControles()
 
     local function ObtenerDefinicionesIconosAliados()
         return {
+            {
+                tipo = "mount",
+                ctrl = overlayMountDot,
+                activoFn = function() return EstaMontado() and ObtenerMonturaActivaId() ~= 0 end,
+                clickFn = function()
+                    if EZO and type(EZO.Print) == "function" then
+                        EZO.Print(GetString(EZO_MSG_USE_MOUNT))
+                    end
+                    local ok = InvocarMonturaRecordada()
+                    if ok then
+                        ProgramarRefrescoDots()
+                    end
+                    return ok
+                end,
+            },
             {
                 tipo = "pet",
                 ctrl = overlayPetDot,
@@ -2331,13 +2364,17 @@ local function AsegurarControles()
             for _, icono in ipairs(ObtenerDefinicionesIconosAliados()) do
                 if icono.ctrl and not icono.ctrl:IsHidden() and MouseIsOver(icono.ctrl) then
                     if button == MOUSE_BUTTON_INDEX_LEFT then
-                        EjecutarClickIconoAliado(
-                            icono.activoFn,
-                            icono.ocultarFn,
-                            icono.invocarFn,
-                            icono.msgOcultarId,
-                            icono.msgInvocarId
-                        )
+                        if type(icono.clickFn) == "function" then
+                            icono.clickFn()
+                        else
+                            EjecutarClickIconoAliado(
+                                icono.activoFn,
+                                icono.ocultarFn,
+                                icono.invocarFn,
+                                icono.msgOcultarId,
+                                icono.msgInvocarId
+                            )
+                        end
                     elseif button == MOUSE_BUTTON_INDEX_RIGHT then
                         AbrirMenuHistorialAliado(icono.ctrl, icono.tipo)
                     end
@@ -2396,6 +2433,21 @@ ObtenerMascotaActivaId = function()
     return GetActiveCollectibleByType(
         COLLECTIBLE_CATEGORY_TYPE_VANITY_PET,
         GAMEPLAY_ACTOR_CATEGORY_PLAYER) or 0
+end
+
+ObtenerMonturaActivaId = function()
+    if type(GetActiveCollectibleByType) ~= "function" then
+        return 0
+    end
+
+    local mountId = GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_MOUNT) or 0
+    if mountId == 0 and GAMEPLAY_ACTOR_CATEGORY_PLAYER then
+        local ok, value = pcall(GetActiveCollectibleByType, COLLECTIBLE_CATEGORY_TYPE_MOUNT, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+        if ok then
+            mountId = tonumber(value) or 0
+        end
+    end
+    return mountId
 end
 
 ObtenerAssistantActivoId = function()
@@ -2491,6 +2543,10 @@ local function InvocarCollectibleRecordado(clave)
     end
     UseCollectible(collectibleId)
     return true
+end
+
+EstaMontado = function()
+    return type(IsMounted) == "function" and IsMounted() == true
 end
 
 local function InvocarCollectiblePorId(collectibleId)
@@ -2595,6 +2651,9 @@ local function AplicarEstadoVisualIconoAliado(ctrl, activo, collectibleId)
     end
 
     local alpha = activo and 1 or ALLY_ICON_INACTIVE_ALPHA
+    if ctrl == overlayMountDot then
+        alpha = 1
+    end
     ctrl:SetColor(1, 1, 1, alpha)
     ctrl:SetAlpha(alpha)
 end
@@ -2631,6 +2690,9 @@ local function InvocarAliadoDesdeHistorial(tipo, collectibleId)
     GuardarCollectibleRecordado(config.rememberedKey, collectibleId)
     GuardarCollectibleEnHistorial(config.historyKey, collectibleId)
 
+    if tipo == "mount" then
+        return InvocarCollectiblePorId(collectibleId)
+    end
     if tipo == "pet" then
         return InvocarCollectiblePorId(collectibleId)
     end
@@ -2703,7 +2765,10 @@ ObtenerTooltipIconoAliado = function(tipo, activo)
     local collectibleId = 0
     local fallbackName = nil
 
-    if tipo == "pet" then
+    if tipo == "mount" then
+        collectibleId = activo and ObtenerMonturaActivaId() or ObtenerCollectibleRecordado("lastMountCollectibleId")
+        fallbackName = GetString(EZO_DOT_MOUNT_FALLBACK_NAME)
+    elseif tipo == "pet" then
         collectibleId = activo and ObtenerMascotaActivaId() or ObtenerCollectibleRecordado("lastPetCollectibleId")
         fallbackName = GetString(EZO_DOT_PET_FALLBACK_NAME)
     elseif tipo == "companion" then
@@ -2715,6 +2780,9 @@ ObtenerTooltipIconoAliado = function(tipo, activo)
     end
 
     local nombre = ObtenerNombreCollectible(collectibleId, fallbackName)
+    if tipo == "mount" then
+        return zo_strformat(GetString(activo and EZO_DOT_MOUNT_ACTIVE_TOOLTIP or EZO_DOT_MOUNT_INACTIVE_TOOLTIP), nombre)
+    end
     if tipo == "pet" then
         return zo_strformat(GetString(activo and EZO_DOT_PET_ACTIVE_TOOLTIP or EZO_DOT_PET_INACTIVE_TOOLTIP), nombre)
     end
@@ -2783,6 +2851,14 @@ InvocarMascotaRecordada = function()
     return InvocarCollectibleRecordado("lastPetCollectibleId")
 end
 
+InvocarMonturaRecordada = function()
+    local activeMountId = ObtenerMonturaActivaId()
+    if activeMountId ~= 0 then
+        return InvocarCollectiblePorId(activeMountId)
+    end
+    return InvocarCollectibleRecordado("lastMountCollectibleId")
+end
+
 InvocarCompanionRecordado = function()
     if ObtenerAssistantActivoId() ~= 0 then
         return ProgramarCambioEntreAliados(
@@ -2809,6 +2885,14 @@ RefrescarDot = function()
     if overlayMaintDot then overlayMaintDot:SetHidden(true) end
     if overlayChargeDot then overlayChargeDot:SetHidden(true) end
     if overlayFoodDot then overlayFoodDot:SetHidden(true) end
+
+    local mountCollectibleId = ObtenerMonturaActivaId()
+    if mountCollectibleId ~= 0 then
+        GuardarCollectibleRecordado("lastMountCollectibleId", mountCollectibleId)
+        GuardarCollectibleEnHistorial("recentMountCollectibles", mountCollectibleId)
+    end
+    local visibleMountId = EstaMontado() and mountCollectibleId or 0
+    RefrescarEstadoIconoAliado(overlayMountDot, visibleMountId, "lastMountCollectibleId", "recentMountCollectibles")
 
     local petId = ObtenerMascotaActivaId()
     RefrescarEstadoIconoAliado(overlayPetDot, petId, "lastPetCollectibleId", "recentPetCollectibles")
