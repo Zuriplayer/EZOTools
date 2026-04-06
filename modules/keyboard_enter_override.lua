@@ -16,34 +16,10 @@ local MAX_INTENTOS = 10
 local function HayDialogoEZOAbierto()
     local ezo = _G.EZOTools
     if type(ezo) ~= "table" then return false end
-
-    -- Diálogo principal de comandos
-    local dlg = nil
-    if ezo.GamepadDialog and type(ezo.GamepadDialog.IsShowing) == "function" then
-        dlg = ezo.GamepadDialog
-    elseif _G.EZOTools_GamepadDialog and type(_G.EZOTools_GamepadDialog.IsShowing) == "function" then
-        dlg = _G.EZOTools_GamepadDialog
+    if type(ezo.HasInteractiveDialogOpen) == "function" then
+        local ok, abierto = pcall(function() return ezo.HasInteractiveDialogOpen() end)
+        if ok then return abierto end
     end
-    if dlg and dlg.IsShowing() then return true end
-
-    -- Diálogo de ajustes
-    local sdlg = ezo.GamepadSettingsDialog
-    if sdlg and type(sdlg.IsShowing) == "function" and sdlg.IsShowing() then
-        return true
-    end
-
-    -- Diálogo de utilidades rápidas
-    local udlg = ezo.GamepadUtilityDialog
-    if udlg and type(udlg.IsShowing) == "function" and udlg.IsShowing() then
-        return true
-    end
-
-    -- Subdiálogo de recientes del panel de utilidades
-    local rdlg = ezo.GamepadUtilityRecentDialog
-    if rdlg and type(rdlg.IsShowing) == "function" and rdlg.IsShowing() then
-        return true
-    end
-
     return false
 end
 
@@ -51,8 +27,10 @@ end
 -- Devuelve true para bloquear la apertura del chat.
 local function InterceptarEntradaChat()
     if not HayDialogoEZOAbierto() then return false end
-    -- Ejecutar la selección actual del panel de comandos
-    if _G.EZOTools and type(_G.EZOTools.ExecuteCommandPanelSelection) == "function" then
+    if _G.EZOTools and type(_G.EZOTools.ActivateVisibleDialogSelection) == "function" then
+        pcall(function() _G.EZOTools.ActivateVisibleDialogSelection() end)
+    elseif _G.EZOTools and type(_G.EZOTools.ExecuteCommandPanelSelection) == "function" then
+        -- Compatibilidad con rutas antiguas si algún módulo aún llama al helper anterior.
         pcall(function() _G.EZOTools.ExecuteCommandPanelSelection() end)
     end
     return true

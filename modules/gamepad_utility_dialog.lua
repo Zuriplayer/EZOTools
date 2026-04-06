@@ -18,8 +18,7 @@ local function ConstruirSubtituloDialogo()
 end
 
 local function CerrarDialogoActual()
-    if ZO_Dialogs_ReleaseDialog then pcall(ZO_Dialogs_ReleaseDialog, NOMBRE_DIALOGO) end
-    if ZO_Dialogs_HideDialog then pcall(ZO_Dialogs_HideDialog, NOMBRE_DIALOGO) end
+    EZOTools_CerrarDialogoGamepad(NOMBRE_DIALOGO)
 end
 
 local function RecopilarAcciones()
@@ -42,19 +41,9 @@ local function ResolverNombre(n)
 end
 
 local ExtraerCallback = EZOTools_ExtraerCallback
-
-local function AdjuntarActivacionRaton(control, entryData)
-    if not control or type(control.SetHandler) ~= "function" then return end
-    if type(control.SetMouseEnabled) == "function" then
-        control:SetMouseEnabled(true)
-    end
-    control:SetHandler("OnMouseUp", function(_, button, upInside)
-        if button ~= MOUSE_BUTTON_INDEX_LEFT or not upInside then return end
-        if type(entryData) == "table" and type(entryData.callback) == "function" then
-            entryData.callback()
-        end
-    end)
-end
+local AdjuntarActivacionRaton = EZOTools_AdjuntarActivacionRatonGamepad
+local BuscarDialogoGamepad = EZOTools_BuscarDialogoGamepad
+local ActivarSeleccionDialogoGamepad = EZOTools_ActivarSeleccionDialogoGamepad
 
 local function AbrirDialogoRecientes(entry)
     local dlg = EZO and EZO.GamepadUtilityRecentDialog
@@ -154,15 +143,7 @@ local function AsegurarRegistrado()
 end
 
 local function BuscarDialogo()
-    if type(ZO_Dialogs_FindDialog) == "function" then
-        local dlg = ZO_Dialogs_FindDialog(NOMBRE_DIALOGO)
-        if dlg then return dlg end
-    end
-    if type(ZO_Dialogs_GetDialog) == "function" then
-        local dlg = ZO_Dialogs_GetDialog(NOMBRE_DIALOGO)
-        if dlg then return dlg end
-    end
-    return nil
+    return BuscarDialogoGamepad(NOMBRE_DIALOGO)
 end
 
 function Dialog.IsShowing()
@@ -182,14 +163,7 @@ function Dialog.Close()
 end
 
 function Dialog.ActivateSelected()
-    local dlg = BuscarDialogo()
-    if not dlg or not dlg.entryList or type(dlg.entryList.GetTargetData) ~= "function" then
-        return false
-    end
-    local data = dlg.entryList:GetTargetData()
-    local cb = ExtraerCallback(data)
-    if cb then cb(); return true end
-    return false
+    return ActivarSeleccionDialogoGamepad(BuscarDialogo())
 end
 
 function Dialog.Open()
