@@ -19,6 +19,7 @@ EZO_STRINGS_ES = {
     SI_BINDING_NAME_EZO_LEAVE_INSTANCE          = "Salir de instancia",
     SI_BINDING_NAME_EZO_LEAVE_GROUP_INSTANCE    = "Salir del grupo y de la instancia",
     SI_BINDING_NAME_EZO_RELOAD_UI               = "Recargar interfaz",
+    SI_BINDING_NAME_EZO_TOGGLE_UTILITY_PANEL    = "Abrir panel de utilidades",
 
     -- -------------------------------------------------------------------------
     -- Mensajes generales del addon
@@ -90,6 +91,7 @@ EZO_STRINGS_ES = {
     -- Entradas del panel de comandos
     -- -------------------------------------------------------------------------
     EZO_MENU_TITLE                = "EZOTools",
+    EZO_UTILITY_MENU_TITLE        = "Utilidades rápidas",
     EZO_MENU_DIALOG_SUBTITLE      = "<<1>>  ·  v<<2>>",
     EZO_MENU_SETTINGS             = "Ajustes rápidos",
     EZO_MENU_ADDON_SETTINGS       = "Ajustes completos (LAM)",
@@ -119,6 +121,11 @@ EZO_STRINGS_ES = {
     -- -------------------------------------------------------------------------
     EZO_OVERLAY_NO_GUILD        = "Sin hermandad",
     EZO_OVERLAY_TABARD          = "Tabardo",
+    EZO_UTILITY_ENTRY_FOOD      = "Comida y bebida",
+    EZO_UTILITY_ENTRY_MOUNT     = "Montura",
+    EZO_UTILITY_ENTRY_PET       = "Mascota",
+    EZO_UTILITY_ENTRY_COMPANION = "Compañero",
+    EZO_UTILITY_ENTRY_ASSISTANT = "Asistente",
 
     -- -------------------------------------------------------------------------
     -- Mensajes de chat: viajes

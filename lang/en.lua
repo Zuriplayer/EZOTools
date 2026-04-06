@@ -20,6 +20,7 @@ EZO_STRINGS_EN = {
     SI_BINDING_NAME_EZO_LEAVE_INSTANCE          = "Leave Instance",
     SI_BINDING_NAME_EZO_LEAVE_GROUP_INSTANCE    = "Leave Group and Instance",
     SI_BINDING_NAME_EZO_RELOAD_UI               = "Reload UI",
+    SI_BINDING_NAME_EZO_TOGGLE_UTILITY_PANEL    = "Open Utility Panel",
 
     -- -------------------------------------------------------------------------
     -- General addon messages
@@ -91,6 +92,7 @@ EZO_STRINGS_EN = {
     -- Command panel menu entries
     -- -------------------------------------------------------------------------
     EZO_MENU_TITLE                = "EZOTools",
+    EZO_UTILITY_MENU_TITLE        = "Quick Utilities",
     EZO_MENU_DIALOG_SUBTITLE      = "<<1>>  ·  v<<2>>",
     EZO_MENU_SETTINGS             = "Quick settings",
     EZO_MENU_ADDON_SETTINGS       = "Full settings (LAM)",
@@ -120,6 +122,11 @@ EZO_STRINGS_EN = {
     -- -------------------------------------------------------------------------
     EZO_OVERLAY_NO_GUILD        = "No guild",
     EZO_OVERLAY_TABARD          = "Tabard",
+    EZO_UTILITY_ENTRY_FOOD      = "Food and drink",
+    EZO_UTILITY_ENTRY_MOUNT     = "Mount",
+    EZO_UTILITY_ENTRY_PET       = "Pet",
+    EZO_UTILITY_ENTRY_COMPANION = "Companion",
+    EZO_UTILITY_ENTRY_ASSISTANT = "Assistant",
 
     -- -------------------------------------------------------------------------
     -- Chat messages: travel
