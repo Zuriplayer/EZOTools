@@ -12,6 +12,7 @@ local NOMBRE_DIALOGO = "EZO_GAMEPAD_UTILITY_RECENT_DIALOG"
 local NOMBRE_UPDATE_PREVIEW = "EZOTools_GamepadUtilityRecentDialog_Preview"
 Dialog.DIALOG_NAME = NOMBRE_DIALOGO
 Dialog._currentKey = nil
+Dialog._currentTitle = nil
 
 local function CerrarDialogoActual()
     EZOTools_CerrarDialogoGamepad(NOMBRE_DIALOGO)
@@ -115,7 +116,7 @@ local function AsegurarRegistrado()
 
     ZO_Dialogs_RegisterCustomDialog(NOMBRE_DIALOGO, {
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
-        title = { text = GetString(EZO_UTILITY_MENU_TITLE) },
+        title = { text = "" },
         mainText = { text = "" },
         parametricList = {},
 
@@ -125,6 +126,10 @@ local function AsegurarRegistrado()
             Dialog._lastPreviewData = nil
             local list = dialog.info.parametricList
             ZO_ClearNumericallyIndexedTable(list)
+
+            if dialog.info and dialog.info.title then
+                dialog.info.title.text = tostring(Dialog._currentTitle or GetString(EZO_UTILITY_MENU_TITLE))
+            end
 
             local added = 0
             for _, action in ipairs(RecopilarEntradasRecientes()) do
@@ -231,6 +236,7 @@ end
 
 function Dialog.Open(clave, titulo)
     Dialog._currentKey = tostring(clave or "")
+    Dialog._currentTitle = tostring(titulo or GetString(EZO_UTILITY_MENU_TITLE))
     AsegurarRegistrado()
     ZO_Dialogs_ShowGamepadDialog(NOMBRE_DIALOGO)
 end
