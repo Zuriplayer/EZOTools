@@ -2989,21 +2989,13 @@ function MOD.BuildQuickUtilityEntries()
         return ok
     end
 
-    AgregarEntrada("food", GetString(EZO_UTILITY_ENTRY_FOOD), function()
-        return ReusarComidaRecordadaConSeguridad()
-    end)
-
-    AgregarEntrada("mount", GetString(EZO_UTILITY_ENTRY_MOUNT), function()
-        return InvocarMonturaRecordada()
-    end)
-
-    AgregarEntrada("pet", GetString(EZO_UTILITY_ENTRY_PET), function()
+    AgregarEntrada("assistant", GetString(EZO_UTILITY_ENTRY_ASSISTANT), function()
         return EjecutarAccionAliado(
-            function() return ObtenerMascotaActivaId() ~= 0 end,
-            OcultarMascotaActiva,
-            InvocarMascotaRecordada,
-            EZO_MSG_HIDE_PET,
-            EZO_MSG_SUMMON_PET
+            function() return ObtenerAssistantActivoId() ~= 0 end,
+            OcultarAsistenteActivo,
+            InvocarAsistenteRecordada,
+            EZO_MSG_HIDE_ASSISTANT,
+            EZO_MSG_SUMMON_ASSISTANT
         )
     end)
 
@@ -3017,14 +3009,22 @@ function MOD.BuildQuickUtilityEntries()
         )
     end)
 
-    AgregarEntrada("assistant", GetString(EZO_UTILITY_ENTRY_ASSISTANT), function()
+    AgregarEntrada("food", GetString(EZO_UTILITY_ENTRY_FOOD), function()
+        return ReusarComidaRecordadaConSeguridad()
+    end)
+
+    AgregarEntrada("pet", GetString(EZO_UTILITY_ENTRY_PET), function()
         return EjecutarAccionAliado(
-            function() return ObtenerAssistantActivoId() ~= 0 end,
-            OcultarAsistenteActivo,
-            InvocarAsistenteRecordada,
-            EZO_MSG_HIDE_ASSISTANT,
-            EZO_MSG_SUMMON_ASSISTANT
+            function() return ObtenerMascotaActivaId() ~= 0 end,
+            OcultarMascotaActiva,
+            InvocarMascotaRecordada,
+            EZO_MSG_HIDE_PET,
+            EZO_MSG_SUMMON_PET
         )
+    end)
+
+    AgregarEntrada("mount", GetString(EZO_UTILITY_ENTRY_MOUNT), function()
+        return InvocarMonturaRecordada()
     end)
 
     return entries
