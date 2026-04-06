@@ -268,6 +268,9 @@ function EZO:Initialize()
                 CreateDefaultActionBind("EZO_TOGGLE_COMMAND_PANEL",
                     KEY_GAMEPAD_BUTTON_3_HOLD,  -- X-hold Xbox / cuadrado-hold PS
                     KEY_INVALID, KEY_INVALID, KEY_INVALID, KEY_INVALID)
+                CreateDefaultActionBind("EZO_TOGGLE_UTILITY_PANEL",
+                    KEY_GAMEPAD_BUTTON_4_HOLD,  -- Y-hold Xbox / triángulo-hold PS
+                    KEY_INVALID, KEY_INVALID, KEY_INVALID, KEY_INVALID)
                 CreateDefaultActionBind("EZO_TOGGLE_COMMAND_PANEL",
                     KEY_NUMPAD0,
                     KEY_CTRL, KEY_ALT, KEY_INVALID, KEY_INVALID)
@@ -630,6 +633,14 @@ function EZOTools_ToggleCommandPanel()
         return ezo.ToggleCommandPanel()
     end
     d("[EZOTools] Panel de comandos no disponible (ToggleCommandPanel no cargado)")
+end
+
+function EZOTools_ToggleUtilityPanel()
+    local ezo = _G.EZOTools
+    if type(ezo) == "table" and type(ezo.ToggleUtilityPanel) == "function" then
+        return ezo.ToggleUtilityPanel()
+    end
+    d("[EZOTools] Panel de utilidades no disponible (ToggleUtilityPanel no cargado)")
 end
 
 

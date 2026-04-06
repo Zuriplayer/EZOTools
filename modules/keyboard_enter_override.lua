@@ -32,6 +32,18 @@ local function HayDialogoEZOAbierto()
         return true
     end
 
+    -- Diálogo de utilidades rápidas
+    local udlg = ezo.GamepadUtilityDialog
+    if udlg and type(udlg.IsShowing) == "function" and udlg.IsShowing() then
+        return true
+    end
+
+    -- Subdiálogo de recientes del panel de utilidades
+    local rdlg = ezo.GamepadUtilityRecentDialog
+    if rdlg and type(rdlg.IsShowing) == "function" and rdlg.IsShowing() then
+        return true
+    end
+
     return false
 end
 

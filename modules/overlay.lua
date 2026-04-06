@@ -126,6 +126,8 @@ local ObtenerMascotaActivaId
 local ObtenerAssistantActivoId
 local ObtenerCompanionActivoCollectibleId
 local ObtenerTooltipIconoAliado
+local ObtenerMonturaActivaId
+local InvocarMonturaRecordada
 local InvocarMascotaRecordada
 local InvocarCompanionRecordado
 local InvocarAsistenteRecordada
@@ -2953,6 +2955,196 @@ end
 -- API pública: permite refrescar el dot desde fuera del módulo (EZOTools.lua)
 function MOD.RefreshDot()
     RefrescarDot()
+end
+
+function MOD.BuildQuickUtilityEntries()
+    local entries = {}
+
+    local function AgregarEntrada(clave, texto, callback)
+        if type(texto) ~= "string" or texto == "" or type(callback) ~= "function" then
+            return
+        end
+        entries[#entries + 1] = {
+            key = clave,
+            text = texto,
+            callback = callback,
+        }
+    end
+
+    local function EjecutarAccionAliado(estaActivoFn, ocultarFn, invocarFn, msgOcultarId, msgInvocarId)
+        local activo = type(estaActivoFn) == "function" and estaActivoFn() == true
+        if EZO and type(EZO.Print) == "function" then
+            EZO.Print(GetString(activo and msgOcultarId or msgInvocarId))
+        end
+
+        local ok = false
+        if activo then
+            ok = type(ocultarFn) == "function" and ocultarFn() or false
+        else
+            ok = type(invocarFn) == "function" and invocarFn() or false
+        end
+        if ok then
+            ProgramarRefrescoDots()
+        end
+        return ok
+    end
+
+    AgregarEntrada("food", GetString(EZO_UTILITY_ENTRY_FOOD), function()
+        return ReusarComidaRecordadaConSeguridad()
+    end)
+
+    AgregarEntrada("mount", GetString(EZO_UTILITY_ENTRY_MOUNT), function()
+        return InvocarMonturaRecordada()
+    end)
+
+    AgregarEntrada("pet", GetString(EZO_UTILITY_ENTRY_PET), function()
+        return EjecutarAccionAliado(
+            function() return ObtenerMascotaActivaId() ~= 0 end,
+            OcultarMascotaActiva,
+            InvocarMascotaRecordada,
+            EZO_MSG_HIDE_PET,
+            EZO_MSG_SUMMON_PET
+        )
+    end)
+
+    AgregarEntrada("companion", GetString(EZO_UTILITY_ENTRY_COMPANION), function()
+        return EjecutarAccionAliado(
+            function() return ObtenerCompanionActivoCollectibleId() ~= 0 end,
+            OcultarCompanionActivo,
+            InvocarCompanionRecordado,
+            EZO_MSG_HIDE_COMPANION,
+            EZO_MSG_SUMMON_COMPANION
+        )
+    end)
+
+    AgregarEntrada("assistant", GetString(EZO_UTILITY_ENTRY_ASSISTANT), function()
+        return EjecutarAccionAliado(
+            function() return ObtenerAssistantActivoId() ~= 0 end,
+            OcultarAsistenteActivo,
+            InvocarAsistenteRecordada,
+            EZO_MSG_HIDE_ASSISTANT,
+            EZO_MSG_SUMMON_ASSISTANT
+        )
+    end)
+
+    return entries
+end
+
+function MOD.BuildQuickUtilityRecentEntries(clave)
+    local entries = {}
+
+    local function AgregarEntrada(texto, callback, previewData)
+        if type(texto) ~= "string" or texto == "" or type(callback) ~= "function" then
+            return
+        end
+        local data = {
+            text = texto,
+            callback = callback,
+        }
+        if type(previewData) == "table" then
+            for k, v in pairs(previewData) do
+                data[k] = v
+            end
+        end
+        entries[#entries + 1] = data
+    end
+
+    if clave == "food" then
+        local history = EZO and EZO.sv and EZO.sv.overlay and EZO.sv.overlay.recentFoodItems or nil
+        if type(history) == "table" then
+            for _, entry in ipairs(history) do
+                if type(entry) == "table" then
+                    local itemLink = tostring(entry.itemLink or "")
+                    local itemName = tostring(entry.itemName or "")
+                    local _, _, resolvedName = BuscarConsumibleComidaPorReferencia(itemLink, itemName)
+                    local label = tostring(resolvedName or itemName or "")
+                    if label ~= "" then
+                        AgregarEntrada(label, function()
+                            return ConsumirComidaHistorialConSeguridad(itemLink, itemName)
+                        end, {
+                            previewKind = "item",
+                            previewItemLink = itemLink,
+                        })
+                    end
+                end
+            end
+        end
+        return entries
+    end
+
+    local config = ObtenerConfiguracionAliado(clave)
+    if not config then
+        return entries
+    end
+
+    for _, collectibleId in ipairs(ObtenerHistorialCollectibles(config.historyKey)) do
+        local finalId = tonumber(collectibleId) or 0
+        if finalId > 0 then
+            local label = tostring(ObtenerNombreCollectible(finalId, GetString(config.fallbackNameId)) or "")
+            if label ~= "" then
+                AgregarEntrada(label, function()
+                    return InvocarAliadoDesdeHistorial(clave, finalId)
+                end, {
+                    previewKind = "collectible",
+                    previewCollectibleId = finalId,
+                    previewFallbackName = GetString(config.fallbackNameId),
+                })
+            end
+        end
+    end
+
+    return entries
+end
+
+function MOD.GetQuickUtilityHistoryEmptyLabel(clave)
+    if clave == "food" then
+        return GetString(EZO_SIDE_WIDGET_FOOD_HISTORY_EMPTY)
+    end
+
+    local config = ObtenerConfiguracionAliado(clave)
+    if config then
+        return GetString(config.historyEmptyId)
+    end
+    return ""
+end
+
+function MOD.ShowQuickUtilityPreview(control, entryData)
+    if not control or type(entryData) ~= "table" then
+        return false
+    end
+
+    local previewKind = tostring(entryData.previewKind or "")
+    if previewKind == "item" then
+        local itemLink = tostring(entryData.previewItemLink or "")
+        if itemLink ~= "" then
+            MostrarTooltipItemSobreControl(control, itemLink)
+            return true
+        end
+        return false
+    end
+
+    if previewKind == "collectible" then
+        local collectibleId = tonumber(entryData.previewCollectibleId) or 0
+        if collectibleId > 0 then
+            MostrarTooltipCollectibleSobreControl(control, collectibleId, tostring(entryData.previewFallbackName or ""))
+            return true
+        end
+        return false
+    end
+
+    return false
+end
+
+function MOD.HideQuickUtilityPreview()
+    if type(ClearTooltip) == "function" then
+        if ItemTooltip then
+            ClearTooltip(ItemTooltip)
+        end
+        if InformationTooltip then
+            ClearTooltip(InformationTooltip)
+        end
+    end
+    OcultarTooltipWidget()
 end
 
 -- Inicialización: crea controles, registra eventos

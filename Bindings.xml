@@ -8,9 +8,11 @@
   <String id="SI_BINDING_NAME_EZO_LEAVE_INSTANCE" value="Leave Instance" />
   <String id="SI_BINDING_NAME_EZO_LEAVE_GROUP_INSTANCE" value="Leave Group and Instance" />
   <String id="SI_BINDING_NAME_EZO_RELOAD_UI" value="Reload UI" />
+  <String id="SI_BINDING_NAME_EZO_TOGGLE_UTILITY_PANEL" value="Open Utility Panel" />
   <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
     <Category name="E|cB040FFZ|rOTools">
       <Action name="EZO_TOGGLE_COMMAND_PANEL"><Down>EZOTools_ToggleCommandPanel()</Down></Action>
+      <Action name="EZO_TOGGLE_UTILITY_PANEL"><Down>EZOTools_ToggleUtilityPanel()</Down></Action>
       <Action name="EZO_TRAVEL_PRIMARY_HOUSE"><Down>EZOTools.JumpPrimaryHouse()</Down></Action>
       <Action name="EZO_TRAVEL_CRAFTING_HALL"><Down>EZOTools.JumpCraftingHall()</Down></Action>
       <Action name="EZO_TRAVEL_SECONDARY_HALL"><Down>EZOTools.JumpSecondaryHall()</Down></Action>

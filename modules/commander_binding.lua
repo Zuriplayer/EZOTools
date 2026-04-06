@@ -28,6 +28,22 @@ local function ObtenerDialogoPrincipal(ezo)
     return nil
 end
 
+local function ObtenerDialogoUtilidades(ezo)
+    if not ezo then return nil end
+    if ezo.GamepadUtilityDialog and type(ezo.GamepadUtilityDialog.Open) == "function" then
+        return ezo.GamepadUtilityDialog
+    end
+    return nil
+end
+
+local function ObtenerDialogoUtilidadesRecientes(ezo)
+    if not ezo then return nil end
+    if ezo.GamepadUtilityRecentDialog and type(ezo.GamepadUtilityRecentDialog.Open) == "function" then
+        return ezo.GamepadUtilityRecentDialog
+    end
+    return nil
+end
+
 -- Devuelve el diálogo de ajustes si está disponible
 local function ObtenerDialogoAjustes(ezo)
     if not ezo then return nil end
@@ -63,6 +79,19 @@ function EZO.ToggleCommandPanel()
     local dlg = ObtenerDialogoPrincipal(ezo)
     if not dlg then AvisarNoDisponible(ezo); return end
 
+    local udlg = ObtenerDialogoUtilidades(ezo)
+    if udlg and type(udlg.IsShowing) == "function" and udlg.IsShowing() then
+        if type(udlg.Close) == "function" then
+            pcall(function() udlg.Close() end)
+        end
+    end
+    local rdlg = ObtenerDialogoUtilidadesRecientes(ezo)
+    if rdlg and type(rdlg.IsShowing) == "function" and rdlg.IsShowing() then
+        if type(rdlg.Close) == "function" then
+            pcall(function() rdlg.Close() end)
+        end
+    end
+
     -- Si el panel ya está abierto, activar la selección actual (no cerrar)
     if type(dlg.IsShowing) == "function" and dlg.IsShowing() then
         if type(dlg.ActivateSelected) == "function" then
@@ -76,6 +105,49 @@ function EZO.ToggleCommandPanel()
     pcall(function() dlg.Open() end)
 end
 
+function EZO.ToggleUtilityPanel()
+    local ezo = ObtenerEZO()
+    if not ezo then AvisarNoDisponible(nil); return end
+
+    local sdlg = ObtenerDialogoAjustes(ezo)
+    if sdlg and type(sdlg.IsShowing) == "function" and sdlg.IsShowing() then
+        if type(sdlg.ActivateSelected) == "function" then
+            local ok, hecho = pcall(function() return sdlg.ActivateSelected() end)
+            if ok and hecho then return end
+        end
+        return
+    end
+
+    local rdlg = ObtenerDialogoUtilidadesRecientes(ezo)
+    if rdlg and type(rdlg.IsShowing) == "function" and rdlg.IsShowing() then
+        if type(rdlg.ActivateSelected) == "function" then
+            local ok, hecho = pcall(function() return rdlg.ActivateSelected() end)
+            if ok and hecho then return end
+        end
+        return
+    end
+
+    local dlg = ObtenerDialogoUtilidades(ezo)
+    if not dlg then AvisarNoDisponible(ezo); return end
+
+    if type(dlg.IsShowing) == "function" and dlg.IsShowing() then
+        if type(dlg.ActivateSelected) == "function" then
+            local ok, hecho = pcall(function() return dlg.ActivateSelected() end)
+            if ok and hecho then return end
+        end
+        return
+    end
+
+    local mdlg = ObtenerDialogoPrincipal(ezo)
+    if mdlg and type(mdlg.IsShowing) == "function" and mdlg.IsShowing() then
+        if type(mdlg.Close) == "function" then
+            pcall(function() mdlg.Close() end)
+        end
+    end
+
+    pcall(function() dlg.Open() end)
+end
+
 -- Keybind de ejecución dedicado (para cuando el panel ya está abierto)
 function EZO.ExecuteCommandPanelSelection()
     local ezo = ObtenerEZO()
@@ -86,6 +158,22 @@ function EZO.ExecuteCommandPanelSelection()
     if sdlg and type(sdlg.IsShowing) == "function" and sdlg.IsShowing() then
         if type(sdlg.ActivateSelected) == "function" then
             pcall(function() return sdlg.ActivateSelected() end)
+        end
+        return
+    end
+
+    local rdlg = ObtenerDialogoUtilidadesRecientes(ezo)
+    if rdlg and type(rdlg.IsShowing) == "function" and rdlg.IsShowing() then
+        if type(rdlg.ActivateSelected) == "function" then
+            pcall(function() return rdlg.ActivateSelected() end)
+        end
+        return
+    end
+
+    local udlg = ObtenerDialogoUtilidades(ezo)
+    if udlg and type(udlg.IsShowing) == "function" and udlg.IsShowing() then
+        if type(udlg.ActivateSelected) == "function" then
+            pcall(function() return udlg.ActivateSelected() end)
         end
         return
     end

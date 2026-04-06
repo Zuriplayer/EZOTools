@@ -34,5 +34,7 @@ media/guild_overlays/sombra.dds
 
 modules/keyboard_enter_override.lua
 modules/gamepad_dialog.lua
+modules/gamepad_utility_dialog.lua
+modules/gamepad_utility_recent_dialog.lua
 modules/gamepad_settings.lua
 modules/commander_binding.lua
