@@ -61,18 +61,63 @@ local function AvisarNoDisponible(ezo)
     end
 end
 
+local function EstaDialogoVisible(dialogo)
+    return dialogo
+        and type(dialogo.IsShowing) == "function"
+        and dialogo.IsShowing()
+end
+
+local function ActivarDialogoSiVisible(dialogo)
+    if not EstaDialogoVisible(dialogo) then
+        return false
+    end
+    if type(dialogo.ActivateSelected) == "function" then
+        local ok, hecho = pcall(function() return dialogo.ActivateSelected() end)
+        if ok and hecho then
+            return true
+        end
+    end
+    return true
+end
+
+local function ObtenerDialogosActuables(ezo)
+    return {
+        ObtenerDialogoAjustes(ezo),
+        ObtenerDialogoUtilidadesRecientes(ezo),
+        ObtenerDialogoUtilidades(ezo),
+        ObtenerDialogoPrincipal(ezo),
+    }
+end
+
+function EZO.HasInteractiveDialogOpen()
+    local ezo = ObtenerEZO()
+    if not ezo then return false end
+    for _, dialogo in ipairs(ObtenerDialogosActuables(ezo)) do
+        if EstaDialogoVisible(dialogo) then
+            return true
+        end
+    end
+    return false
+end
+
+function EZO.ActivateVisibleDialogSelection()
+    local ezo = ObtenerEZO()
+    if not ezo then return false end
+    for _, dialogo in ipairs(ObtenerDialogosActuables(ezo)) do
+        if ActivarDialogoSiVisible(dialogo) then
+            return true
+        end
+    end
+    return false
+end
+
 -- Keybind principal: abre el panel o, si ya está abierto, ejecuta la selección actual
 function EZO.ToggleCommandPanel()
     local ezo = ObtenerEZO()
     if not ezo then AvisarNoDisponible(nil); return end
 
-    -- Si el diálogo de ajustes está abierto, activar la selección actual
     local sdlg = ObtenerDialogoAjustes(ezo)
-    if sdlg and type(sdlg.IsShowing) == "function" and sdlg.IsShowing() then
-        if type(sdlg.ActivateSelected) == "function" then
-            local ok, hecho = pcall(function() return sdlg.ActivateSelected() end)
-            if ok and hecho then return end
-        end
+    if EstaDialogoVisible(sdlg) and EZO.ActivateVisibleDialogSelection() then
         return
     end
 
@@ -80,24 +125,21 @@ function EZO.ToggleCommandPanel()
     if not dlg then AvisarNoDisponible(ezo); return end
 
     local udlg = ObtenerDialogoUtilidades(ezo)
-    if udlg and type(udlg.IsShowing) == "function" and udlg.IsShowing() then
+    if EstaDialogoVisible(udlg) then
         if type(udlg.Close) == "function" then
             pcall(function() udlg.Close() end)
         end
     end
     local rdlg = ObtenerDialogoUtilidadesRecientes(ezo)
-    if rdlg and type(rdlg.IsShowing) == "function" and rdlg.IsShowing() then
+    if EstaDialogoVisible(rdlg) then
         if type(rdlg.Close) == "function" then
             pcall(function() rdlg.Close() end)
         end
     end
 
     -- Si el panel ya está abierto, activar la selección actual (no cerrar)
-    if type(dlg.IsShowing) == "function" and dlg.IsShowing() then
-        if type(dlg.ActivateSelected) == "function" then
-            local ok, hecho = pcall(function() return dlg.ActivateSelected() end)
-            if ok and hecho then return end
-        end
+    if EstaDialogoVisible(dlg) then
+        if EZO.ActivateVisibleDialogSelection() then return end
         return
     end
 
@@ -110,36 +152,25 @@ function EZO.ToggleUtilityPanel()
     if not ezo then AvisarNoDisponible(nil); return end
 
     local sdlg = ObtenerDialogoAjustes(ezo)
-    if sdlg and type(sdlg.IsShowing) == "function" and sdlg.IsShowing() then
-        if type(sdlg.ActivateSelected) == "function" then
-            local ok, hecho = pcall(function() return sdlg.ActivateSelected() end)
-            if ok and hecho then return end
-        end
+    if EstaDialogoVisible(sdlg) and EZO.ActivateVisibleDialogSelection() then
         return
     end
 
     local rdlg = ObtenerDialogoUtilidadesRecientes(ezo)
-    if rdlg and type(rdlg.IsShowing) == "function" and rdlg.IsShowing() then
-        if type(rdlg.ActivateSelected) == "function" then
-            local ok, hecho = pcall(function() return rdlg.ActivateSelected() end)
-            if ok and hecho then return end
-        end
+    if EstaDialogoVisible(rdlg) and EZO.ActivateVisibleDialogSelection() then
         return
     end
 
     local dlg = ObtenerDialogoUtilidades(ezo)
     if not dlg then AvisarNoDisponible(ezo); return end
 
-    if type(dlg.IsShowing) == "function" and dlg.IsShowing() then
-        if type(dlg.ActivateSelected) == "function" then
-            local ok, hecho = pcall(function() return dlg.ActivateSelected() end)
-            if ok and hecho then return end
-        end
+    if EstaDialogoVisible(dlg) then
+        if EZO.ActivateVisibleDialogSelection() then return end
         return
     end
 
     local mdlg = ObtenerDialogoPrincipal(ezo)
-    if mdlg and type(mdlg.IsShowing) == "function" and mdlg.IsShowing() then
+    if EstaDialogoVisible(mdlg) then
         if type(mdlg.Close) == "function" then
             pcall(function() mdlg.Close() end)
         end
@@ -153,38 +184,8 @@ function EZO.ExecuteCommandPanelSelection()
     local ezo = ObtenerEZO()
     if not ezo then AvisarNoDisponible(nil); return end
 
-    -- Si el diálogo de ajustes está abierto, activar selección allí
-    local sdlg = ObtenerDialogoAjustes(ezo)
-    if sdlg and type(sdlg.IsShowing) == "function" and sdlg.IsShowing() then
-        if type(sdlg.ActivateSelected) == "function" then
-            pcall(function() return sdlg.ActivateSelected() end)
-        end
-        return
-    end
-
-    local rdlg = ObtenerDialogoUtilidadesRecientes(ezo)
-    if rdlg and type(rdlg.IsShowing) == "function" and rdlg.IsShowing() then
-        if type(rdlg.ActivateSelected) == "function" then
-            pcall(function() return rdlg.ActivateSelected() end)
-        end
-        return
-    end
-
-    local udlg = ObtenerDialogoUtilidades(ezo)
-    if udlg and type(udlg.IsShowing) == "function" and udlg.IsShowing() then
-        if type(udlg.ActivateSelected) == "function" then
-            pcall(function() return udlg.ActivateSelected() end)
-        end
-        return
-    end
-
     local dlg = ObtenerDialogoPrincipal(ezo)
     if not dlg then AvisarNoDisponible(ezo); return end
 
-    -- Solo ejecutar si el panel está abierto
-    if type(dlg.IsShowing) == "function" and dlg.IsShowing() then
-        if type(dlg.ActivateSelected) == "function" then
-            pcall(function() dlg.ActivateSelected() end)
-        end
-    end
+    EZO.ActivateVisibleDialogSelection()
 end

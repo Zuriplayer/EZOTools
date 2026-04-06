@@ -19,8 +19,7 @@ end
 
 -- Cierra el diálogo actual de forma segura (necesario antes de abrir otro diálogo gamepad)
 local function CerrarDialogoActual()
-    if ZO_Dialogs_ReleaseDialog then pcall(ZO_Dialogs_ReleaseDialog, NOMBRE_DIALOGO) end
-    if ZO_Dialogs_HideDialog     then pcall(ZO_Dialogs_HideDialog,   NOMBRE_DIALOGO) end
+    CerrarDialogoGamepad(NOMBRE_DIALOGO)
 end
 
 -- Construye la lista de acciones del menú desde el módulo actions
@@ -56,20 +55,10 @@ end
 -- Extrae el callback de un dato de entrada (soporta varios formatos de ZO_GamepadEntryData)
 -- ExtraerCallback disponible como EZOTools_ExtraerCallback (shared_utils.lua)
 local ExtraerCallback = EZOTools_ExtraerCallback
-
--- Activa el ratón en un control de entrada para permitir clic en modo teclado
-local function AdjuntarActivacionRaton(control, entryData)
-    if not control or type(control.SetHandler) ~= "function" then return end
-    if type(control.SetMouseEnabled) == "function" then
-        control:SetMouseEnabled(true)
-    end
-    control:SetHandler("OnMouseUp", function(_, button, upInside)
-        if button ~= MOUSE_BUTTON_INDEX_LEFT or not upInside then return end
-        if type(entryData) == "table" and type(entryData.callback) == "function" then
-            entryData.callback()
-        end
-    end)
-end
+local AdjuntarActivacionRaton = EZOTools_AdjuntarActivacionRatonGamepad
+local BuscarDialogoGamepad = EZOTools_BuscarDialogoGamepad
+local CerrarDialogoGamepad = EZOTools_CerrarDialogoGamepad
+local ActivarSeleccionDialogoGamepad = EZOTools_ActivarSeleccionDialogoGamepad
 
 -- Registra el diálogo en el sistema ZO_Dialogs si aún no está registrado
 local function AsegurarRegistrado()
@@ -157,15 +146,7 @@ end
 
 -- Busca el objeto de diálogo activo en el sistema ZO_Dialogs
 local function BuscarDialogo()
-    if type(ZO_Dialogs_FindDialog) == "function" then
-        local dlg = ZO_Dialogs_FindDialog(NOMBRE_DIALOGO)
-        if dlg then return dlg end
-    end
-    if type(ZO_Dialogs_GetDialog) == "function" then
-        local dlg = ZO_Dialogs_GetDialog(NOMBRE_DIALOGO)
-        if dlg then return dlg end
-    end
-    return nil
+    return BuscarDialogoGamepad(NOMBRE_DIALOGO)
 end
 
 -- API pública: devuelve true si el diálogo está visible ahora mismo
@@ -188,14 +169,7 @@ end
 
 -- API pública: activa la entrada actualmente seleccionada en la lista
 function Dialog.ActivateSelected()
-    local dlg = BuscarDialogo()
-    if not dlg or not dlg.entryList or type(dlg.entryList.GetTargetData) ~= "function" then
-        return false
-    end
-    local data = dlg.entryList:GetTargetData()
-    local cb = ExtraerCallback(data)
-    if cb then cb(); return true end
-    return false
+    return ActivarSeleccionDialogoGamepad(BuscarDialogo())
 end
 
 -- API pública: abre el diálogo

@@ -65,3 +65,58 @@ function EZOTools_ExtraerCallback(data)
 
     return nil
 end
+
+-- ============================================================
+-- Helpers compartidos para diálogos gamepad
+-- Mantienen el mismo patrón de activación por ratón y selección
+-- entre los distintos menús paramétricos del addon.
+-- ============================================================
+function EZOTools_CerrarDialogoGamepad(nombreDialogo)
+    if type(nombreDialogo) ~= "string" or nombreDialogo == "" then return end
+    if type(ZO_Dialogs_ReleaseDialog) == "function" then
+        pcall(ZO_Dialogs_ReleaseDialog, nombreDialogo)
+    end
+    if type(ZO_Dialogs_HideDialog) == "function" then
+        pcall(ZO_Dialogs_HideDialog, nombreDialogo)
+    end
+end
+
+function EZOTools_BuscarDialogoGamepad(nombreDialogo)
+    if type(nombreDialogo) ~= "string" or nombreDialogo == "" then return nil end
+
+    if type(ZO_Dialogs_FindDialog) == "function" then
+        local dlg = ZO_Dialogs_FindDialog(nombreDialogo)
+        if dlg then return dlg end
+    end
+    if type(ZO_Dialogs_GetDialog) == "function" then
+        local dlg = ZO_Dialogs_GetDialog(nombreDialogo)
+        if dlg then return dlg end
+    end
+    return nil
+end
+
+function EZOTools_AdjuntarActivacionRatonGamepad(control, entryData)
+    if not control or type(control.SetHandler) ~= "function" then return end
+    if type(control.SetMouseEnabled) == "function" then
+        control:SetMouseEnabled(true)
+    end
+    control:SetHandler("OnMouseUp", function(_, button, upInside)
+        if button ~= MOUSE_BUTTON_INDEX_LEFT or not upInside then return end
+        if type(entryData) == "table" and type(entryData.callback) == "function" then
+            entryData.callback()
+        end
+    end)
+end
+
+function EZOTools_ActivarSeleccionDialogoGamepad(dialogo)
+    if not dialogo or not dialogo.entryList or type(dialogo.entryList.GetTargetData) ~= "function" then
+        return false
+    end
+    local data = dialogo.entryList:GetTargetData()
+    local cb = EZOTools_ExtraerCallback(data)
+    if cb then
+        cb()
+        return true
+    end
+    return false
+end

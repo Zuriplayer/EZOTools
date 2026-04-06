@@ -57,6 +57,8 @@ end
 -- Extrae el callback de un dato de entrada (mismo patrón que gamepad_dialog.lua)
 -- ExtraerCallback disponible como EZOTools_ExtraerCallback (shared_utils.lua)
 local ExtraerCallback = EZOTools_ExtraerCallback
+local CerrarDialogoGamepad = EZOTools_CerrarDialogoGamepad
+local ActivarSeleccionDialogoGamepad = EZOTools_ActivarSeleccionDialogoGamepad
 
 -- API pública: devuelve true si el diálogo está visible
 function Dialog.IsShowing()
@@ -73,14 +75,7 @@ end
 
 -- API pública: activa la entrada actualmente seleccionada
 function Dialog.ActivateSelected()
-    local dlg = Dialog._activeDialog
-    if not dlg or not dlg.entryList or type(dlg.entryList.GetTargetData) ~= "function" then
-        return false
-    end
-    local data = dlg.entryList:GetTargetData()
-    local cb = ExtraerCallback(data)
-    if cb then cb(); return true end
-    return false
+    return ActivarSeleccionDialogoGamepad(Dialog._activeDialog)
 end
 
 -- Añade una entrada a la lista de ajustes
@@ -336,12 +331,7 @@ end
 -- API pública: cierra el diálogo
 function Dialog.Close()
     Dialog._activeDialog = nil
-    if type(ZO_Dialogs_ReleaseDialog) == "function" then
-        pcall(ZO_Dialogs_ReleaseDialog, NOMBRE_DIALOGO)
-    end
-    if type(ZO_Dialogs_HideDialog) == "function" then
-        pcall(ZO_Dialogs_HideDialog, NOMBRE_DIALOGO)
-    end
+    CerrarDialogoGamepad(NOMBRE_DIALOGO)
 end
 
 -- API pública: actualiza los textos de las entradas sin reconstruir la lista (preserva selección)
