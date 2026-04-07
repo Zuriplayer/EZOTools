@@ -209,7 +209,18 @@ function EZO:Initialize()
         },
     }
 
+    local charDefaults = {
+        overlay = {
+            lastCompanionCollectibleId = 0,
+            recentCompanionCollectibles = {},
+            lastFoodItemLink = "",
+            lastFoodItemName = "",
+            recentFoodItems = {},
+        },
+    }
+
     self.sv = ZO_SavedVars:NewAccountWide("EZOTools_Saved", 1, world, defaults)
+    self.csv = ZO_SavedVars:NewCharacterIdSettings("EZOTools_SavedChar", 1, world, charDefaults)
 
     -- Aplicar idioma guardado
     if EZO_Lang and EZO_Lang.Apply then

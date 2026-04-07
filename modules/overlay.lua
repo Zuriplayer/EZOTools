@@ -110,6 +110,8 @@ local ALLY_SWITCH_INITIAL_DELAY_MS = 1500
 local ALLY_SWITCH_RETRY_DELAY_MS = 500
 local ALLY_SWITCH_MAX_RETRIES = 6
 local allySwitchPending = false
+local companionSuspendidoCollectibleId = 0
+local companionRestauracionPendiente = false
 local OVERLAY_TOP_PADDING = 4
 local OVERLAY_ROW_GAP_SMALL = 4
 local OVERLAY_ROW_GAP_NORMAL = 6
@@ -744,10 +746,25 @@ local function ObtenerNombreItem(bagId, slotIndex, itemLink)
     return nil
 end
 
+local function ObtenerOverlaySVParaClave(clave)
+    local overlaySV = EZO and EZO.sv and EZO.sv.overlay or nil
+    local overlayCSV = EZO and EZO.csv and EZO.csv.overlay or nil
+    if clave == "lastFoodItemLink"
+        or clave == "lastFoodItemName"
+        or clave == "recentFoodItems"
+        or clave == "lastCompanionCollectibleId"
+        or clave == "recentCompanionCollectibles"
+    then
+        return overlayCSV
+    end
+    return overlaySV
+end
+
 local function GuardarComidaRecordada(itemLink, itemName)
-    if not (EZO and EZO.sv and EZO.sv.overlay) then return end
-    EZO.sv.overlay.lastFoodItemLink = tostring(itemLink or "")
-    EZO.sv.overlay.lastFoodItemName = tostring(itemName or "")
+    local overlaySV = ObtenerOverlaySVParaClave("lastFoodItemLink")
+    if not overlaySV then return end
+    overlaySV.lastFoodItemLink = tostring(itemLink or "")
+    overlaySV.lastFoodItemName = tostring(itemName or "")
 end
 
 local function ObtenerMomentoActualMs()
@@ -761,17 +778,18 @@ local function ObtenerMomentoActualMs()
 end
 
 local function GuardarComidaEnHistorial(itemLink, itemName)
-    if not (EZO and EZO.sv and EZO.sv.overlay) then return end
+    local overlaySV = ObtenerOverlaySVParaClave("recentFoodItems")
+    if not overlaySV then return end
     local link = tostring(itemLink or "")
     local name = tostring(itemName or "")
     if link == "" and name == "" then
         return
     end
 
-    local history = EZO.sv.overlay.recentFoodItems
+    local history = overlaySV.recentFoodItems
     if type(history) ~= "table" then
         history = {}
-        EZO.sv.overlay.recentFoodItems = history
+        overlaySV.recentFoodItems = history
     end
 
     local newHistory = {
@@ -799,7 +817,7 @@ local function GuardarComidaEnHistorial(itemLink, itemName)
         end
     end
 
-    EZO.sv.overlay.recentFoodItems = newHistory
+    overlaySV.recentFoodItems = newHistory
 end
 
 local function ObtenerDescripcionUsoItem(itemLink)
@@ -995,8 +1013,9 @@ BuscarConsumibleComidaPorReferencia = function(targetLink, targetName)
 end
 
 BuscarConsumibleRecordadoComida = function()
-    local targetLink = tostring(EZO and EZO.sv and EZO.sv.overlay and EZO.sv.overlay.lastFoodItemLink or "")
-    local targetName = tostring(EZO and EZO.sv and EZO.sv.overlay and EZO.sv.overlay.lastFoodItemName or "")
+    local overlaySV = ObtenerOverlaySVParaClave("lastFoodItemLink")
+    local targetLink = tostring(overlaySV and overlaySV.lastFoodItemLink or "")
+    local targetName = tostring(overlaySV and overlaySV.lastFoodItemName or "")
     return BuscarConsumibleComidaPorReferencia(targetLink, targetName)
 end
 
@@ -1019,7 +1038,8 @@ ConstruirTooltipComida = function(foodInfo, foodRecordadoNombre, foodRecordadoDi
     end
 
     if not (type(foodInfo) == "table" and foodInfo.active) and foodRecordadoDisponible then
-        local nombre = tostring(foodRecordadoNombre or EZO.sv.overlay.lastFoodItemName or "")
+        local overlaySV = ObtenerOverlaySVParaClave("lastFoodItemName")
+        local nombre = tostring(foodRecordadoNombre or (overlaySV and overlaySV.lastFoodItemName) or "")
         if foodLegendaria then
             return zo_strformat(
                 GetString(EZO_SIDE_WIDGET_FOOD_RECALL_LEGENDARY_TOOLTIP),
@@ -1088,14 +1108,29 @@ local function ConsumirComidaEnSlot(bagId, slotIndex, itemName, itemLink)
     if not bagId or slotIndex == nil then
         return false
     end
+
+    if type(IsItemUsable) == "function" then
+        local usable, usableOnlyFromActionSlot = IsItemUsable(bagId, slotIndex)
+        if not usable or usableOnlyFromActionSlot then
+            return false
+        end
+    end
+
+    if type(CanInteractWithItem) == "function" and not CanInteractWithItem(bagId, slotIndex) then
+        return false
+    end
+
     GuardarComidaRecordada(itemLink, itemName)
     GuardarComidaEnHistorial(itemLink, itemName)
 
-    if type(CallSecureProtected) == "function" then
-        local okSecure, _ = pcall(CallSecureProtected, "UseItem", bagId, slotIndex)
-        if okSecure then
-            return true
+    -- En ESO la ruta protegida puede devolver false sin lanzar error. Hay que
+    -- respetar ese resultado y no tratarlo como consumo correcto.
+    if type(IsProtectedFunction) == "function" and IsProtectedFunction("UseItem") then
+        if type(CallSecureProtected) ~= "function" then
+            return false
         end
+        local okSecure, secureResult = pcall(CallSecureProtected, "UseItem", bagId, slotIndex)
+        return okSecure and secureResult == true
     end
 
     if type(UseItem) ~= "function" then
@@ -1409,7 +1444,8 @@ local function AbrirMenuRecientes(anchor, entries, emptyLabel)
 end
 
 local function AbrirMenuHistorialComida(anchor)
-    local history = EZO and EZO.sv and EZO.sv.overlay and EZO.sv.overlay.recentFoodItems or nil
+    local overlaySV = ObtenerOverlaySVParaClave("recentFoodItems")
+    local history = overlaySV and overlaySV.recentFoodItems or nil
     local entries = {}
     if type(history) == "table" then
         for _, entry in ipairs(history) do
@@ -2475,24 +2511,26 @@ ObtenerCompanionActivoCollectibleId = function()
 end
 
 local function GuardarCollectibleRecordado(clave, collectibleId)
-    if not (EZO and EZO.sv and EZO.sv.overlay) then return end
+    local overlaySV = ObtenerOverlaySVParaClave(clave)
+    if not overlaySV then return end
     collectibleId = tonumber(collectibleId) or 0
     if collectibleId > 0 then
-        EZO.sv.overlay[clave] = collectibleId
+        overlaySV[clave] = collectibleId
     end
 end
 
 local function GuardarCollectibleEnHistorial(clave, collectibleId)
-    if not (EZO and EZO.sv and EZO.sv.overlay) then return end
+    local overlaySV = ObtenerOverlaySVParaClave(clave)
+    if not overlaySV then return end
     collectibleId = tonumber(collectibleId) or 0
     if collectibleId <= 0 then
         return
     end
 
-    local history = EZO.sv.overlay[clave]
+    local history = overlaySV[clave]
     if type(history) ~= "table" then
         history = {}
-        EZO.sv.overlay[clave] = history
+        overlaySV[clave] = history
     end
     local config = nil
     for _, allyConfig in pairs(ALLY_ICON_MENU_CONFIG) do
@@ -2514,14 +2552,15 @@ local function GuardarCollectibleEnHistorial(clave, collectibleId)
         end
     end
 
-    EZO.sv.overlay[clave] = newHistory
+    overlaySV[clave] = newHistory
 end
 
 local function ObtenerHistorialCollectibles(clave)
-    if not (EZO and EZO.sv and EZO.sv.overlay) then
+    local overlaySV = ObtenerOverlaySVParaClave(clave)
+    if not overlaySV then
         return {}
     end
-    local history = EZO.sv.overlay[clave]
+    local history = overlaySV[clave]
     if type(history) ~= "table" then
         return {}
     end
@@ -2529,8 +2568,9 @@ local function ObtenerHistorialCollectibles(clave)
 end
 
 local function ObtenerCollectibleRecordado(clave)
-    if not (EZO and EZO.sv and EZO.sv.overlay) then return 0 end
-    local collectibleId = tonumber(EZO.sv.overlay[clave]) or 0
+    local overlaySV = ObtenerOverlaySVParaClave(clave)
+    if not overlaySV then return 0 end
+    local collectibleId = tonumber(overlaySV[clave]) or 0
     if collectibleId < 0 then return 0 end
     return collectibleId
 end
@@ -2642,6 +2682,61 @@ local function ProgramarCambioEntreAliados(claveDestino, sigueActivoFn, ocultarA
     return true
 end
 
+local function GuardarCompanionSuspendidoSiProcede()
+    local companionId = ObtenerCompanionActivoCollectibleId and ObtenerCompanionActivoCollectibleId() or 0
+    companionId = tonumber(companionId) or 0
+    if companionId > 0 then
+        companionSuspendidoCollectibleId = companionId
+    end
+end
+
+local function LimpiarCompanionSuspendido()
+    companionSuspendidoCollectibleId = 0
+    companionRestauracionPendiente = false
+end
+
+local function MarcarRestauracionCompanionSuspendido()
+    if (tonumber(companionSuspendidoCollectibleId) or 0) ~= 0 then
+        companionRestauracionPendiente = false
+    end
+end
+
+local function ProgramarRestauracionCompanionSuspendido()
+    local companionId = tonumber(companionSuspendidoCollectibleId) or 0
+    if companionId == 0 or companionRestauracionPendiente then
+        return false
+    end
+    companionRestauracionPendiente = true
+
+    local function IntentarRestaurar(intentos)
+        if ObtenerAssistantActivoId() ~= 0 then
+            if intentos > 0 and type(zo_callLater) == "function" then
+                zo_callLater(function()
+                    IntentarRestaurar(intentos - 1)
+                end, ALLY_SWITCH_RETRY_DELAY_MS)
+            else
+                companionRestauracionPendiente = false
+            end
+            return
+        end
+
+        if ObtenerCompanionActivoCollectibleId() == 0 then
+            ProgramarInvocacionCollectiblePorId(companionId, 100)
+        end
+        companionSuspendidoCollectibleId = 0
+        companionRestauracionPendiente = false
+    end
+
+    if type(zo_callLater) == "function" then
+        zo_callLater(function()
+            IntentarRestaurar(ALLY_SWITCH_MAX_RETRIES)
+        end, ALLY_SWITCH_INITIAL_DELAY_MS)
+    else
+        IntentarRestaurar(0)
+    end
+    return true
+end
+
 local function AplicarEstadoVisualIconoAliado(ctrl, activo, collectibleId)
     if not ctrl then return end
 
@@ -2699,6 +2794,7 @@ local function InvocarAliadoDesdeHistorial(tipo, collectibleId)
         return InvocarCollectiblePorId(collectibleId)
     end
     if tipo == "companion" then
+        LimpiarCompanionSuspendido()
         if ObtenerAssistantActivoId() ~= 0 then
             return ProgramarCambioEntreAliados(
                 config.rememberedKey,
@@ -2711,6 +2807,7 @@ local function InvocarAliadoDesdeHistorial(tipo, collectibleId)
     end
     if tipo == "assistant" then
         if ObtenerCompanionActivoCollectibleId() ~= 0 then
+            GuardarCompanionSuspendidoSiProcede()
             return ProgramarCambioEntreAliados(
                 config.rememberedKey,
                 function() return ObtenerCompanionActivoCollectibleId() ~= 0 end,
@@ -2781,6 +2878,21 @@ ObtenerTooltipIconoAliado = function(tipo, activo)
         fallbackName = GetString(EZO_DOT_ASSISTANT_FALLBACK_NAME)
     end
 
+    if not activo and collectibleId == 0 then
+        if tipo == "mount" then
+            return GetString(EZO_DOT_MOUNT_EMPTY_TOOLTIP)
+        end
+        if tipo == "pet" then
+            return GetString(EZO_DOT_PET_EMPTY_TOOLTIP)
+        end
+        if tipo == "companion" then
+            return GetString(EZO_DOT_COMPANION_EMPTY_TOOLTIP)
+        end
+        if tipo == "assistant" then
+            return GetString(EZO_DOT_ASSISTANT_EMPTY_TOOLTIP)
+        end
+    end
+
     local nombre = ObtenerNombreCollectible(collectibleId, fallbackName)
     if tipo == "mount" then
         return zo_strformat(GetString(activo and EZO_DOT_MOUNT_ACTIVE_TOOLTIP or EZO_DOT_MOUNT_INACTIVE_TOOLTIP), nombre)
@@ -2846,6 +2958,9 @@ OcultarAsistenteActivo = function()
         return false
     end
     UseCollectible(assistId)
+    -- No restaurar aquí el companion: ESO todavía puede seguir cerrando el assistant.
+    -- Dejamos la restauración marcada para que se ejecute cuando el estado real ya esté limpio.
+    MarcarRestauracionCompanionSuspendido()
     return true
 end
 
@@ -2862,6 +2977,7 @@ InvocarMonturaRecordada = function()
 end
 
 InvocarCompanionRecordado = function()
+    LimpiarCompanionSuspendido()
     if ObtenerAssistantActivoId() ~= 0 then
         return ProgramarCambioEntreAliados(
             "lastCompanionCollectibleId",
@@ -2874,6 +2990,7 @@ end
 
 InvocarAsistenteRecordada = function()
     if ObtenerCompanionActivoCollectibleId() ~= 0 then
+        GuardarCompanionSuspendidoSiProcede()
         return ProgramarCambioEntreAliados(
             "lastAssistantCollectibleId",
             function() return ObtenerCompanionActivoCollectibleId() ~= 0 end,
@@ -2904,6 +3021,14 @@ RefrescarDot = function()
 
     local assistId = ObtenerAssistantActivoId()
     RefrescarEstadoIconoAliado(overlayAssistantDot, assistId, "lastAssistantCollectibleId", "recentAssistantCollectibles")
+
+    if assistId == 0
+        and companionCollectibleId == 0
+        and (tonumber(companionSuspendidoCollectibleId) or 0) ~= 0
+        and not allySwitchPending
+    then
+        ProgramarRestauracionCompanionSuspendido()
+    end
 
     RefrescarWidgetsLateralesEstado()
 end
@@ -3050,7 +3175,8 @@ function MOD.BuildQuickUtilityRecentEntries(clave)
     end
 
     if clave == "food" then
-        local history = EZO and EZO.sv and EZO.sv.overlay and EZO.sv.overlay.recentFoodItems or nil
+        local overlaySV = ObtenerOverlaySVParaClave("recentFoodItems")
+        local history = overlaySV and overlaySV.recentFoodItems or nil
         if type(history) == "table" then
             for _, entry in ipairs(history) do
                 if type(entry) == "table" then

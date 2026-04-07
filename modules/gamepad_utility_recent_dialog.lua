@@ -9,7 +9,6 @@ EZO.GamepadUtilityRecentDialog = EZO.GamepadUtilityRecentDialog or {}
 local Dialog = EZO.GamepadUtilityRecentDialog
 
 local NOMBRE_DIALOGO = "EZO_GAMEPAD_UTILITY_RECENT_DIALOG"
-local NOMBRE_UPDATE_PREVIEW = "EZOTools_GamepadUtilityRecentDialog_Preview"
 Dialog.DIALOG_NAME = NOMBRE_DIALOGO
 Dialog._currentKey = nil
 Dialog._currentTitle = nil
@@ -60,54 +59,25 @@ local AdjuntarActivacionRaton = EZOTools_AdjuntarActivacionRatonGamepad
 local BuscarDialogoGamepad = EZOTools_BuscarDialogoGamepad
 local ActivarSeleccionDialogoGamepad = EZOTools_ActivarSeleccionDialogoGamepad
 
-local function RefrescarPreviewSeleccion(dialog)
-    if not dialog or not dialog.entryList or type(dialog.entryList.GetTargetData) ~= "function" then
-        if Dialog._lastPreviewData ~= false then
-            Dialog._lastPreviewData = false
-            OcultarPreviewActual()
-        end
+local function AplicarPreviewSeleccionado(control, data)
+    if not control or type(data) ~= "table" then
         return
     end
-
-    local data = dialog.entryList:GetTargetData()
-    if data == Dialog._lastPreviewData then
+    if data == Dialog._lastPreviewData and control == Dialog._lastPreviewControl then
         return
     end
-
     Dialog._lastPreviewData = data
+    Dialog._lastPreviewControl = control
     OcultarPreviewActual()
-
-    if not data or type(data) ~= "table" then
-        return
-    end
-
-    local control = Dialog._controlByData and Dialog._controlByData[data] or nil
-    if not control then
-        return
-    end
 
     if _G.EZOTools_Overlay and type(_G.EZOTools_Overlay.ShowQuickUtilityPreview) == "function" then
         pcall(_G.EZOTools_Overlay.ShowQuickUtilityPreview, control, data)
     end
 end
 
-local function IniciarActualizacionPreview()
-    if not EVENT_MANAGER or type(EVENT_MANAGER.RegisterForUpdate) ~= "function" then
-        return
-    end
-    EVENT_MANAGER:RegisterForUpdate(NOMBRE_UPDATE_PREVIEW, 80, function()
-        if Dialog._activeDialog then
-            RefrescarPreviewSeleccion(Dialog._activeDialog)
-        end
-    end)
-end
-
 local function DetenerActualizacionPreview()
-    if EVENT_MANAGER and type(EVENT_MANAGER.UnregisterForUpdate) == "function" then
-        EVENT_MANAGER:UnregisterForUpdate(NOMBRE_UPDATE_PREVIEW)
-    end
     Dialog._lastPreviewData = nil
-    Dialog._controlByData = nil
+    Dialog._lastPreviewControl = nil
     OcultarPreviewActual()
 end
 
@@ -122,8 +92,8 @@ local function AsegurarRegistrado()
 
         setup = function(dialog)
             Dialog._activeDialog = dialog
-            Dialog._controlByData = {}
             Dialog._lastPreviewData = nil
+            Dialog._lastPreviewControl = nil
             local list = dialog.info.parametricList
             ZO_ClearNumericallyIndexedTable(list)
 
@@ -141,8 +111,10 @@ local function AsegurarRegistrado()
                 ed.previewFallbackName = action.previewFallbackName
                 ed.setup = function(control, data, selected, reselectingDuringRebuild, enabled, active)
                     ZO_GamepadMenuEntryTemplate_Setup(control, data.text, nil, nil, nil, selected)
-                    Dialog._controlByData[data] = control
                     AdjuntarActivacionRaton(control, data)
+                    if selected then
+                        AplicarPreviewSeleccionado(control, data)
+                    end
                 end
                 table.insert(list, {
                     template = "ZO_GamepadMenuEntryTemplate",
@@ -156,8 +128,10 @@ local function AsegurarRegistrado()
                 ed.callback = function() return false end
                 ed.setup = function(control, data, selected, reselectingDuringRebuild, enabled, active)
                     ZO_GamepadMenuEntryTemplate_Setup(control, data.text, nil, nil, nil, selected)
-                    Dialog._controlByData[data] = control
                     AdjuntarActivacionRaton(control, data)
+                    if selected then
+                        AplicarPreviewSeleccionado(control, data)
+                    end
                 end
                 table.insert(list, {
                     template = "ZO_GamepadMenuEntryTemplate",
@@ -166,16 +140,6 @@ local function AsegurarRegistrado()
             end
 
             ZO_GenericParametricListGamepadDialogTemplate_RebuildEntryList(dialog)
-            IniciarActualizacionPreview()
-            if zo_callLater then
-                zo_callLater(function()
-                    if Dialog._activeDialog == dialog then
-                        RefrescarPreviewSeleccion(dialog)
-                    end
-                end, 1)
-            else
-                RefrescarPreviewSeleccion(dialog)
-            end
         end,
 
         buttons = {
