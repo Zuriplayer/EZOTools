@@ -445,9 +445,16 @@ end
 
 local function _mostrarAyudaPrincipal()
     safeChat(GetString(EZO_CMD_HELP_TITLE))
-    safeChat(GetString(EZO_CMD_HELP_VERSION))
+    safeChat(GetString(EZO_CMD_HELP_STATUS))
     safeChat(GetString(EZO_CMD_HELP_DEBUG))
     safeChat(GetString(EZO_CMD_HELP_HELP))
+end
+
+local function _mostrarAyudaDetallada()
+    _mostrarAyudaPrincipal()
+    safeChat(GetString(EZO_CMD_HELP_DETAIL_STATUS))
+    safeChat(GetString(EZO_CMD_HELP_DETAIL_DEBUG))
+    safeChat(GetString(EZO_CMD_HELP_CONTACT))
 end
 
 -- Muestra las hermandades del jugador e indica cuál está representando actualmente.
@@ -608,9 +615,9 @@ local function _manejadorSlash(arg)
     a2 = zo_strlower(a2 or "")
     a3 = zo_strlower(a3 or "")
     if a1 == "help" or a1 == "?" then
-        _mostrarAyudaPrincipal(); return
+        _mostrarAyudaDetallada(); return
     end
-    if a1 == "version" then
+    if a1 == "status" then
         _comandoVersion(); return
     end
     if a1 == "debug" then
