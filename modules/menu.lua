@@ -106,6 +106,21 @@ local function ConstruirOpciones()
         disabled = function() return EZOTools.sv.general.soulGemAlertEnabled == false end,
     }
 
+    opciones[#opciones + 1] = {
+        type = "checkbox",
+        name = GetString(EZO_OPTION_DEBUG_MODE),
+        tooltip = GetString(EZO_OPTION_DEBUG_MODE_TOOLTIP),
+        getFunc = function()
+            return EZOTools and type(EZOTools.IsDebugModeEnabled) == "function" and EZOTools.IsDebugModeEnabled() == true
+        end,
+        setFunc = function(v)
+            if EZOTools and type(EZOTools.SetDebugModeEnabled) == "function" then
+                EZOTools.SetDebugModeEnabled(v)
+            end
+        end,
+        default = false,
+    }
+
     return opciones
 end
 

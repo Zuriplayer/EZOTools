@@ -37,6 +37,7 @@ EZO_STRINGS_EN = {
     EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT = "Trying to consume <<1>>",
     EZO_MSG_DEBUG_FOOD_CONSUME_FAILED = "Food debug: consumption was not confirmed or the buff did not refresh.",
     EZO_MSG_DEBUG_FOOD_NO_RECORDED = "Food debug: no remembered food or drink is available.",
+    EZO_MSG_DEBUG_MODE_DISABLED = "Debug mode is disabled. Enable it temporarily in the addon settings to use /ezo debug.",
 
     -- -------------------------------------------------------------------------
     -- LAM panel: General section
@@ -88,6 +89,8 @@ EZO_STRINGS_EN = {
     EZO_OPTION_REPAIR_THRESHOLD_TOOLTIP   = "The 'Repair equipped' option appears in the menu only if any equipped item is below this durability percentage.",
     EZO_OPTION_RECHARGE_THRESHOLD         = "Recharge weapons threshold (%)",
     EZO_OPTION_RECHARGE_THRESHOLD_TOOLTIP = "The 'Recharge weapons' option appears in the menu only if any equipped weapon is below this enchant charge percentage.",
+    EZO_OPTION_DEBUG_MODE                 = "Enable debug mode",
+    EZO_OPTION_DEBUG_MODE_TOOLTIP         = "Temporarily enables the addon's debug features, including /ezo debug. It is turned off each time the game restarts.",
 
     -- -------------------------------------------------------------------------
     -- Command panel menu entries
