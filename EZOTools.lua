@@ -4,6 +4,8 @@
 EZOTools = EZOTools or {}
 local EZO = EZOTools
 local ADDON_NAME = "EZOTools"
+EZO.runtime = EZO.runtime or {}
+EZO.runtime.debugMode = false
 
 -- Función de chat unificada: usa LibChatMessage si está disponible, si no d()
 local function safeChat(msg)
@@ -16,6 +18,23 @@ end
 
 -- Guardamos safeChat en el namespace para que otros módulos puedan usarla
 EZO.Print = safeChat
+
+function EZO.IsDebugModeEnabled()
+    return EZO.runtime and EZO.runtime.debugMode == true
+end
+
+function EZO.SetDebugModeEnabled(enabled)
+    EZO.runtime = EZO.runtime or {}
+    enabled = enabled == true
+    EZO.runtime.debugMode = enabled
+
+    if (not enabled)
+        and EZO.sv
+        and EZOTools_Overlay
+        and type(EZOTools_Overlay.SetFoodDebugState) == "function" then
+        EZOTools_Overlay.SetFoodDebugState("auto")
+    end
+end
 
 local function ObtenerIdiomaPorDefectoCliente()
     if type(GetCVar) == "function" then
@@ -160,6 +179,8 @@ end
 function EZO:Initialize()
     local world = GetWorldName()
     local defaultLanguage = ObtenerIdiomaPorDefectoCliente()
+    EZO.runtime = EZO.runtime or {}
+    EZO.runtime.debugMode = false
 
     -- Valores por defecto de las variables guardadas (por cuenta y mundo)
     local defaults = {
@@ -446,14 +467,18 @@ end
 local function _mostrarAyudaPrincipal()
     safeChat(GetString(EZO_CMD_HELP_TITLE))
     safeChat(GetString(EZO_CMD_HELP_STATUS))
-    safeChat(GetString(EZO_CMD_HELP_DEBUG))
+    if EZO.IsDebugModeEnabled() then
+        safeChat(GetString(EZO_CMD_HELP_DEBUG))
+    end
     safeChat(GetString(EZO_CMD_HELP_HELP))
 end
 
 local function _mostrarAyudaDetallada()
     _mostrarAyudaPrincipal()
     safeChat(GetString(EZO_CMD_HELP_DETAIL_STATUS))
-    safeChat(GetString(EZO_CMD_HELP_DETAIL_DEBUG))
+    if EZO.IsDebugModeEnabled() then
+        safeChat(GetString(EZO_CMD_HELP_DETAIL_DEBUG))
+    end
     safeChat(GetString(EZO_CMD_HELP_CONTACT))
 end
 
@@ -541,6 +566,10 @@ end
 local EjecutarDebugTexload, EjecutarDebugTex, EjecutarDebugDots, EjecutarDebugLayout, EjecutarDebugFood
 
 local function _mostrarAyudaDebug()
+    if not EZO.IsDebugModeEnabled() then
+        safeChat(GetString(EZO_MSG_DEBUG_MODE_DISABLED))
+        return
+    end
     safeChat(GetString(EZO_CMD_DEBUG_TITLE))
     safeChat(GetString(EZO_CMD_DEBUG_INFO))
     safeChat(GetString(EZO_CMD_DEBUG_GUILDS))
@@ -552,6 +581,10 @@ local function _mostrarAyudaDebug()
 end
 
 local function _ejecutarDebug(sub, arg)
+    if not EZO.IsDebugModeEnabled() then
+        safeChat(GetString(EZO_MSG_DEBUG_MODE_DISABLED))
+        return true
+    end
     sub = zo_strlower(sub or "")
     if sub == "" or sub == "help" or sub == "?" then
         _mostrarAyudaDebug()
