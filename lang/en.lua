@@ -167,9 +167,12 @@ EZO_STRINGS_EN = {
     EZO_CMD_BANNER              = "E|cB040FFZ|rOTools v<<1>> — @Zuriplayer",
     EZO_CMD_REGISTERED          = "Commands registered: /ezo, /ezotools",
     EZO_CMD_HELP_TITLE          = "Available commands:",
-    EZO_CMD_HELP_VERSION        = "  /ezo version  — loaded addon version and runtime state",
+    EZO_CMD_HELP_STATUS         = "  /ezo status   — addon runtime status",
     EZO_CMD_HELP_DEBUG          = "  /ezo debug    — list diagnostic commands",
     EZO_CMD_HELP_HELP           = "  /ezo help",
+    EZO_CMD_HELP_DETAIL_STATUS  = "    status shows loaded version, active language, and availability of the main modules.",
+    EZO_CMD_HELP_DETAIL_DEBUG   = "    debug groups technical support and development tools; they are not normal gameplay commands.",
+    EZO_CMD_HELP_CONTACT        = "    For addon issues, questions, or feedback, you can contact @Zuriplayer.",
 
     EZO_CMD_DEBUG_TITLE         = "Diagnostic commands:",
     EZO_CMD_DEBUG_INFO          = "  /ezo debug info     — diagnostic: zone, group, maintenance, guild",
