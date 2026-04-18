@@ -44,20 +44,23 @@ local function RecopilarEntradasRecientes()
     return {}
 end
 
-local function ObtenerTextoVacio()
-    if _G.EZOTools_Overlay and type(_G.EZOTools_Overlay.GetQuickUtilityHistoryEmptyLabel) == "function" then
-        local ok, text = pcall(_G.EZOTools_Overlay.GetQuickUtilityHistoryEmptyLabel, Dialog._currentKey)
-        if ok and type(text) == "string" then
-            return text
-        end
-    end
-    return ""
-end
-
 local ExtraerCallback = EZOTools_ExtraerCallback
 local AdjuntarActivacionRaton = EZOTools_AdjuntarActivacionRatonGamepad
 local BuscarDialogoGamepad = EZOTools_BuscarDialogoGamepad
 local ActivarSeleccionDialogoGamepad = EZOTools_ActivarSeleccionDialogoGamepad
+
+local function NormalizarTextoEntradaLista(texto)
+    texto = tostring(texto or "")
+    if _G.EZOTools_Overlay and type(_G.EZOTools_Overlay.NormalizeTooltipText) == "function" then
+        local ok, normalized = pcall(_G.EZOTools_Overlay.NormalizeTooltipText, texto)
+        if ok and type(normalized) == "string" then
+            texto = normalized
+        end
+    end
+    texto = texto:gsub("\n", " ")
+    texto = texto:gsub("%s+", " ")
+    return zo_strtrim(texto)
+end
 
 local function AplicarPreviewSeleccionado(control, data)
     if not control or type(data) ~= "table" then
@@ -86,7 +89,11 @@ local function AsegurarRegistrado()
 
     ZO_Dialogs_RegisterCustomDialog(NOMBRE_DIALOGO, {
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
-        title = { text = "" },
+        title = {
+            text = function()
+                return tostring(Dialog._currentTitle or GetString(EZO_UTILITY_MENU_TITLE))
+            end,
+        },
         mainText = { text = "" },
         parametricList = {},
 
@@ -97,13 +104,10 @@ local function AsegurarRegistrado()
             local list = dialog.info.parametricList
             ZO_ClearNumericallyIndexedTable(list)
 
-            if dialog.info and dialog.info.title then
-                dialog.info.title.text = tostring(Dialog._currentTitle or GetString(EZO_UTILITY_MENU_TITLE))
-            end
-
             local added = 0
             for _, action in ipairs(RecopilarEntradasRecientes()) do
-                local ed = ZO_GamepadEntryData:New(tostring(action.text or ""))
+                local rowText = NormalizarTextoEntradaLista(action.text)
+                local ed = ZO_GamepadEntryData:New(rowText)
                 ed.callback = action.callback
                 ed.previewKind = action.previewKind
                 ed.previewItemLink = action.previewItemLink
@@ -123,23 +127,31 @@ local function AsegurarRegistrado()
                 added = added + 1
             end
 
-            if added == 0 then
-                local ed = ZO_GamepadEntryData:New(ObtenerTextoVacio())
-                ed.callback = function() return false end
-                ed.setup = function(control, data, selected, reselectingDuringRebuild, enabled, active)
-                    ZO_GamepadMenuEntryTemplate_Setup(control, data.text, nil, nil, nil, selected)
-                    AdjuntarActivacionRaton(control, data)
-                    if selected then
-                        AplicarPreviewSeleccionado(control, data)
+            ZO_GenericParametricListGamepadDialogTemplate_RebuildEntryList(dialog)
+
+            if dialog.entryList and dialog.entryList.GetNumItems
+                and dialog.entryList:GetNumItems() == 0 then
+                local config = nil
+                if _G.EZOTools_Overlay and type(_G.EZOTools_Overlay.GetQuickUtilityHistoryEmptyLabel) == "function" then
+                    local ok, text = pcall(_G.EZOTools_Overlay.GetQuickUtilityHistoryEmptyLabel, Dialog._currentKey)
+                    if ok and type(text) == "string" and text ~= "" then
+                        config = NormalizarTextoEntradaLista(text)
                     end
                 end
-                table.insert(list, {
-                    template = "ZO_GamepadMenuEntryTemplate",
-                    entryData = ed,
-                })
+                if type(config) == "string" and config ~= "" then
+                    local ed = ZO_GamepadEntryData:New(config)
+                    ed.callback = function() end
+                    ed.setup = function(control, data, selected, reselectingDuringRebuild, enabled, active)
+                        ZO_GamepadMenuEntryTemplate_Setup(control, data.text, nil, nil, nil, selected)
+                        AdjuntarActivacionRaton(control, data)
+                    end
+                    table.insert(list, {
+                        template = "ZO_GamepadMenuEntryTemplate",
+                        entryData = ed,
+                    })
+                    ZO_GenericParametricListGamepadDialogTemplate_RebuildEntryList(dialog)
+                end
             end
-
-            ZO_GenericParametricListGamepadDialogTemplate_RebuildEntryList(dialog)
         end,
 
         buttons = {
