@@ -636,8 +636,11 @@ local function NormalizarTextoTooltip(texto)
     if type(texto) ~= "string" then
         return texto
     end
-    return texto:gsub("|n", "\n")
+    texto = texto:gsub("|n", "\n")
+    texto = texto:gsub("([%.%!%?])n([%u])", "%1\n%2")
+    return texto
 end
+MOD.NormalizeTooltipText = NormalizarTextoTooltip
 
 local function MostrarTooltipWidget(ctrl, side, index, data)
     local texto = ObtenerTooltipWidget(side, index, data)
@@ -744,6 +747,17 @@ local function ObtenerNombreItem(bagId, slotIndex, itemLink)
         end
     end
     return nil
+end
+
+local function ObtenerTextoStringId(nombreId)
+    if type(nombreId) ~= "string" or nombreId == "" then
+        return ""
+    end
+    local stringId = _G[nombreId]
+    if stringId == nil then
+        return ""
+    end
+    return GetString(stringId)
 end
 
 local function ObtenerOverlaySVParaClave(clave)
@@ -1346,6 +1360,7 @@ local function AnadirEntradaMenuReciente(label, onSelect, tooltipText, enabled, 
     if type(label) ~= "string" or label == "" then
         return false
     end
+    label = NormalizarTextoTooltip(label)
 
     local index = nil
     if type(AddCustomMenuItem) == "function" then
@@ -1444,70 +1459,63 @@ local function AbrirMenuRecientes(anchor, entries, emptyLabel)
 end
 
 local function AbrirMenuHistorialComida(anchor)
-    local overlaySV = ObtenerOverlaySVParaClave("recentFoodItems")
-    local history = overlaySV and overlaySV.recentFoodItems or nil
     local entries = {}
-    if type(history) == "table" then
-        for _, entry in ipairs(history) do
-            if type(entry) == "table" then
-                local itemLink = tostring(entry.itemLink or "")
-                local itemName = tostring(entry.itemName or "")
-                local _, _, resolvedName = BuscarConsumibleComidaPorReferencia(itemLink, itemName)
-                local label = tostring(resolvedName or itemName or "")
-                if label ~= "" then
-                    local itemLinkTooltip = itemLink
-                    entries[#entries + 1] = {
-                        label = label,
-                        onEnter = function(control)
-                            MostrarTooltipItemSobreControl(control, itemLinkTooltip)
-                        end,
-                        onExit = function()
-                            if type(ClearTooltip) == "function" and ItemTooltip then
-                                ClearTooltip(ItemTooltip)
-                            end
-                        end,
-                        onSelect = function()
-                            ConsumirComidaHistorialConSeguridad(itemLink, itemName)
-                        end,
-                    }
+    for _, entry in ipairs(MOD.BuildQuickUtilityRecentEntries("food")) do
+        local itemLinkTooltip = tostring(entry.previewItemLink or "")
+        entries[#entries + 1] = {
+            label = tostring(entry.text or ""),
+            enabled = entry.empty ~= true,
+            onEnter = function(control)
+                if itemLinkTooltip ~= "" then
+                    MostrarTooltipItemSobreControl(control, itemLinkTooltip)
                 end
-            end
-        end
+            end,
+            onExit = function()
+                if type(ClearTooltip) == "function" and ItemTooltip then
+                    ClearTooltip(ItemTooltip)
+                end
+            end,
+            onSelect = function()
+                if type(entry.callback) == "function" then
+                    entry.callback()
+                end
+            end,
+        }
     end
 
-    AbrirMenuRecientes(anchor, entries, GetString(EZO_SIDE_WIDGET_FOOD_HISTORY_EMPTY))
+    AbrirMenuRecientes(anchor, entries, "")
 end
 
 local ALLY_ICON_MENU_CONFIG = {
     mount = {
         rememberedKey = "lastMountCollectibleId",
         historyKey = "recentMountCollectibles",
-        fallbackNameId = EZO_DOT_MOUNT_FALLBACK_NAME,
-        historyEmptyId = EZO_DOT_MOUNT_HISTORY_EMPTY,
+        fallbackNameKey = "EZO_DOT_MOUNT_FALLBACK_NAME",
+        historyEmptyKey = "EZO_DOT_MOUNT_HISTORY_EMPTY",
         historyLimit = 10,
         showRecentHoverPreview = true,
     },
     pet = {
         rememberedKey = "lastPetCollectibleId",
         historyKey = "recentPetCollectibles",
-        fallbackNameId = EZO_DOT_PET_FALLBACK_NAME,
-        historyEmptyId = EZO_DOT_PET_HISTORY_EMPTY,
+        fallbackNameKey = "EZO_DOT_PET_FALLBACK_NAME",
+        historyEmptyKey = "EZO_DOT_PET_HISTORY_EMPTY",
         historyLimit = 10,
         showRecentHoverPreview = true,
     },
     companion = {
         rememberedKey = "lastCompanionCollectibleId",
         historyKey = "recentCompanionCollectibles",
-        fallbackNameId = EZO_DOT_COMPANION_FALLBACK_NAME,
-        historyEmptyId = EZO_DOT_COMPANION_HISTORY_EMPTY,
+        fallbackNameKey = "EZO_DOT_COMPANION_FALLBACK_NAME",
+        historyEmptyKey = "EZO_DOT_COMPANION_HISTORY_EMPTY",
         historyLimit = 5,
         showRecentHoverPreview = true,
     },
     assistant = {
         rememberedKey = "lastAssistantCollectibleId",
         historyKey = "recentAssistantCollectibles",
-        fallbackNameId = EZO_DOT_ASSISTANT_FALLBACK_NAME,
-        historyEmptyId = EZO_DOT_ASSISTANT_HISTORY_EMPTY,
+        fallbackNameKey = "EZO_DOT_ASSISTANT_FALLBACK_NAME",
+        historyEmptyKey = "EZO_DOT_ASSISTANT_HISTORY_EMPTY",
         historyLimit = 5,
         showRecentHoverPreview = true,
     },
@@ -2766,7 +2774,9 @@ local function RefrescarEstadoIconoAliado(ctrl, activeId, rememberedKey, history
     if not ctrl then
         return
     end
-    local visible = collectibleId ~= 0
+    -- Mantener visibles los iconos inferiores incluso sin elemento recordado para
+    -- poder mostrar la ayuda contextual de primer uso en ratón y gamepad.
+    local visible = true
     ctrl:SetHidden(not visible)
     if visible then
         AplicarEstadoVisualIconoAliado(ctrl, activeId ~= 0, collectibleId)
@@ -2827,37 +2837,35 @@ AbrirMenuHistorialAliado = function(anchor, tipo)
     end
 
     local entries = {}
-    for _, collectibleId in ipairs(ObtenerHistorialCollectibles(config.historyKey)) do
-        local finalId = tonumber(collectibleId) or 0
-        if finalId > 0 then
-            local label = tostring(ObtenerNombreCollectible(finalId, GetString(config.fallbackNameId)) or "")
-            if label ~= "" then
-                local onEnter = nil
-                local onExit = nil
-                if config.showRecentHoverPreview then
-                    onEnter = function(control)
-                        MostrarTooltipCollectibleSobreControl(control, finalId, GetString(config.fallbackNameId))
-                    end
-                    onExit = function()
-                        if type(ClearTooltip) == "function" and ItemTooltip then
-                            ClearTooltip(ItemTooltip)
-                        end
-                        OcultarTooltipWidget()
-                    end
+    for _, entry in ipairs(MOD.BuildQuickUtilityRecentEntries(tipo)) do
+        local onEnter = nil
+        local onExit = nil
+        if config.showRecentHoverPreview and entry.empty ~= true then
+            local finalId = tonumber(entry.previewCollectibleId) or 0
+            onEnter = function(control)
+                        MostrarTooltipCollectibleSobreControl(control, finalId, ObtenerTextoStringId(config.fallbackNameKey))
+            end
+            onExit = function()
+                if type(ClearTooltip) == "function" and ItemTooltip then
+                    ClearTooltip(ItemTooltip)
                 end
-                entries[#entries + 1] = {
-                    label = label,
-                    onEnter = onEnter,
-                    onExit = onExit,
-                    onSelect = function()
-                        InvocarAliadoDesdeHistorial(tipo, finalId)
-                    end,
-                }
+                OcultarTooltipWidget()
             end
         end
+        entries[#entries + 1] = {
+            label = tostring(entry.text or ""),
+            enabled = entry.empty ~= true,
+            onEnter = onEnter,
+            onExit = onExit,
+            onSelect = function()
+                if type(entry.callback) == "function" then
+                    entry.callback()
+                end
+            end,
+        }
     end
 
-    AbrirMenuRecientes(anchor, entries, GetString(config.historyEmptyId))
+    AbrirMenuRecientes(anchor, entries, "")
 end
 
 ObtenerTooltipIconoAliado = function(tipo, activo)
@@ -2866,16 +2874,16 @@ ObtenerTooltipIconoAliado = function(tipo, activo)
 
     if tipo == "mount" then
         collectibleId = activo and ObtenerMonturaActivaId() or ObtenerCollectibleRecordado("lastMountCollectibleId")
-        fallbackName = GetString(EZO_DOT_MOUNT_FALLBACK_NAME)
+        fallbackName = ObtenerTextoStringId("EZO_DOT_MOUNT_FALLBACK_NAME")
     elseif tipo == "pet" then
         collectibleId = activo and ObtenerMascotaActivaId() or ObtenerCollectibleRecordado("lastPetCollectibleId")
-        fallbackName = GetString(EZO_DOT_PET_FALLBACK_NAME)
+        fallbackName = ObtenerTextoStringId("EZO_DOT_PET_FALLBACK_NAME")
     elseif tipo == "companion" then
         collectibleId = activo and ObtenerCompanionActivoCollectibleId() or ObtenerCollectibleRecordado("lastCompanionCollectibleId")
-        fallbackName = GetString(EZO_DOT_COMPANION_FALLBACK_NAME)
+        fallbackName = ObtenerTextoStringId("EZO_DOT_COMPANION_FALLBACK_NAME")
     elseif tipo == "assistant" then
         collectibleId = activo and ObtenerAssistantActivoId() or ObtenerCollectibleRecordado("lastAssistantCollectibleId")
-        fallbackName = GetString(EZO_DOT_ASSISTANT_FALLBACK_NAME)
+        fallbackName = ObtenerTextoStringId("EZO_DOT_ASSISTANT_FALLBACK_NAME")
     end
 
     if not activo and collectibleId == 0 then
@@ -3195,6 +3203,13 @@ function MOD.BuildQuickUtilityRecentEntries(clave)
                 end
             end
         end
+        if #entries == 0 then
+            entries[#entries + 1] = {
+                text = GetString(EZO_SIDE_WIDGET_FOOD_HISTORY_EMPTY),
+                empty = true,
+                callback = function() end,
+            }
+        end
         return entries
     end
 
@@ -3206,17 +3221,25 @@ function MOD.BuildQuickUtilityRecentEntries(clave)
     for _, collectibleId in ipairs(ObtenerHistorialCollectibles(config.historyKey)) do
         local finalId = tonumber(collectibleId) or 0
         if finalId > 0 then
-            local label = tostring(ObtenerNombreCollectible(finalId, GetString(config.fallbackNameId)) or "")
+            local label = tostring(ObtenerNombreCollectible(finalId, ObtenerTextoStringId(config.fallbackNameKey)) or "")
             if label ~= "" then
                 AgregarEntrada(label, function()
                     return InvocarAliadoDesdeHistorial(clave, finalId)
                 end, {
                     previewKind = "collectible",
                     previewCollectibleId = finalId,
-                    previewFallbackName = GetString(config.fallbackNameId),
+                    previewFallbackName = ObtenerTextoStringId(config.fallbackNameKey),
                 })
             end
         end
+    end
+
+    if #entries == 0 then
+        entries[#entries + 1] = {
+            text = ObtenerTextoStringId(config.historyEmptyKey),
+            empty = true,
+            callback = function() end,
+        }
     end
 
     return entries
@@ -3229,7 +3252,7 @@ function MOD.GetQuickUtilityHistoryEmptyLabel(clave)
 
     local config = ObtenerConfiguracionAliado(clave)
     if config then
-        return GetString(config.historyEmptyId)
+        return ObtenerTextoStringId(config.historyEmptyKey)
     end
     return ""
 end
@@ -3521,6 +3544,7 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
             {
                 type  = "button",
                 name  = GetString(EZO_OPTION_OVERLAY_RESET_POS),
+                tooltip = GetString(EZO_OPTION_OVERLAY_RESET_POS_TOOLTIP),
                 func  = function() EZOTools_Overlay.ResetPosition(); EZOTools_Overlay.Refresh() end,
                 width = "full",
             },
@@ -3540,7 +3564,8 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
                     EZO.sv.overlay.guildCustomImageEnabled = v
                     EZOTools_Overlay.Refresh()
                 end,
-                default = true,
+                default = false,
+                width   = "full",
             },
             {
                 type    = "colorpicker",
@@ -3573,7 +3598,8 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
                         EZO.ApplyAutoFriendHousesSelection()
                     end
                 end,
-                default = true,
+                default = false,
+                width   = "full",
                 disabled = function()
                     local choices = {}
                     if EZO.GetEligibleAutoFriendGuildChoices then
@@ -3607,7 +3633,6 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
                         EZO.ApplyAutoFriendHousesSelection()
                     end
                 end,
-                default      = "",
                 disabled     = function()
                     local choices = {}
                     if EZO.GetEligibleAutoFriendGuildChoices then

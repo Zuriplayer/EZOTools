@@ -181,7 +181,7 @@ function EZO:Initialize()
             playerTextScale  = 1.0,
             playerTextColor  = { 1, 1, 1, 1 },
             guildLabelColor  = { 0.7, 0.7, 0.7, 1 },
-            guildCustomImageEnabled = true,
+            guildCustomImageEnabled = false,
             simulateGamepad  = false,
             hideInCombat     = false,
             hideInMenus      = false,
@@ -203,7 +203,7 @@ function EZO:Initialize()
         friends = {
             craftingHall   = "",
             secondaryHall  = "",
-            autoAssignFriendHouses = true,
+            autoAssignFriendHouses = false,
             autoAssignFriendGuildKey = "",
             customGuildFriendHouses = {},
         },

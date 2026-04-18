@@ -19,7 +19,7 @@ end
 
 -- Cierra el diálogo actual de forma segura (necesario antes de abrir otro diálogo gamepad)
 local function CerrarDialogoActual()
-    CerrarDialogoGamepad(NOMBRE_DIALOGO)
+    EZOTools_CerrarDialogoGamepad(NOMBRE_DIALOGO)
 end
 
 -- Construye la lista de acciones del menú desde el módulo actions
@@ -57,7 +57,6 @@ end
 local ExtraerCallback = EZOTools_ExtraerCallback
 local AdjuntarActivacionRaton = EZOTools_AdjuntarActivacionRatonGamepad
 local BuscarDialogoGamepad = EZOTools_BuscarDialogoGamepad
-local CerrarDialogoGamepad = EZOTools_CerrarDialogoGamepad
 local ActivarSeleccionDialogoGamepad = EZOTools_ActivarSeleccionDialogoGamepad
 
 -- Registra el diálogo en el sistema ZO_Dialogs si aún no está registrado

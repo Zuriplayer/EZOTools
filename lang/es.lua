@@ -59,7 +59,8 @@ EZO_STRINGS_ES = {
     EZO_OPTION_OVERLAY_PLAYER_TEXT_COLOR = "Color del nombre del jugador",
     EZO_OPTION_OVERLAY_PLAYER_TEXT_SIZE = "Tamaño del nombre del jugador",
     EZO_OPTION_OVERLAY_TEXT             = "Texto del overlay",
-    EZO_OPTION_OVERLAY_RESET_POS        = "Reiniciar posición del overlay",
+    EZO_OPTION_OVERLAY_RESET_POS        = "Reiniciar posición",
+    EZO_OPTION_OVERLAY_RESET_POS_TOOLTIP = "Devuelve el overlay a su posición inicial en pantalla.",
     EZO_OPTION_GUILD_OVERLAY            = "Imagen de hermandad",
     EZO_OPTION_GUILD_LABEL_COLOR        = "Color del nombre de la hermandad representada",
     EZO_OPTION_GUILD_LABEL_COLOR_TOOLTIP = "Sólo se aplica cuando hay una hermandad representada seleccionada y no llevas tabardo. Los estados de tabardo y sin hermandad mantienen sus colores actuales.",
@@ -68,11 +69,11 @@ EZO_STRINGS_ES = {
     -- Panel LAM: sección Casas de amigos
     -- -------------------------------------------------------------------------
     EZO_OPTION_FRIENDS          = "Casas de amigos",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN = "Autoasignar casas desde la hermandad seleccionada",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN = "Autoasignar casas desde la hermandad",
     EZO_OPTION_FRIENDS_AUTO_ASSIGN_TOOLTIP = "Si está activado, el addon rellena automáticamente la casa de artesanía y la secundaria usando la hermandad elegida en el selector, siempre que pertenezcas a una hermandad soportada por el addon.",
     EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD = "Hermandad para autoasignación",
     EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD_TOOLTIP = "Selecciona una de tus hermandades soportadas por el addon. La autoasignación usará primero la configuración que hayas guardado para esa hermandad y, si no existe, la asignación interna del addon.",
-    EZO_OPTION_FRIENDS_SAVE_SELECTED = "Guardar casas para la hermandad seleccionada",
+    EZO_OPTION_FRIENDS_SAVE_SELECTED = "Guardar casas actuales",
     EZO_OPTION_FRIENDS_SAVE_SELECTED_TOOLTIP = "Guarda los valores actuales de Casa de artesanía y Casa secundaria para la hermandad seleccionada. La autoasignación usará esta configuración guardada antes que la interna.",
     EZO_OPTION_FRIENDS_CRAFTING = "Casa de artesanía (nombre de cuenta @...)",
     EZO_OPTION_FRIENDS_SECONDARY= "Casa secundaria (nombre de cuenta @...)",
@@ -210,9 +211,9 @@ EZO_STRINGS_ES = {
     EZO_SIDE_WIDGET_SOUL_GEMS_TOOLTIP = "Gemas de alma cargadas bajas: <<1>> disponibles (umbral <<2>>). Clic para abrir ajustes.",
     EZO_SIDE_WIDGET_REPAIR_KITS_TOOLTIP = "Kits de reparación bajos: <<1>> disponibles (umbral <<2>>). Clic para abrir ajustes.",
 }
-EZO_STRINGS_ES["EZO_OPTION_LOW_STOCK_ALERTS_NOTE"] = "Las alertas de stock bajo controlan los iconos laterales. Las gemas de alma se cuentan como gemas cargadas utilizables. Los kits de reparación se cuentan por unidades detectadas, sin distinguir todavía entre kits de una pieza y kits de reparación completa."
-EZO_STRINGS_ES["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE"] = "Usar imagen personalizada para la hermandad representada"
-EZO_STRINGS_ES["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE_TOOLTIP"] = "Si está activado y la hermandad representada tiene una imagen registrada en el addon, el logo central se sustituye por esa imagen. Si falta la imagen o hay cualquier duda, se mantiene el logo normal de EZOTools."
+EZO_STRINGS_ES["EZO_OPTION_LOW_STOCK_ALERTS_NOTE"] = "Estas alertas controlan los iconos laterales. Las gemas de alma se cuentan como gemas cargadas utilizables. Los kits de reparación se cuentan por unidades detectadas y, por ahora, no se diferencian los kits de una pieza y los de reparación completa."
+EZO_STRINGS_ES["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE"] = "Usar imagen propia de la hermandad"
+EZO_STRINGS_ES["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE_TOOLTIP"] = "Si está activado y la hermandad representada tiene una imagen registrada en el addon, el logo central se sustituye por esa imagen. Si no hay imagen válida, se mantiene el logo normal de EZOTools."
 EZO_STRINGS_ES["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE"] = "Mostrar alerta de kits bajos"
 EZO_STRINGS_ES["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE_TOOLTIP"] = "Muestra u oculta el widget lateral cuando los kits de reparación estén bajos."
 EZO_STRINGS_ES["EZO_OPTION_REPAIR_KIT_ALERT_THRESHOLD"] = "Umbral alerta kits reparación"
