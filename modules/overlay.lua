@@ -262,30 +262,41 @@ local function ObtenerRutasLogoGuildRepresentada()
     return GUILD_OVERLAY_TEXTURES[claveGuild]
 end
 
-local function AplicarTexturaConFallback(ctrl, rutasPreferidas, rutasFallback)
+local function ObtenerRutasLogoCentral()
+    local rutasGuild = ObtenerRutasLogoGuildRepresentada()
+    if type(rutasGuild) == "table" and #rutasGuild > 0 then
+        return rutasGuild, DEFAULT_OVERLAY_TEXTURES
+    end
+    return DEFAULT_OVERLAY_TEXTURES, nil
+end
+
+local function AplicarTexturaConFallback(ctrl, rutasPrimarias, rutasFallback)
     if not ctrl then return false end
 
     local function IntentarRutas(rutas)
         if type(rutas) ~= "table" then return false end
         local ultimaRuta = nil
         for _, ruta in ipairs(rutas) do
-            ultimaRuta = ruta
-            ctrl:SetTexture(ruta)
-            if ctrl:IsTextureLoaded() then
-                return true
+            if type(ruta) == "string" and ruta ~= "" then
+                ultimaRuta = ruta
+                ctrl:SetTexture(ruta)
+                if ctrl:IsTextureLoaded() then
+                    return true
+                end
             end
         end
         if ultimaRuta then
-            -- Algunas texturas del addon tardan en confirmar carga al cambiar
-            -- en caliente. Dejamos la última ruta preferida aplicada para que
-            -- el siguiente refresco pueda verla ya cargada.
+            -- Comportamiento original del addon:
+            -- dejamos la ultima ruta candidata aplicada para que el cliente
+            -- pueda resolver la textura de forma diferida si la confirma en
+            -- el siguiente refresco.
             ctrl:SetTexture(ultimaRuta)
             return true
         end
         return false
     end
 
-    if IntentarRutas(rutasPreferidas) then
+    if IntentarRutas(rutasPrimarias) then
         return true
     end
 
@@ -294,14 +305,15 @@ end
 
 local function RefrescarTexturaLogoCentral()
     if not overlayTex then return end
-    AplicarTexturaConFallback(overlayTex, ObtenerRutasLogoGuildRepresentada(), DEFAULT_OVERLAY_TEXTURES)
+    local rutasPrimarias, rutasFallback = ObtenerRutasLogoCentral()
+    AplicarTexturaConFallback(overlayTex, rutasPrimarias, rutasFallback)
 end
 
 -- Actualiza la etiqueta de guild en el overlay.
 -- Lógica de prioridad:
 --   1. Tabardo equipado → nombre de la guild del tabardo (amarillo discreto)
---   2. Guild representada en selector C → nombre en gris discreto
---   3. Ninguna → "Sin hermandad" / "No guild" en rojo
+--   2. Guild representada en selector C → nombre en color configurable
+--   3. Ninguna → "Sin hermandad" / "No guild" en color neutro
 local function RefrescarEtiquetaGuild()
     if not overlayGuildLabel then return end
     RefrescarTexturaLogoCentral()
