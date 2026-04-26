@@ -334,7 +334,11 @@ local function RefrescarEtiquetaGuild()
 
     -- Sin guild de ningún tipo
     overlayGuildLabel:SetText(GetString(EZO_OVERLAY_NO_GUILD))
-    overlayGuildLabel:SetColor(1, 0.2, 0.2, 1)  -- rojo de advertencia
+    local r, g, b, a = ObtenerColorOverlay(
+        EZO.sv and EZO.sv.overlay and EZO.sv.overlay.guildLabelColor,
+        { 0.7, 0.7, 0.7, 1 }
+    )
+    overlayGuildLabel:SetColor(r, g, b, a)
 end
 
 -- Devuelve el texto a mostrar en el overlay (usa el string localizado si está vacío)
