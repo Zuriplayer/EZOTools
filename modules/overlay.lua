@@ -782,15 +782,6 @@ end
 
 local function ObtenerOverlaySVParaClave(clave)
     local overlaySV = EZO and EZO.sv and EZO.sv.overlay or nil
-    local overlayCSV = EZO and EZO.csv and EZO.csv.overlay or nil
-    if clave == "lastFoodItemLink"
-        or clave == "lastFoodItemName"
-        or clave == "recentFoodItems"
-        or clave == "lastCompanionCollectibleId"
-        or clave == "recentCompanionCollectibles"
-    then
-        return overlayCSV
-    end
     return overlaySV
 end
 
