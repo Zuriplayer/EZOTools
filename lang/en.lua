@@ -37,7 +37,7 @@ EZO_STRINGS_EN = {
     EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT = "Trying to consume <<1>>",
     EZO_MSG_DEBUG_FOOD_CONSUME_FAILED = "Food debug: consumption was not confirmed or the buff did not refresh.",
     EZO_MSG_DEBUG_FOOD_NO_RECORDED = "Food debug: no remembered food or drink is available.",
-    EZO_MSG_DEBUG_MODE_DISABLED = "Debug mode is disabled. Enable it temporarily in the addon settings to use /ezo debug.",
+    EZO_MSG_DEBUG_MODE_DISABLED = "Debug mode is disabled. Enable it in the addon settings to use /ezo debug.",
 
     -- -------------------------------------------------------------------------
     -- LAM panel: General section
@@ -66,6 +66,8 @@ EZO_STRINGS_EN = {
     EZO_OPTION_GUILD_OVERLAY            = "Guild Image",
     EZO_OPTION_GUILD_LABEL_COLOR        = "Represented guild name color",
     EZO_OPTION_GUILD_LABEL_COLOR_TOOLTIP = "Applied only when a represented guild is selected and no tabard is equipped. Tabard and no-guild states keep their current colors.",
+    EZO_OPTION_GUILD_HIDE_NO_GUILD      = "Hide 'No guild' label",
+    EZO_OPTION_GUILD_HIDE_NO_GUILD_TOOLTIP = "If enabled, the overlay hides the 'No guild' text when no guild is represented in the C selector.",
 
     -- -------------------------------------------------------------------------
     -- LAM panel: Friend Houses section
@@ -90,7 +92,7 @@ EZO_STRINGS_EN = {
     EZO_OPTION_RECHARGE_THRESHOLD         = "Recharge weapons threshold (%)",
     EZO_OPTION_RECHARGE_THRESHOLD_TOOLTIP = "The 'Recharge weapons' option appears in the menu only if any equipped weapon is below this enchant charge percentage.",
     EZO_OPTION_DEBUG_MODE                 = "Enable debug mode",
-    EZO_OPTION_DEBUG_MODE_TOOLTIP         = "Temporarily enables the addon's debug features, including /ezo debug. It is turned off each time the game restarts.",
+    EZO_OPTION_DEBUG_MODE_TOOLTIP         = "Enables the addon's debug features persistently, including /ezo debug and debug-only inspection rows in blocked menus.",
 
     -- -------------------------------------------------------------------------
     -- Command panel menu entries
@@ -110,6 +112,7 @@ EZO_STRINGS_EN = {
     EZO_MENU_REPAIR               = "Repair equipped (<= <<1>>%)",
     EZO_MENU_RECHARGE             = "Recharge weapons (<= <<1>>%)",
     EZO_MENU_RELOAD               = "Reload UI",
+    EZO_MENU_DEBUG_VIEWER         = "Open Debug Log Viewer",
     EZO_MENU_EXIT                 = "Exit",
 
     -- -------------------------------------------------------------------------
@@ -161,6 +164,7 @@ EZO_STRINGS_EN = {
     EZO_MSG_ACTION_FAILED       = "Action failed: <<1>>",
     EZO_MSG_CANT_OPEN_COMBAT    = "Cannot open settings while in combat.",
     EZO_MSG_CMD_PANEL_MISSING   = "Command Panel not available.",
+    EZO_MSG_DEBUG_VIEWER_UNAVAILABLE = "Debug Log Viewer is not available.",
     EZO_MSG_INPUT_MODE_SET      = "Input mode: <<1>>",
     EZO_MSG_INPUT_MODE_NA       = "Input mode setting not available.",
 
