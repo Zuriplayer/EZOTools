@@ -345,6 +345,10 @@ local function RefrescarEtiquetaGuild()
     end
 
     -- Sin guild de ningún tipo
+    if EZO and EZO.sv and EZO.sv.overlay and EZO.sv.overlay.hideNoGuildLabel == true then
+        overlayGuildLabel:SetText("")
+        return
+    end
     overlayGuildLabel:SetText(GetString(EZO_OVERLAY_NO_GUILD))
     local r, g, b, a = ObtenerColorOverlay(
         EZO.sv and EZO.sv.overlay and EZO.sv.overlay.guildLabelColor,
@@ -638,7 +642,7 @@ local function ObtenerTooltipWidget(side, index, data)
     if type(data.tooltipStringId) == "number" then
         local baseText = GetString(data.tooltipStringId)
         if type(data.tooltipArgs) == "table" and #data.tooltipArgs > 0 then
-            return zo_strformat(baseText, unpack(data.tooltipArgs))
+            baseText = zo_strformat(baseText, unpack(data.tooltipArgs))
         end
         return baseText
     end
@@ -3605,6 +3609,18 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
                     EZOTools_Overlay.Refresh()
                 end,
                 default = { 0.7, 0.7, 0.7, 1 },
+            },
+            {
+                type    = "checkbox",
+                name    = GetString(EZO_OPTION_GUILD_HIDE_NO_GUILD),
+                tooltip = GetString(EZO_OPTION_GUILD_HIDE_NO_GUILD_TOOLTIP),
+                getFunc = function() return EZO.sv.overlay.hideNoGuildLabel == true end,
+                setFunc = function(v)
+                    EZO.sv.overlay.hideNoGuildLabel = v == true
+                    EZOTools_Overlay.Refresh()
+                end,
+                default = false,
+                width   = "full",
             },
         }
     end)

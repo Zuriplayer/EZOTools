@@ -36,7 +36,7 @@ EZO_STRINGS_ES = {
     EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT = "Intentando consumir <<1>>",
     EZO_MSG_DEBUG_FOOD_CONSUME_FAILED = "Debug comida: no se ha confirmado el consumo o el buff no se ha renovado.",
     EZO_MSG_DEBUG_FOOD_NO_RECORDED = "Debug comida: no hay ninguna comida o bebida recordada disponible.",
-    EZO_MSG_DEBUG_MODE_DISABLED = "El modo debug está desactivado. Actívalo temporalmente en la configuración del addon para usar /ezo debug.",
+    EZO_MSG_DEBUG_MODE_DISABLED = "El modo debug está desactivado. Actívalo en la configuración del addon para usar /ezo debug.",
 
     -- -------------------------------------------------------------------------
     -- Panel LAM: sección General
@@ -65,6 +65,8 @@ EZO_STRINGS_ES = {
     EZO_OPTION_GUILD_OVERLAY            = "Imagen de hermandad",
     EZO_OPTION_GUILD_LABEL_COLOR        = "Color del nombre de la hermandad representada",
     EZO_OPTION_GUILD_LABEL_COLOR_TOOLTIP = "Sólo se aplica cuando hay una hermandad representada seleccionada y no llevas tabardo. Los estados de tabardo y sin hermandad mantienen sus colores actuales.",
+    EZO_OPTION_GUILD_HIDE_NO_GUILD      = "Ocultar texto 'Sin hermandad'",
+    EZO_OPTION_GUILD_HIDE_NO_GUILD_TOOLTIP = "Si está activado, el overlay oculta el texto 'Sin hermandad' cuando no hay ninguna hermandad representada en el selector C.",
 
     -- -------------------------------------------------------------------------
     -- Panel LAM: sección Casas de amigos
@@ -89,7 +91,7 @@ EZO_STRINGS_ES = {
     EZO_OPTION_RECHARGE_THRESHOLD         = "Umbral de recarga de armas (%)",
     EZO_OPTION_RECHARGE_THRESHOLD_TOOLTIP = "La opción 'Recargar armas' aparece en el menú solo si algún arma está por debajo de este porcentaje de carga de encantamiento.",
     EZO_OPTION_DEBUG_MODE                 = "Activar modo debug",
-    EZO_OPTION_DEBUG_MODE_TOOLTIP         = "Habilita temporalmente las funciones de debug del addon, incluido /ezo debug. Se desactiva al reiniciar el juego.",
+    EZO_OPTION_DEBUG_MODE_TOOLTIP         = "Habilita de forma persistente las funciones de debug del addon, incluido /ezo debug y las filas de inspección en menús bloqueados.",
 
     -- -------------------------------------------------------------------------
     -- Entradas del panel de comandos
@@ -109,6 +111,7 @@ EZO_STRINGS_ES = {
     EZO_MENU_REPAIR               = "Reparar equipo (<= <<1>>%)",
     EZO_MENU_RECHARGE             = "Recargar armas (<= <<1>>%)",
     EZO_MENU_RELOAD               = "Recargar interfaz",
+    EZO_MENU_DEBUG_VIEWER         = "Abrir Debug Log Viewer",
     EZO_MENU_EXIT                 = "Cerrar",
 
     -- -------------------------------------------------------------------------
@@ -160,6 +163,7 @@ EZO_STRINGS_ES = {
     EZO_MSG_ACTION_FAILED       = "Error en acción: <<1>>",
     EZO_MSG_CANT_OPEN_COMBAT    = "No se pueden abrir ajustes en combate.",
     EZO_MSG_CMD_PANEL_MISSING   = "Panel de comandos no disponible.",
+    EZO_MSG_DEBUG_VIEWER_UNAVAILABLE = "Debug Log Viewer no está disponible.",
     EZO_MSG_INPUT_MODE_SET      = "Modo de entrada: <<1>>",
     EZO_MSG_INPUT_MODE_NA       = "Ajuste de modo de entrada no disponible.",
 

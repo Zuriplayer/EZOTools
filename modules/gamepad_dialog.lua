@@ -39,6 +39,33 @@ local function RecopilarAcciones()
         end
     end
 
+    if EZO
+        and type(EZO.CanOpenDebugLogViewer) == "function"
+        and EZO.CanOpenDebugLogViewer() then
+        local debugEntry = {
+            name = GetString(EZO_MENU_DEBUG_VIEWER),
+            callback = function()
+                CerrarDialogoActual()
+                local function abrirVisor()
+                    if EZO and type(EZO.OpenDebugLogViewer) == "function" then
+                        EZO.OpenDebugLogViewer()
+                    end
+                end
+                if zo_callLater then
+                    zo_callLater(function() pcall(abrirVisor) end, 200)
+                else
+                    pcall(abrirVisor)
+                end
+            end,
+        }
+
+        if #acciones > 0 then
+            table.insert(acciones, #acciones, debugEntry)
+        else
+            table.insert(acciones, debugEntry)
+        end
+    end
+
     return acciones
 end
 

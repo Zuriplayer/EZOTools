@@ -5,7 +5,7 @@ EZOTools = EZOTools or {}
 local EZO = EZOTools
 local ADDON_NAME = "EZOTools"
 EZO.runtime = EZO.runtime or {}
-EZO.runtime.debugMode = false
+EZO.runtime.debugMode = EZO.runtime.debugMode == true
 
 -- Función de chat unificada: usa LibChatMessage si está disponible, si no d()
 local function safeChat(msg)
@@ -27,6 +27,9 @@ function EZO.SetDebugModeEnabled(enabled)
     EZO.runtime = EZO.runtime or {}
     enabled = enabled == true
     EZO.runtime.debugMode = enabled
+    if EZO.sv and EZO.sv.general then
+        EZO.sv.general.debugMode = enabled
+    end
 
     if (not enabled)
         and EZO.sv
@@ -34,6 +37,36 @@ function EZO.SetDebugModeEnabled(enabled)
         and type(EZOTools_Overlay.SetFoodDebugState) == "function" then
         EZOTools_Overlay.SetFoodDebugState("auto")
     end
+end
+
+function EZO.CanOpenDebugLogViewer()
+    if not EZO.IsDebugModeEnabled() then
+        return false
+    end
+    if not DebugLogViewer then
+        return false
+    end
+    return type(DebugLogViewer.ShowWindow) == "function"
+        or type(DebugLogViewer.ToggleWindow) == "function"
+end
+
+function EZO.OpenDebugLogViewer()
+    if not EZO.CanOpenDebugLogViewer() then
+        safeChat(GetString(EZO_MSG_DEBUG_VIEWER_UNAVAILABLE))
+        return false
+    end
+
+    if type(DebugLogViewer.ShowWindow) == "function" then
+        DebugLogViewer.ShowWindow()
+        return true
+    end
+    if type(DebugLogViewer.ToggleWindow) == "function" then
+        DebugLogViewer.ToggleWindow()
+        return true
+    end
+
+    safeChat(GetString(EZO_MSG_DEBUG_VIEWER_UNAVAILABLE))
+    return false
 end
 
 local function ObtenerIdiomaPorDefectoCliente()
@@ -180,12 +213,12 @@ function EZO:Initialize()
     local world = GetWorldName()
     local defaultLanguage = ObtenerIdiomaPorDefectoCliente()
     EZO.runtime = EZO.runtime or {}
-    EZO.runtime.debugMode = false
 
     -- Valores por defecto de las variables guardadas (por cuenta y mundo)
     local defaults = {
         general = {
             language          = defaultLanguage,
+            debugMode         = false,
             repairThreshold   = 25,
             rechargeThreshold = 25,
             repairKitAlertEnabled   = true,
@@ -202,6 +235,7 @@ function EZO:Initialize()
             playerTextScale  = 1.0,
             playerTextColor  = { 1, 1, 1, 1 },
             guildLabelColor  = { 0.7, 0.7, 0.7, 1 },
+            hideNoGuildLabel = false,
             guildCustomImageEnabled = false,
             simulateGamepad  = false,
             hideInCombat     = false,
@@ -242,6 +276,7 @@ function EZO:Initialize()
 
     self.sv = ZO_SavedVars:NewAccountWide("EZOTools_Saved", 1, world, defaults)
     self.csv = ZO_SavedVars:NewCharacterIdSettings("EZOTools_SavedChar", 1, world, charDefaults)
+    EZO.runtime.debugMode = self.sv and self.sv.general and self.sv.general.debugMode == true
 
     -- Aplicar idioma guardado
     if EZO_Lang and EZO_Lang.Apply then
