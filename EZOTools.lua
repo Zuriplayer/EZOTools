@@ -147,6 +147,105 @@ local function ObtenerAsignacionCasasPorGuild(guildKey)
     return nil
 end
 
+local function MergeUniqueNumberHistory(target, source, key, maxItems)
+    if type(target) ~= "table" or type(source) ~= "table" then return end
+    if type(source[key]) ~= "table" then return end
+
+    local merged = {}
+    local seen = {}
+    local limit = math.max(1, tonumber(maxItems) or 5)
+
+    local function AddValue(value)
+        value = tonumber(value) or 0
+        if value <= 0 or seen[value] then
+            return
+        end
+        seen[value] = true
+        merged[#merged + 1] = value
+    end
+
+    if type(target[key]) == "table" then
+        for _, value in ipairs(target[key]) do
+            AddValue(value)
+            if #merged >= limit then break end
+        end
+    end
+
+    if #merged < limit then
+        for _, value in ipairs(source[key]) do
+            AddValue(value)
+            if #merged >= limit then break end
+        end
+    end
+
+    target[key] = merged
+end
+
+local function MigrateLegacyCharacterOverlayData(csvOverlay, accountOverlay)
+    if type(csvOverlay) ~= "table" or type(accountOverlay) ~= "table" then
+        return
+    end
+
+    if (tonumber(accountOverlay.lastCompanionCollectibleId) or 0) == 0 then
+        local companionId = tonumber(csvOverlay.lastCompanionCollectibleId) or 0
+        if companionId > 0 then
+            accountOverlay.lastCompanionCollectibleId = companionId
+        end
+    end
+
+    if tostring(accountOverlay.lastFoodItemLink or "") == "" then
+        local itemLink = tostring(csvOverlay.lastFoodItemLink or "")
+        if itemLink ~= "" then
+            accountOverlay.lastFoodItemLink = itemLink
+        end
+    end
+
+    if tostring(accountOverlay.lastFoodItemName or "") == "" then
+        local itemName = tostring(csvOverlay.lastFoodItemName or "")
+        if itemName ~= "" then
+            accountOverlay.lastFoodItemName = itemName
+        end
+    end
+
+    MergeUniqueNumberHistory(accountOverlay, csvOverlay, "recentCompanionCollectibles", 5)
+
+    if type(csvOverlay.recentFoodItems) == "table" then
+        local mergedFood = {}
+        local seenFood = {}
+
+        local function AddFood(entry)
+            if type(entry) ~= "table" then return end
+            local itemLink = tostring(entry.itemLink or "")
+            local itemName = tostring(entry.itemName or "")
+            local key = (itemLink ~= "") and itemLink or itemName
+            if key == "" or seenFood[key] then
+                return
+            end
+            seenFood[key] = true
+            mergedFood[#mergedFood + 1] = {
+                itemLink = itemLink,
+                itemName = itemName,
+            }
+        end
+
+        if type(accountOverlay.recentFoodItems) == "table" then
+            for _, entry in ipairs(accountOverlay.recentFoodItems) do
+                AddFood(entry)
+                if #mergedFood >= 5 then break end
+            end
+        end
+
+        if #mergedFood < 5 then
+            for _, entry in ipairs(csvOverlay.recentFoodItems) do
+                AddFood(entry)
+                if #mergedFood >= 5 then break end
+            end
+        end
+
+        accountOverlay.recentFoodItems = mergedFood
+    end
+end
+
 function EZO.ApplyAutoFriendHousesSelection()
     if not (EZO.sv and EZO.sv.friends and EZO.sv.friends.autoAssignFriendHouses == true) then
         return false
@@ -276,6 +375,7 @@ function EZO:Initialize()
 
     self.sv = ZO_SavedVars:NewAccountWide("EZOTools_Saved", 1, world, defaults)
     self.csv = ZO_SavedVars:NewCharacterIdSettings("EZOTools_SavedChar", 1, world, charDefaults)
+    MigrateLegacyCharacterOverlayData(self.csv and self.csv.overlay, self.sv and self.sv.overlay)
     EZO.runtime.debugMode = self.sv and self.sv.general and self.sv.general.debugMode == true
 
     -- Aplicar idioma guardado
