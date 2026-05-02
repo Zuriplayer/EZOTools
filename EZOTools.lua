@@ -870,8 +870,8 @@ local function _mostrarAyudaDetallada()
     safeChat(GetString(EZO_CMD_HELP_CONTACT))
 end
 
--- Muestra las hermandades del jugador e indica cuál está representando actualmente.
--- GetRepresentedGuildId() es la API asociada al nombre de hermandad visible desde U49.
+-- Muestra los gremios del jugador e indica cuál está representando actualmente.
+-- GetRepresentedGuildId() es la API asociada al nombre de gremio visible desde U49.
 local function _comandoGuilds()
     local numGuilds = GetNumGuilds and GetNumGuilds() or 0
     if numGuilds == 0 then

@@ -83,7 +83,7 @@ EZO_STRINGS_ES = {
     EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD_TOOLTIP = "Elige Valores propios o un gremio de tu lista para editar sus casas guardadas. Esto no cambia qué perfil está autoasignado; la autoasignación usa siempre el gremio representado en C.",
     EZO_OPTION_FRIENDS_PROFILE_MANUAL = "Valores propios",
     EZO_OPTION_FRIENDS_SAVE_SELECTED = "Guardar perfil editado",
-    EZO_OPTION_FRIENDS_SAVE_SELECTED_TOOLTIP = "Guarda las casas escritas para el perfil seleccionado. Si ese perfil coincide con la hermandad autoasignada actual, se actualizarán también las casas activas.",
+    EZO_OPTION_FRIENDS_SAVE_SELECTED_TOOLTIP = "Guarda las casas escritas para el perfil seleccionado. Si ese perfil coincide con el gremio autoasignado actual, se actualizarán también las casas activas.",
     EZO_OPTION_FRIENDS_CRAFTING = "Editar casa de artesanía (@jugador)",
     EZO_OPTION_FRIENDS_SECONDARY= "Editar casa secundaria (@jugador)",
 
