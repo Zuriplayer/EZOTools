@@ -84,24 +84,51 @@ function EZO.DebugLog(msg)
     if not EZO.IsDebugModeEnabled() then
         return false
     end
-    if type(LibDebugLogger) ~= "function" then
+    local lib = _G.LibDebugLogger
+    if type(lib) ~= "function" and type(lib) ~= "table" then
         return false
     end
 
     local logger = EZO._debugLogger
     if logger == nil then
-        local ok, created = pcall(LibDebugLogger, ADDON_NAME)
-        if ok then
+        local ok, created = false, nil
+        if type(lib) == "function" then
+            ok, created = pcall(lib, ADDON_NAME)
+        end
+        if (not ok or created == nil) and type(lib) == "table" and type(lib.Create) == "function" then
+            ok, created = pcall(function()
+                return lib:Create(ADDON_NAME)
+            end)
+            if not ok or created == nil then
+                ok, created = pcall(lib.Create, ADDON_NAME)
+            end
+        end
+        if ok and created ~= nil then
             logger = created
             EZO._debugLogger = logger
         end
     end
 
-    if logger and type(logger.Debug) == "function" then
-        local ok = pcall(function()
+    if not logger then
+        return false
+    end
+
+    if type(logger.SetMinLevelOverride) == "function" and type(lib) == "table" and lib.LOG_LEVEL_DEBUG ~= nil then
+        pcall(function()
+            logger:SetMinLevelOverride(lib.LOG_LEVEL_DEBUG)
+        end)
+    end
+
+    if type(logger.Debug) == "function" then
+        return pcall(function()
             logger:Debug(tostring(msg))
         end)
-        return ok == true
+    end
+
+    if type(logger.Log) == "function" and type(lib) == "table" and lib.LOG_LEVEL_DEBUG ~= nil then
+        return pcall(function()
+            logger:Log(lib.LOG_LEVEL_DEBUG, tostring(msg))
+        end)
     end
 
     return false
@@ -109,10 +136,6 @@ end
 
 function EZO.DebugPrint(msg)
     if EZO.DebugLog(msg) then
-        return true
-    end
-    if EZO.IsDebugModeEnabled() and type(EZO.Print) == "function" then
-        EZO.Print(msg)
         return true
     end
     return false
@@ -910,50 +933,61 @@ end
 
 -- Muestra los gremios del jugador e indica cuál está representando actualmente.
 -- GetRepresentedGuildId() es la API asociada al nombre de gremio visible desde U49.
-local function _comandoGuilds()
+local function _construirReporteGuilds()
+    local lineas = {}
     local numGuilds = GetNumGuilds and GetNumGuilds() or 0
     if numGuilds == 0 then
-        safeChat(GetString(EZO_CMD_GUILDS_NONE))
-        return
+        lineas[#lineas + 1] = GetString(EZO_CMD_GUILDS_NONE)
+        return lineas
     end
 
     local representedId = GetRepresentedGuildId and GetRepresentedGuildId() or 0
 
-    safeChat(zo_strformat(GetString(EZO_CMD_GUILDS_HEADER), numGuilds))
+    lineas[#lineas + 1] = zo_strformat(GetString(EZO_CMD_GUILDS_HEADER), numGuilds)
     for i = 1, numGuilds do
         local guildId  = GetGuildId(i)
         local nombre   = GetGuildName(guildId) or "?"
         local miembros = GetNumGuildMembers(guildId) or 0
         local marcador = (guildId == representedId) and GetString(EZO_CMD_GUILDS_REPRESENTED) or ""
-        safeChat(zo_strformat(GetString(EZO_CMD_GUILDS_ROW), i, nombre, miembros, guildId, marcador))
+        lineas[#lineas + 1] = zo_strformat(GetString(EZO_CMD_GUILDS_ROW), i, nombre, miembros, guildId, marcador)
     end
 
     if representedId == 0 then
-        safeChat(GetString(EZO_CMD_GUILDS_NONE_REP))
+        lineas[#lineas + 1] = GetString(EZO_CMD_GUILDS_NONE_REP)
+    end
+
+    return lineas
+end
+
+local function _comandoGuilds()
+    for _, linea in ipairs(_construirReporteGuilds()) do
+        safeChat(linea)
     end
 end
 
 -- Volcado de diagnóstico general del addon.
-local function _comandoInfo()
-    safeChat(GetString(EZO_CMD_INFO_HEADER))
+local function _construirReporteInfo()
+    local lineas = {
+        GetString(EZO_CMD_INFO_HEADER),
+    }
 
     -- Zona
     local zonaIdx = GetUnitZoneIndex and GetUnitZoneIndex("player") or nil
     local zona = (zonaIdx and GetZoneNameByIndex and GetZoneNameByIndex(zonaIdx)) or "?"
-    safeChat(zo_strformat(GetString(EZO_CMD_INFO_ZONE), tostring(zona)))
+    lineas[#lineas + 1] = zo_strformat(GetString(EZO_CMD_INFO_ZONE), tostring(zona))
 
     -- Grupo
     local enGrupo = IsUnitGrouped and IsUnitGrouped("player")
     if enGrupo then
         local tamano = GetGroupSize and GetGroupSize() or "?"
-        safeChat(zo_strformat(GetString(EZO_CMD_INFO_GROUP), tostring(tamano)))
+        lineas[#lineas + 1] = zo_strformat(GetString(EZO_CMD_INFO_GROUP), tostring(tamano))
         local leaderTag = GetGroupLeaderUnitTag and GetGroupLeaderUnitTag()
         if leaderTag and leaderTag ~= "" then
             local leaderName = (GetUnitDisplayName and GetUnitDisplayName(leaderTag)) or leaderTag
-            safeChat(zo_strformat(GetString(EZO_CMD_INFO_LEADER), tostring(leaderName)))
+            lineas[#lineas + 1] = zo_strformat(GetString(EZO_CMD_INFO_LEADER), tostring(leaderName))
         end
     else
-        safeChat(GetString(EZO_CMD_INFO_NO_GROUP))
+        lineas[#lineas + 1] = GetString(EZO_CMD_INFO_NO_GROUP)
     end
 
     -- Mantenimiento
@@ -961,19 +995,26 @@ local function _comandoInfo()
     local umbralRec = (EZOTools.sv and EZOTools.sv.general and tonumber(EZOTools.sv.general.rechargeThreshold)) or 50
     local necesitaReparar  = EZOTools.CanRepairEquipped  and EZOTools.CanRepairEquipped()
     local necesitaRecargar = EZOTools.CanRechargeWeapons and EZOTools.CanRechargeWeapons()
-    safeChat(zo_strformat(GetString(EZO_CMD_INFO_REPAIR), umbralRep, necesitaReparar and GetString(EZO_CMD_INFO_NEEDED) or GetString(EZO_CMD_INFO_OK)))
-    safeChat(zo_strformat(GetString(EZO_CMD_INFO_RECHARGE), umbralRec, necesitaRecargar and GetString(EZO_CMD_INFO_NEEDED) or GetString(EZO_CMD_INFO_OK)))
+    lineas[#lineas + 1] = zo_strformat(GetString(EZO_CMD_INFO_REPAIR), umbralRep, necesitaReparar and GetString(EZO_CMD_INFO_NEEDED) or GetString(EZO_CMD_INFO_OK))
+    lineas[#lineas + 1] = zo_strformat(GetString(EZO_CMD_INFO_RECHARGE), umbralRec, necesitaRecargar and GetString(EZO_CMD_INFO_NEEDED) or GetString(EZO_CMD_INFO_OK))
 
     -- Guild representada
     local representedId = GetRepresentedGuildId and GetRepresentedGuildId() or 0
     if representedId ~= 0 then
         local nombreGuild = (GetGuildName and GetGuildName(representedId)) or "?"
-        safeChat(zo_strformat(GetString(EZO_CMD_INFO_GUILD), nombreGuild, representedId))
+        lineas[#lineas + 1] = zo_strformat(GetString(EZO_CMD_INFO_GUILD), nombreGuild, representedId)
     else
-        safeChat(GetString(EZO_CMD_INFO_NO_GUILD))
+        lineas[#lineas + 1] = GetString(EZO_CMD_INFO_NO_GUILD)
     end
 
-    safeChat(GetString(EZO_CMD_INFO_FOOTER))
+    lineas[#lineas + 1] = GetString(EZO_CMD_INFO_FOOTER)
+    return lineas
+end
+
+local function _comandoInfo()
+    for _, linea in ipairs(_construirReporteInfo()) do
+        safeChat(linea)
+    end
 end
 
 local function _comandoVersion()
@@ -993,19 +1034,42 @@ end
 
 local EjecutarDebugTexload, EjecutarDebugTex, EjecutarDebugDots, EjecutarDebugLayout, EjecutarDebugFood
 
+local function _emitirReporteDebug(titulo, lineas)
+    local reporte = {}
+    local tituloFinal = tostring(titulo or "EZOTools debug")
+    reporte[#reporte + 1] = tituloFinal
+    if type(lineas) == "table" then
+        for _, linea in ipairs(lineas) do
+            reporte[#reporte + 1] = tostring(linea)
+        end
+    elseif lineas ~= nil then
+        reporte[#reporte + 1] = tostring(lineas)
+    end
+    if EZO.DebugPrint(table.concat(reporte, "\n")) then
+        if EZO.CanOpenDebugLogViewer() then
+            safeChat(zo_strformat(GetString(EZO_MSG_DEBUG_REPORT_SENT), tituloFinal))
+        else
+            safeChat(zo_strformat(GetString(EZO_MSG_DEBUG_REPORT_LOGGED_VIEWER_MISSING), tituloFinal))
+        end
+    else
+        safeChat(GetString(EZO_MSG_DEBUG_LOGGER_UNAVAILABLE))
+    end
+end
+
 local function _mostrarAyudaDebug()
     if not EZO.IsDebugModeEnabled() then
         safeChat(GetString(EZO_MSG_DEBUG_MODE_DISABLED))
         return
     end
-    safeChat(GetString(EZO_CMD_DEBUG_TITLE))
-    safeChat(GetString(EZO_CMD_DEBUG_INFO))
-    safeChat(GetString(EZO_CMD_DEBUG_GUILDS))
-    safeChat(GetString(EZO_CMD_DEBUG_TEX))
-    safeChat(GetString(EZO_CMD_DEBUG_TEXLOAD))
-    safeChat(GetString(EZO_CMD_DEBUG_DOTS))
-    safeChat(GetString(EZO_CMD_DEBUG_LAYOUT))
-    safeChat(GetString(EZO_CMD_DEBUG_FOOD))
+    _emitirReporteDebug(GetString(EZO_CMD_DEBUG_TITLE), {
+        GetString(EZO_CMD_DEBUG_INFO),
+        GetString(EZO_CMD_DEBUG_GUILDS),
+        GetString(EZO_CMD_DEBUG_TEX),
+        GetString(EZO_CMD_DEBUG_TEXLOAD),
+        GetString(EZO_CMD_DEBUG_DOTS),
+        GetString(EZO_CMD_DEBUG_LAYOUT),
+        GetString(EZO_CMD_DEBUG_FOOD),
+    })
 end
 
 local function _ejecutarDebug(sub, arg)
@@ -1019,11 +1083,11 @@ local function _ejecutarDebug(sub, arg)
         return true
     end
     if sub == "info" then
-        _comandoInfo()
+        _emitirReporteDebug("EZOTools debug info", _construirReporteInfo())
         return true
     end
     if sub == "guilds" then
-        _comandoGuilds()
+        _emitirReporteDebug("EZOTools debug guilds", _construirReporteGuilds())
         return true
     end
     if sub == "tex" then
@@ -1125,34 +1189,35 @@ end
 
 EjecutarDebugFood = function(modo)
     if not (EZOTools_Overlay and EZOTools_Overlay.SetFoodDebugState) then
-        EZOTools.Print(GetString(EZO_CMD_LAYOUT_NA))
+        _emitirReporteDebug("EZOTools debug food", GetString(EZO_CMD_LAYOUT_NA))
         return
     end
     modo = zo_strlower(tostring(modo or ""))
     if modo == "" then
-        EZOTools.Print(GetString(EZO_CMD_DEBUG_FOOD_USAGE))
+        _emitirReporteDebug("EZOTools debug food", GetString(EZO_CMD_DEBUG_FOOD_USAGE))
         return
     end
     if not EZOTools_Overlay.SetFoodDebugState(modo) then
-        EZOTools.Print(GetString(EZO_CMD_DEBUG_FOOD_USAGE))
+        _emitirReporteDebug("EZOTools debug food", GetString(EZO_CMD_DEBUG_FOOD_USAGE))
         return
     end
-    EZOTools.Print(zo_strformat(GetString(EZO_CMD_DEBUG_FOOD_SET), modo))
+    _emitirReporteDebug("EZOTools debug food", zo_strformat(GetString(EZO_CMD_DEBUG_FOOD_SET), modo))
 end
 
 -- Diagnóstico: comprueba la carga de texturas del overlay.
 EjecutarDebugTexload = function()
+    local lineas = {}
     local ventana = _G["EZOTexTest"]
-    if ventana and not ventana:IsHidden() then
+    if ventana then
         ventana:SetHidden(true)
-        return
-    end
-    if not ventana then
+    else
         ventana = WINDOW_MANAGER:CreateTopLevelWindow("EZOTexTest")
     end
-    ventana:SetDimensions(200, 200)
+    ventana:SetDimensions(1, 1)
     ventana:ClearAnchors()
     ventana:SetAnchor(CENTER, GuiRoot, CENTER, 0, 0)
+    ventana:SetMouseEnabled(false)
+    ventana:SetAlpha(0)
     ventana:SetHidden(false)
 
     local texturas = {
@@ -1174,12 +1239,16 @@ EjecutarDebugTexload = function()
         t:SetTexture(ruta)
         t:SetHidden(false)
         local ok = t:IsTextureLoaded()
-        EZOTools.Print(string.format("[%d] %s = %s", i, ruta:match("[^/]+$"), tostring(ok)))
+        t:SetHidden(true)
+        lineas[#lineas + 1] = string.format("[%d] %s = %s", i, ruta:match("[^/]+$"), tostring(ok))
     end
+    ventana:SetHidden(true)
+    _emitirReporteDebug("EZOTools debug texload", lineas)
 end
 
 -- Diagnóstico de texturas de iconos del overlay
 EjecutarDebugTex = function()
+    local lineas = {}
     local iconos = {
         {nombre="MaintDot",    ctrl=EZOTools_MaintDot},
         {nombre="FoodDot",     ctrl=EZOTools_FoodDot},
@@ -1190,49 +1259,51 @@ EjecutarDebugTex = function()
     }
     for _, v in ipairs(iconos) do
         if v.ctrl then
-            EZOTools.Print(string.format("%s: exists=true hidden=%s texLoaded=%s",
+            lineas[#lineas + 1] = string.format("%s: exists=true hidden=%s texLoaded=%s",
                 v.nombre,
                 tostring(v.ctrl:IsHidden()),
-                tostring(v.ctrl:IsTextureLoaded())))
+                tostring(v.ctrl:IsTextureLoaded()))
         else
-            EZOTools.Print(v.nombre .. ": NO EXISTE")
+            lineas[#lineas + 1] = v.nombre .. ": NO EXISTE"
         end
     end
+    _emitirReporteDebug("EZOTools debug tex", lineas)
 end
 
 EjecutarDebugLayout = function()
     if not (EZOTools_Overlay and EZOTools_Overlay.ToggleLayoutPreview) then
-        EZOTools.Print(GetString(EZO_CMD_LAYOUT_NA))
+        _emitirReporteDebug("EZOTools debug layout", GetString(EZO_CMD_LAYOUT_NA))
         return
     end
     local activo = EZOTools_Overlay.ToggleLayoutPreview()
-    EZOTools.Print(activo and GetString(EZO_CMD_LAYOUT_ON) or GetString(EZO_CMD_LAYOUT_OFF))
+    _emitirReporteDebug("EZOTools debug layout", activo and GetString(EZO_CMD_LAYOUT_ON) or GetString(EZO_CMD_LAYOUT_OFF))
 end
 
 -- Diagnóstico rápido del estado de iconos inferiores.
 EjecutarDebugDots = function()
     local EZO_Overlay = EZOTools_Overlay
     if not EZO_Overlay then
-        EZOTools.Print("EZOTools_Overlay no existe")
+        _emitirReporteDebug("EZOTools debug dots", "EZOTools_Overlay no existe")
         return
     end
+    local lineas = {}
     local pet = _G["EZOToolsPetDot2"]
     local comp = _G["EZOToolsCompDot2"]
     local assist = _G["EZOToolsAssistDot2"]
-    EZOTools.Print("PetDot2: " .. tostring(pet))
-    EZOTools.Print("CompDot2: " .. tostring(comp))
-    EZOTools.Print("AssistDot2: " .. tostring(assist))
+    lineas[#lineas + 1] = "PetDot2: " .. tostring(pet)
+    lineas[#lineas + 1] = "CompDot2: " .. tostring(comp)
+    lineas[#lineas + 1] = "AssistDot2: " .. tostring(assist)
     if pet then
-        EZOTools.Print("Pet hidden=" .. tostring(pet:IsHidden()) ..
-            " texture=" .. tostring(pet:GetTextureFileName()))
+        lineas[#lineas + 1] = "Pet hidden=" .. tostring(pet:IsHidden()) ..
+            " texture=" .. tostring(pet:GetTextureFileName())
     end
     if comp then
-        EZOTools.Print("Comp hidden=" .. tostring(comp:IsHidden()) ..
-            " texture=" .. tostring(comp:GetTextureFileName()))
+        lineas[#lineas + 1] = "Comp hidden=" .. tostring(comp:IsHidden()) ..
+            " texture=" .. tostring(comp:GetTextureFileName())
     end
     if assist then
-        EZOTools.Print("Assist hidden=" .. tostring(assist:IsHidden()) ..
-            " texture=" .. tostring(assist:GetTextureFileName()))
+        lineas[#lineas + 1] = "Assist hidden=" .. tostring(assist:IsHidden()) ..
+            " texture=" .. tostring(assist:GetTextureFileName())
     end
     local numBuffs = GetNumBuffs and GetNumBuffs("player") or "N/A"
     local groupSize = GetGroupSize and GetGroupSize() or "N/A"
@@ -1241,8 +1312,10 @@ EjecutarDebugDots = function()
         GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_VANITY_PET, GAMEPLAY_ACTOR_CATEGORY_PLAYER) or 0
     local assistId = GetActiveCollectibleByType and
         GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_ASSISTANT, GAMEPLAY_ACTOR_CATEGORY_PLAYER) or 0
-    EZOTools.Print("grupo=" .. tostring(groupSize) ..
+    lineas[#lineas + 1] = "grupo=" .. tostring(groupSize) ..
         " companion=" .. tostring(hasComp) ..
         " petId=" .. tostring(petId) ..
-        " assistId=" .. tostring(assistId))
+        " assistId=" .. tostring(assistId)
+    lineas[#lineas + 1] = "buffs=" .. tostring(numBuffs)
+    _emitirReporteDebug("EZOTools debug dots", lineas)
 end
