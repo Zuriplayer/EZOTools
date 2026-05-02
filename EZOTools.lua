@@ -7,6 +7,38 @@ local ADDON_NAME = "EZOTools"
 EZO.runtime = EZO.runtime or {}
 EZO.runtime.debugMode = EZO.runtime.debugMode == true
 
+local function RegisterWithEZOBindings()
+    if not (EZOBindings and type(EZOBindings.RegisterAddon) == "function") then
+        return
+    end
+
+    EZOBindings:RegisterAddon(ADDON_NAME, {
+        version = 1,
+        actions = {
+            {
+                name = "EZO_TOGGLE_COMMAND_PANEL",
+                keyboard = { preferred = "CTRL+ALT+KEY_NUMPAD0" },
+                gamepad = { preferred = "KEY_GAMEPAD_BUTTON_3_HOLD" },
+                priority = 100,
+                mode = "global",
+            },
+            {
+                name = "EZO_TOGGLE_UTILITY_PANEL",
+                gamepad = { preferred = "KEY_GAMEPAD_BUTTON_4_HOLD" },
+                priority = 90,
+                mode = "global",
+            },
+            { name = "EZO_TRAVEL_PRIMARY_HOUSE", mode = "global" },
+            { name = "EZO_TRAVEL_CRAFTING_HALL", mode = "global" },
+            { name = "EZO_TRAVEL_SECONDARY_HALL", mode = "global" },
+            { name = "EZO_LEAVE_GROUP", mode = "global" },
+            { name = "EZO_LEAVE_INSTANCE", mode = "global" },
+            { name = "EZO_LEAVE_GROUP_INSTANCE", mode = "global" },
+            { name = "EZO_RELOAD_UI", mode = "global" },
+        },
+    })
+end
+
 -- Función de chat unificada: usa LibChatMessage si está disponible, si no d()
 local function safeChat(msg)
     if LibChatMessage then
@@ -420,6 +452,8 @@ function EZO:Initialize()
     safeChat(GetString(EZO_MSG_INIT))
 
     if self.RegisterSlashCommands then self:RegisterSlashCommands() end
+
+    RegisterWithEZOBindings()
 
 
     -- Asignar keybinds por defecto del panel de comandos.
