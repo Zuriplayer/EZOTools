@@ -662,6 +662,22 @@ local function NormalizarTextoTooltip(texto)
 end
 MOD.NormalizeTooltipText = NormalizarTextoTooltip
 
+local function NormalizarTextoEtiqueta(texto)
+    if type(texto) ~= "string" then
+        return ""
+    end
+    texto = NormalizarTextoTooltip(texto)
+    texto = texto:gsub("|H.-|h(.-)|h", "%1")
+    texto = texto:gsub("|c%x%x%x%x%x%x", "")
+    texto = texto:gsub("|r", "")
+    texto = texto:gsub("%^%a+", "")
+    texto = texto:gsub("%s+", " ")
+    if type(zo_strtrim) == "function" then
+        return zo_strtrim(texto)
+    end
+    return texto:gsub("^%s+", ""):gsub("%s+$", "")
+end
+
 local function MostrarTooltipWidget(ctrl, side, index, data)
     local texto = ObtenerTooltipWidget(side, index, data)
     if not texto or texto == "" then
@@ -778,6 +794,117 @@ local function ObtenerTextoStringId(nombreId)
         return ""
     end
     return GetString(stringId)
+end
+
+local function EsModoGamepadPreferido()
+    if type(IsInGamepadPreferredMode) == "function" then
+        return IsInGamepadPreferredMode() == true
+    end
+    if type(IsInGamepadMode) == "function" then
+        return IsInGamepadMode() == true
+    end
+    return false
+end
+
+local function CerrarDialogosUtilidadRapida()
+    local recentDialog = EZO and EZO.GamepadUtilityRecentDialog
+    if recentDialog and type(recentDialog.Close) == "function" then
+        pcall(function() recentDialog.Close() end)
+    end
+    local utilityDialog = EZO and EZO.GamepadUtilityDialog
+    if utilityDialog and type(utilityDialog.Close) == "function" then
+        pcall(function() utilityDialog.Close() end)
+    end
+end
+
+local function EjecutarTrasCerrarUtilidades(fn)
+    if type(fn) ~= "function" then return false end
+    CerrarDialogosUtilidadRapida()
+    if type(zo_callLater) == "function" then
+        zo_callLater(function() pcall(fn) end, 120)
+    else
+        pcall(fn)
+    end
+    return true
+end
+
+local function ExisteEscena(sceneName)
+    if type(sceneName) ~= "string" or sceneName == "" then
+        return false
+    end
+    if SCENE_MANAGER and type(SCENE_MANAGER.GetScene) == "function" then
+        return SCENE_MANAGER:GetScene(sceneName) ~= nil
+    end
+    return true
+end
+
+local function MostrarEscena(sceneName)
+    if type(sceneName) ~= "string" or sceneName == "" then
+        return false
+    end
+    if SCENE_MANAGER and type(SCENE_MANAGER.Show) == "function" and ExisteEscena(sceneName) then
+        SCENE_MANAGER:Show(sceneName)
+        return true
+    end
+    return false
+end
+
+local function MostrarEscenaMenuKeyboard(sceneName)
+    if type(sceneName) ~= "string" or sceneName == "" then
+        return false
+    end
+    if MAIN_MENU_KEYBOARD and type(MAIN_MENU_KEYBOARD.ShowScene) == "function" and ExisteEscena(sceneName) then
+        MAIN_MENU_KEYBOARD:ShowScene(sceneName)
+        return true
+    end
+    return MostrarEscena(sceneName)
+end
+
+local function ObtenerPrimerCollectibleDeCategoria(categoryType)
+    if categoryType == nil then
+        return 0
+    end
+    if type(GetTotalCollectiblesByCategoryType) ~= "function" or type(GetCollectibleIdFromType) ~= "function" then
+        return 0
+    end
+    local total = tonumber(GetTotalCollectiblesByCategoryType(categoryType)) or 0
+    for index = 1, total do
+        local collectibleId = tonumber(GetCollectibleIdFromType(categoryType, index)) or 0
+        if collectibleId > 0 then
+            return collectibleId
+        end
+    end
+    return 0
+end
+
+local function AbrirLibroColecciones()
+    if EsModoGamepadPreferido() then
+        return MostrarEscena("gamepadCollectionsBook")
+    end
+    if MAIN_MENU_KEYBOARD and type(MAIN_MENU_KEYBOARD.ToggleSceneGroup) == "function" then
+        MAIN_MENU_KEYBOARD:ToggleSceneGroup("collectionsSceneGroup", "collectionsBook")
+        return true
+    end
+    return MostrarEscenaMenuKeyboard("collectionsBook")
+end
+
+local function AbrirColeccionPorCollectible(collectibleId)
+    local finalId = tonumber(collectibleId) or 0
+    if finalId > 0 and COLLECTIONS_BOOK_SINGLETON and type(COLLECTIONS_BOOK_SINGLETON.BrowseToCollectible) == "function" then
+        COLLECTIONS_BOOK_SINGLETON:BrowseToCollectible(finalId)
+        return true
+    end
+    return AbrirLibroColecciones()
+end
+
+local ObtenerConfiguracionAliado
+
+local function AbrirColeccionAliado(tipo)
+    local config = ObtenerConfiguracionAliado and ObtenerConfiguracionAliado(tipo) or nil
+    return EjecutarTrasCerrarUtilidades(function()
+        local categoryType = config and config.collectibleCategoryType or nil
+        AbrirColeccionPorCollectible(ObtenerPrimerCollectibleDeCategoria(categoryType))
+    end)
 end
 
 local function ObtenerOverlaySVParaClave(clave)
@@ -1508,6 +1635,8 @@ local ALLY_ICON_MENU_CONFIG = {
         historyKey = "recentMountCollectibles",
         fallbackNameKey = "EZO_DOT_MOUNT_FALLBACK_NAME",
         historyEmptyKey = "EZO_DOT_MOUNT_HISTORY_EMPTY",
+        emptyActionKey = "EZO_UTILITY_EMPTY_OPEN_MOUNT_COLLECTIONS",
+        collectibleCategoryType = COLLECTIBLE_CATEGORY_TYPE_MOUNT,
         historyLimit = 10,
         showRecentHoverPreview = true,
     },
@@ -1516,6 +1645,8 @@ local ALLY_ICON_MENU_CONFIG = {
         historyKey = "recentPetCollectibles",
         fallbackNameKey = "EZO_DOT_PET_FALLBACK_NAME",
         historyEmptyKey = "EZO_DOT_PET_HISTORY_EMPTY",
+        emptyActionKey = "EZO_UTILITY_EMPTY_OPEN_PET_COLLECTIONS",
+        collectibleCategoryType = COLLECTIBLE_CATEGORY_TYPE_VANITY_PET,
         historyLimit = 10,
         showRecentHoverPreview = true,
     },
@@ -1524,6 +1655,8 @@ local ALLY_ICON_MENU_CONFIG = {
         historyKey = "recentCompanionCollectibles",
         fallbackNameKey = "EZO_DOT_COMPANION_FALLBACK_NAME",
         historyEmptyKey = "EZO_DOT_COMPANION_HISTORY_EMPTY",
+        emptyActionKey = "EZO_UTILITY_EMPTY_OPEN_COMPANION_COLLECTIONS",
+        collectibleCategoryType = COLLECTIBLE_CATEGORY_TYPE_COMPANION,
         historyLimit = 5,
         showRecentHoverPreview = true,
     },
@@ -1532,12 +1665,14 @@ local ALLY_ICON_MENU_CONFIG = {
         historyKey = "recentAssistantCollectibles",
         fallbackNameKey = "EZO_DOT_ASSISTANT_FALLBACK_NAME",
         historyEmptyKey = "EZO_DOT_ASSISTANT_HISTORY_EMPTY",
+        emptyActionKey = "EZO_UTILITY_EMPTY_OPEN_ASSISTANT_COLLECTIONS",
+        collectibleCategoryType = COLLECTIBLE_CATEGORY_TYPE_ASSISTANT,
         historyLimit = 5,
         showRecentHoverPreview = true,
     },
 }
 
-local function ObtenerConfiguracionAliado(tipo)
+function ObtenerConfiguracionAliado(tipo)
     return ALLY_ICON_MENU_CONFIG[tipo]
 end
 
@@ -3184,7 +3319,7 @@ function MOD.BuildQuickUtilityEntries()
     return entries
 end
 
-function MOD.BuildQuickUtilityRecentEntries(clave)
+function MOD.BuildQuickUtilityRecentEntries(clave, usarAccionVacia)
     local entries = {}
 
     local function AgregarEntrada(texto, callback, previewData)
@@ -3212,7 +3347,7 @@ function MOD.BuildQuickUtilityRecentEntries(clave)
                     local itemLink = tostring(entry.itemLink or "")
                     local itemName = tostring(entry.itemName or "")
                     local _, _, resolvedName = BuscarConsumibleComidaPorReferencia(itemLink, itemName)
-                    local label = tostring(resolvedName or itemName or "")
+                    local label = NormalizarTextoEtiqueta(tostring(resolvedName or itemName or ""))
                     if label ~= "" then
                         AgregarEntrada(label, function()
                             return ConsumirComidaHistorialConSeguridad(itemLink, itemName)
@@ -3255,7 +3390,13 @@ function MOD.BuildQuickUtilityRecentEntries(clave)
         end
     end
 
-    if #entries == 0 then
+    if usarAccionVacia == true then
+        AgregarEntrada(ObtenerTextoStringId(config.emptyActionKey), function()
+            return AbrirColeccionAliado(clave)
+        end, {
+            emptyAction = true,
+        })
+    elseif #entries == 0 then
         entries[#entries + 1] = {
             text = ObtenerTextoStringId(config.historyEmptyKey),
             empty = true,
@@ -3424,11 +3565,17 @@ function MOD.Init()
         if overlayWin and not overlayWin:IsHidden() then
             -- Iconos de mantenimiento
             RefrescarDot()
-            -- Guild representada (no hay evento para SetRepresentedGuildId)
-            if type(GetRepresentedGuildId) == "function" then
-                local guildId = GetRepresentedGuildId()
-                if guildId ~= cachedRepresentedGuildId then
-                    cachedRepresentedGuildId = guildId
+        end
+        -- Guild representada (no hay evento para SetRepresentedGuildId).
+        -- La autoasignacion de casas no debe depender de que el overlay este visible.
+        if type(GetRepresentedGuildId) == "function" then
+            local guildId = GetRepresentedGuildId()
+            if guildId ~= cachedRepresentedGuildId then
+                cachedRepresentedGuildId = guildId
+                if EZO and type(EZO.ApplyAutoFriendHousesSelection) == "function" then
+                    EZO.ApplyAutoFriendHousesSelection()
+                end
+                if overlayWin then
                     RefrescarEtiquetaGuild()
                 end
             end
@@ -3459,6 +3606,7 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
                     if EZO_Lang and EZO_Lang.Apply then EZO_Lang.Apply(v) end
                     EZOTools_Overlay.Refresh()
                 end,
+                default = (EZO.GetDefaultLanguage and EZO.GetDefaultLanguage()) or "en",
                 width   = "half",
                 tooltip = GetString(EZO_OPTION_LANGUAGE_TOOLTIP),
             },
@@ -3618,6 +3766,9 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
 
     EZOTools_LAM.RegisterSection("friend_houses", 20, function()
         local EZO = EZOTools
+        if EZO.RefreshActiveFriendHouses then
+            EZO.RefreshActiveFriendHouses()
+        end
         return {
             { type = "header", name = GetString(EZO_OPTION_FRIENDS) },
             {
@@ -3627,52 +3778,117 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
                 getFunc = function() return EZO.sv.friends.autoAssignFriendHouses == true end,
                 setFunc = function(v)
                     EZO.sv.friends.autoAssignFriendHouses = v
-                    if v and EZO.ApplyAutoFriendHousesSelection then
+                    if v == false then
+                        if EZO.ResetFriendHouseProfileDefaults then
+                            EZO.ResetFriendHouseProfileDefaults()
+                        elseif EZO.ApplyManualFriendHouseProfileSelection then
+                            EZO.sv.friends.manualActiveFriendHouseProfileKey = EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual"
+                            EZO.ApplyManualFriendHouseProfileSelection()
+                        end
+                    elseif EZO.ApplyAutoFriendHousesSelection then
                         EZO.ApplyAutoFriendHousesSelection()
                     end
                 end,
                 default = false,
                 width   = "full",
-                disabled = function()
-                    local choices = {}
-                    if EZO.GetEligibleAutoFriendGuildChoices then
-                        choices = EZO.GetEligibleAutoFriendGuildChoices()
+            },
+            {
+                type = "description",
+                text = function()
+                    if EZO.sv and EZO.sv.friends and EZO.sv.friends.autoAssignFriendHouses ~= true then
+                        local manualKey = EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual"
+                        if tostring(EZO.sv.friends.manualActiveFriendHouseProfileKey or "") == "" then
+                            EZO.sv.friends.manualActiveFriendHouseProfileKey = manualKey
+                        end
                     end
-                    return #choices == 0
+                    if EZO.GetActiveFriendHousesDescription then
+                        return EZO.GetActiveFriendHousesDescription()
+                    end
+                    return ""
                 end,
+                width = "full",
+            },
+            {
+                type         = "dropdown",
+                name         = GetString(EZO_OPTION_FRIENDS_MANUAL_ACTIVE_PROFILE),
+                tooltip      = GetString(EZO_OPTION_FRIENDS_MANUAL_ACTIVE_PROFILE_TOOLTIP),
+                choices      = (function()
+                    if EZO.GetFriendHouseProfileChoices then
+                        local choices = EZO.GetFriendHouseProfileChoices()
+                        return choices
+                    end
+                    return {}
+                end)(),
+                choicesValues = (function()
+                    if EZO.GetFriendHouseProfileChoices then
+                        local _, values = EZO.GetFriendHouseProfileChoices()
+                        return values
+                    end
+                    return {}
+                end)(),
+                getFunc      = function() return EZO.sv.friends.manualActiveFriendHouseProfileKey or EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual" end,
+                setFunc      = function(v)
+                    EZO.sv.friends.manualActiveFriendHouseProfileKey = tostring(v or EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual")
+                    EZO.sv.friends.manualActiveFriendHouseProfileInitialized = true
+                    if EZO.sv.friends.autoAssignFriendHouses ~= true and EZO.ApplyManualFriendHouseProfileSelection then
+                        EZO.ApplyManualFriendHouseProfileSelection()
+                    end
+                end,
+                default      = EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual",
+                disabled     = function()
+                    return EZO.sv.friends.autoAssignFriendHouses == true
+                end,
+            },
+            {
+                type = "description",
+                text = GetString(EZO_OPTION_FRIENDS_EDIT_PROFILE_NOTE),
             },
             {
                 type         = "dropdown",
                 name         = GetString(EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD),
                 tooltip      = GetString(EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD_TOOLTIP),
                 choices      = (function()
-                    if EZO.GetEligibleAutoFriendGuildChoices then
-                        local choices = EZO.GetEligibleAutoFriendGuildChoices()
+                    if EZO.GetFriendHouseProfileChoices then
+                        local choices = EZO.GetFriendHouseProfileChoices()
                         return choices
                     end
                     return {}
                 end)(),
                 choicesValues = (function()
-                    if EZO.GetEligibleAutoFriendGuildChoices then
-                        local _, values = EZO.GetEligibleAutoFriendGuildChoices()
+                    if EZO.GetFriendHouseProfileChoices then
+                        local _, values = EZO.GetFriendHouseProfileChoices()
                         return values
                     end
                     return {}
                 end)(),
-                getFunc      = function() return EZO.sv.friends.autoAssignFriendGuildKey or "" end,
+                getFunc      = function() return EZO.sv.friends.friendHouseProfileKey or EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual" end,
                 setFunc      = function(v)
-                    EZO.sv.friends.autoAssignFriendGuildKey = tostring(v or "")
-                    if EZO.sv.friends.autoAssignFriendHouses == true and EZO.ApplyAutoFriendHousesSelection then
-                        EZO.ApplyAutoFriendHousesSelection()
+                    EZO.sv.friends.friendHouseProfileKey = tostring(v or EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual")
+                    if EZO.LoadSelectedFriendHouseProfileForEditing then
+                        EZO.LoadSelectedFriendHouseProfileForEditing()
                     end
                 end,
-                disabled     = function()
-                    local choices = {}
-                    if EZO.GetEligibleAutoFriendGuildChoices then
-                        choices = EZO.GetEligibleAutoFriendGuildChoices()
-                    end
-                    return EZO.sv.friends.autoAssignFriendHouses ~= true or #choices == 0
+                default      = EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual",
+            },
+            {
+                type        = "editbox",
+                name        = GetString(EZO_OPTION_FRIENDS_CRAFTING),
+                getFunc     = function() return EZO.sv.friends.editCraftingHall or "" end,
+                setFunc     = function(v)
+                    EZO.sv.friends.editCraftingHall = tostring(v or "")
                 end,
+                isMultiline = false,
+                default     = "",
+            },
+            {
+                type        = "editbox",
+                name        = GetString(EZO_OPTION_FRIENDS_SECONDARY),
+                getFunc     = function() return EZO.sv.friends.editSecondaryHall or "" end,
+                setFunc     = function(v)
+                    EZO.sv.friends.editSecondaryHall = tostring(v or "")
+                end,
+                isMultiline = false,
+                default     = "",
             },
             {
                 type  = "button",
@@ -3684,23 +3900,6 @@ if EZOTools_LAM and EZOTools_LAM.RegisterSection then
                     end
                 end,
                 width = "full",
-                disabled = function()
-                    return not (EZO.sv and EZO.sv.friends and EZO.sv.friends.autoAssignFriendGuildKey and EZO.sv.friends.autoAssignFriendGuildKey ~= "")
-                end,
-            },
-            {
-                type        = "editbox",
-                name        = GetString(EZO_OPTION_FRIENDS_CRAFTING),
-                getFunc     = function() return EZO.sv.friends.craftingHall end,
-                setFunc     = function(v) EZO.sv.friends.craftingHall = v end,
-                isMultiline = false,
-            },
-            {
-                type        = "editbox",
-                name        = GetString(EZO_OPTION_FRIENDS_SECONDARY),
-                getFunc     = function() return EZO.sv.friends.secondaryHall end,
-                setFunc     = function(v) EZO.sv.friends.secondaryHall = v end,
-                isMultiline = false,
             },
         }
     end)

@@ -36,7 +36,7 @@ end
 
 local function RecopilarEntradasRecientes()
     if _G.EZOTools_Overlay and type(_G.EZOTools_Overlay.BuildQuickUtilityRecentEntries) == "function" then
-        local ok, entries = pcall(_G.EZOTools_Overlay.BuildQuickUtilityRecentEntries, Dialog._currentKey)
+        local ok, entries = pcall(_G.EZOTools_Overlay.BuildQuickUtilityRecentEntries, Dialog._currentKey, true)
         if ok and type(entries) == "table" then
             return entries
         end
@@ -57,6 +57,10 @@ local function NormalizarTextoEntradaLista(texto)
             texto = normalized
         end
     end
+    texto = texto:gsub("|H.-|h(.-)|h", "%1")
+    texto = texto:gsub("|c%x%x%x%x%x%x", "")
+    texto = texto:gsub("|r", "")
+    texto = texto:gsub("%^%a+", "")
     texto = texto:gsub("\n", " ")
     texto = texto:gsub("%s+", " ")
     return zo_strtrim(texto)

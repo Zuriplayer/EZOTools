@@ -106,6 +106,8 @@ local function ConstruirOpciones()
         disabled = function() return EZOTools.sv.general.soulGemAlertEnabled == false end,
     }
 
+    opciones[#opciones + 1] = { type = "header", name = GetString(EZO_OPTION_DEBUG) }
+
     opciones[#opciones + 1] = {
         type = "checkbox",
         name = GetString(EZO_OPTION_DEBUG_MODE),

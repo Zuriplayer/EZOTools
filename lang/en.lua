@@ -72,15 +72,21 @@ EZO_STRINGS_EN = {
     -- -------------------------------------------------------------------------
     -- LAM panel: Friend Houses section
     -- -------------------------------------------------------------------------
-    EZO_OPTION_FRIENDS          = "Friend Houses",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN = "Auto-assign houses from selected guild",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN_TOOLTIP = "If enabled, the addon automatically fills the crafting and secondary house fields using the guild chosen in the selector, as long as you belong to a guild supported by the addon.",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD = "Guild for auto-assignment",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD_TOOLTIP = "Choose one of your guilds supported by the addon. Auto-assignment will use your saved configuration for that guild first and fall back to the addon's internal assignment if no saved configuration exists.",
-    EZO_OPTION_FRIENDS_SAVE_SELECTED = "Save current houses",
-    EZO_OPTION_FRIENDS_SAVE_SELECTED_TOOLTIP = "Save the current Crafting Hall and Secondary Hall values for the selected guild. Auto-assignment will use this saved configuration before the internal one.",
-    EZO_OPTION_FRIENDS_CRAFTING = "Crafting Hall (account name @...)",
-    EZO_OPTION_FRIENDS_SECONDARY= "Secondary Hall (account name @...)",
+    EZO_OPTION_FRIENDS          = "Guild Houses",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN = "Auto-assign houses from guild",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN_TOOLTIP = "If enabled, the addon uses the guild represented in C only when it has a saved or internal profile. If there is no valid guild in C, it uses Own values.",
+    EZO_OPTION_FRIENDS_ACTIVE_VALUES = "Active Crafting/Secondary: |cC8A95A<<1>>|r / |cC8A95A<<2>>|r",
+    EZO_OPTION_FRIENDS_ACTIVE_EMPTY = "(empty)",
+    EZO_OPTION_FRIENDS_MANUAL_ACTIVE_PROFILE = "Manual active profile",
+    EZO_OPTION_FRIENDS_MANUAL_ACTIVE_PROFILE_TOOLTIP = "When auto-assignment is disabled, this profile defines the houses the addon uses for travel. It defaults to Own values until you change it.",
+    EZO_OPTION_FRIENDS_EDIT_PROFILE_NOTE = "The fields below only edit the selected profile. They do not change active houses until you save and apply the matching profile.",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD = "Profile being edited",
+    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD_TOOLTIP = "Choose Own values or one of your guilds to edit its saved houses. This does not change the auto-assigned profile; auto-assignment always uses the guild represented in C.",
+    EZO_OPTION_FRIENDS_PROFILE_MANUAL = "Own values",
+    EZO_OPTION_FRIENDS_SAVE_SELECTED = "Save edited profile",
+    EZO_OPTION_FRIENDS_SAVE_SELECTED_TOOLTIP = "Save the written houses for the selected profile. If that profile matches the current auto-assigned guild, the active houses are updated too.",
+    EZO_OPTION_FRIENDS_CRAFTING = "Edit Crafting Hall (@player)",
+    EZO_OPTION_FRIENDS_SECONDARY= "Edit Secondary Hall (@player)",
 
     -- -------------------------------------------------------------------------
     -- LAM panel: Maintenance section
@@ -91,6 +97,7 @@ EZO_STRINGS_EN = {
     EZO_OPTION_REPAIR_THRESHOLD_TOOLTIP   = "The 'Repair equipped' option appears in the menu only if any equipped item is below this durability percentage.",
     EZO_OPTION_RECHARGE_THRESHOLD         = "Recharge weapons threshold (%)",
     EZO_OPTION_RECHARGE_THRESHOLD_TOOLTIP = "The 'Recharge weapons' option appears in the menu only if any equipped weapon is below this enchant charge percentage.",
+    EZO_OPTION_DEBUG                      = "Debug",
     EZO_OPTION_DEBUG_MODE                 = "Enable debug mode",
     EZO_OPTION_DEBUG_MODE_TOOLTIP         = "Enables the addon's debug features persistently, including /ezo debug and debug-only inspection rows in blocked menus.",
 
@@ -209,6 +216,7 @@ EZO_STRINGS_EN = {
     EZO_CMD_INFO_NO_GUILD       = "  Represented guild: none",
 
     EZO_CMD_VERSION_HEADER      = "=== EZOTools v<<1>> ===",
+    EZO_CMD_VERSION_API         = "  ESO API: <<1>>",
     EZO_CMD_VERSION_LANGUAGE    = "  Language: <<1>>",
     EZO_CMD_VERSION_LAM         = "  LibAddonMenu: <<1>>",
     EZO_CMD_VERSION_OVERLAY     = "  Overlay module: <<1>>",
@@ -251,7 +259,7 @@ EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT"] = "You are about to consume 
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT_WITH_TIME"] = "You are about to consume <<1>>.|n|nTime remaining on the current effect: |cC8A95A<<2>>|r."
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT_WITH_EFFECT"] = "You are about to consume <<1>>.|n|nEffect: <<2>>"
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT_WITH_EFFECT_AND_TIME"] = "You are about to consume <<1>>.|n|nEffect: <<2>>|n|nTime remaining on the current effect: |cC8A95A<<3>>|r."
-EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_HISTORY_EMPTY"] = "No food or drink is saved yet.|nUse one to add it here."
+EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_HISTORY_EMPTY"] = "No food or drink is saved yet.|nOpen the game's inventory and use one to add it here."
 EZO_STRINGS_EN["EZO_TIME_REMAINING_HM"] = "<<1>>h <<2>>m"
 EZO_STRINGS_EN["EZO_TIME_REMAINING_MS"] = "<<1>>m <<2>>s"
 EZO_STRINGS_EN["EZO_TIME_REMAINING_S"] = "<<1>>s"
@@ -280,6 +288,10 @@ EZO_STRINGS_EN["EZO_DOT_MOUNT_HISTORY_EMPTY"] = "No mounts are saved yet.|nSelec
 EZO_STRINGS_EN["EZO_DOT_PET_HISTORY_EMPTY"] = "No pets are saved yet.|nSummon a pet to add it here."
 EZO_STRINGS_EN["EZO_DOT_COMPANION_HISTORY_EMPTY"] = "No companions are saved yet.|nSummon a companion to add it here."
 EZO_STRINGS_EN["EZO_DOT_ASSISTANT_HISTORY_EMPTY"] = "No assistants are saved yet.|nSummon an assistant to add it here."
+EZO_STRINGS_EN["EZO_UTILITY_EMPTY_OPEN_MOUNT_COLLECTIONS"] = "Open mount collections"
+EZO_STRINGS_EN["EZO_UTILITY_EMPTY_OPEN_PET_COLLECTIONS"] = "Open pet collections"
+EZO_STRINGS_EN["EZO_UTILITY_EMPTY_OPEN_COMPANION_COLLECTIONS"] = "Open companion screen"
+EZO_STRINGS_EN["EZO_UTILITY_EMPTY_OPEN_ASSISTANT_COLLECTIONS"] = "Open assistant collections"
 EZO_STRINGS_EN["EZO_CMD_DEBUG_FOOD"] = "/ezo debug food green|yellow|red|auto - force the food icon state"
 EZO_STRINGS_EN["EZO_CMD_DEBUG_FOOD_USAGE"] = "Usage: /ezo debug food green|yellow|red|auto"
 EZO_STRINGS_EN["EZO_CMD_DEBUG_FOOD_SET"] = "Food debug state: <<1>>"
