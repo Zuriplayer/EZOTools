@@ -119,7 +119,7 @@ EZO_STRINGS_EN = {
     EZO_MENU_REPAIR               = "Repair equipped (<= <<1>>%)",
     EZO_MENU_RECHARGE             = "Recharge weapons (<= <<1>>%)",
     EZO_MENU_RELOAD               = "Reload UI",
-    EZO_MENU_DEBUG_VIEWER         = "Open Debug Log Viewer",
+    EZO_MENU_DEBUG_VIEWER         = "Open technical viewer",
     EZO_MENU_EXIT                 = "Exit",
 
     -- -------------------------------------------------------------------------
@@ -173,7 +173,10 @@ EZO_STRINGS_EN = {
     EZO_MSG_CMD_PANEL_MISSING   = "Command Panel not available.",
     EZO_MSG_UTILITY_PANEL_MISSING = "Utility Panel not available.",
     EZO_MSG_MENU_CALLBACK_FAILED = "Menu debug: failed to run option: <<1>>",
-    EZO_MSG_DEBUG_VIEWER_UNAVAILABLE = "Debug Log Viewer is not available.",
+    EZO_MSG_DEBUG_VIEWER_UNAVAILABLE = "Technical viewer is not available.",
+    EZO_MSG_DEBUG_LOGGER_UNAVAILABLE = "Technical diagnostics are not available; no report was generated.",
+    EZO_MSG_DEBUG_REPORT_SENT = "Diagnostic report generated: <<1>>",
+    EZO_MSG_DEBUG_REPORT_LOGGED_VIEWER_MISSING = "Diagnostic report generated: <<1>>. Diagnostic viewer is not available.",
     EZO_MSG_INPUT_MODE_SET      = "Input mode: <<1>>",
     EZO_MSG_INPUT_MODE_NA       = "Input mode setting not available.",
 
@@ -190,7 +193,7 @@ EZO_STRINGS_EN = {
     EZO_CMD_HELP_DETAIL_DEBUG   = "    debug groups technical support and development tools; they are not normal gameplay commands.",
     EZO_CMD_HELP_CONTACT        = "    For addon issues, questions, or feedback, you can contact @Zuriplayer.",
 
-    EZO_CMD_DEBUG_TITLE         = "Diagnostic commands:",
+    EZO_CMD_DEBUG_TITLE         = "Diagnostic commands",
     EZO_CMD_DEBUG_INFO          = "  /ezo debug info     — diagnostic: zone, group, maintenance, guild",
     EZO_CMD_DEBUG_GUILDS        = "  /ezo debug guilds   — list your guilds and which is represented",
     EZO_CMD_DEBUG_TEX           = "  /ezo debug tex      — overlay icon state",

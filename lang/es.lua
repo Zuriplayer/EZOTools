@@ -118,7 +118,7 @@ EZO_STRINGS_ES = {
     EZO_MENU_REPAIR               = "Reparar equipo (<= <<1>>%)",
     EZO_MENU_RECHARGE             = "Recargar armas (<= <<1>>%)",
     EZO_MENU_RELOAD               = "Recargar interfaz",
-    EZO_MENU_DEBUG_VIEWER         = "Abrir Debug Log Viewer",
+    EZO_MENU_DEBUG_VIEWER         = "Abrir visor técnico",
     EZO_MENU_EXIT                 = "Cerrar",
 
     -- -------------------------------------------------------------------------
@@ -172,7 +172,10 @@ EZO_STRINGS_ES = {
     EZO_MSG_CMD_PANEL_MISSING   = "Panel de comandos no disponible.",
     EZO_MSG_UTILITY_PANEL_MISSING = "Panel de utilidades no disponible.",
     EZO_MSG_MENU_CALLBACK_FAILED = "Debug menú: error al ejecutar una opción: <<1>>",
-    EZO_MSG_DEBUG_VIEWER_UNAVAILABLE = "Debug Log Viewer no está disponible.",
+    EZO_MSG_DEBUG_VIEWER_UNAVAILABLE = "Visor técnico no disponible.",
+    EZO_MSG_DEBUG_LOGGER_UNAVAILABLE = "Diagnóstico técnico no disponible; no se ha generado reporte.",
+    EZO_MSG_DEBUG_REPORT_SENT = "Diagnóstico generado: <<1>>",
+    EZO_MSG_DEBUG_REPORT_LOGGED_VIEWER_MISSING = "Diagnóstico generado: <<1>>. Visor técnico no disponible.",
     EZO_MSG_INPUT_MODE_SET      = "Modo de entrada: <<1>>",
     EZO_MSG_INPUT_MODE_NA       = "Ajuste de modo de entrada no disponible.",
 
@@ -189,7 +192,7 @@ EZO_STRINGS_ES = {
     EZO_CMD_HELP_DETAIL_DEBUG   = "    debug agrupa herramientas técnicas de soporte y desarrollo; no son comandos de uso normal.",
     EZO_CMD_HELP_CONTACT        = "    Para incidencias, dudas o feedback del addon, puedes contactar con @Zuriplayer.",
 
-    EZO_CMD_DEBUG_TITLE         = "Comandos de diagnóstico:",
+    EZO_CMD_DEBUG_TITLE         = "Comandos de diagnóstico",
     EZO_CMD_DEBUG_INFO          = "  /ezo debug info     — diagnóstico: zona, grupo, mantenimiento y gremio",
     EZO_CMD_DEBUG_GUILDS        = "  /ezo debug guilds   — lista tus gremios y cuál está representado",
     EZO_CMD_DEBUG_TEX           = "  /ezo debug tex      — estado de iconos del overlay",
