@@ -24,17 +24,26 @@ local function RegisterWithEZOBindings()
             },
             {
                 name = "EZO_TOGGLE_UTILITY_PANEL",
+                keyboard = { preferred = "CTRL+ALT+KEY_NUMPAD1" },
                 gamepad = { preferred = "KEY_GAMEPAD_BUTTON_4_HOLD" },
                 priority = 90,
                 mode = "global",
             },
-            { name = "EZO_TRAVEL_PRIMARY_HOUSE", mode = "global" },
+            {
+                name = "EZO_TRAVEL_PRIMARY_HOUSE",
+                keyboard = { preferred = "ALT+KEY_H" },
+                mode = "global",
+            },
             { name = "EZO_TRAVEL_CRAFTING_HALL", mode = "global" },
             { name = "EZO_TRAVEL_SECONDARY_HALL", mode = "global" },
             { name = "EZO_LEAVE_GROUP", mode = "global" },
             { name = "EZO_LEAVE_INSTANCE", mode = "global" },
             { name = "EZO_LEAVE_GROUP_INSTANCE", mode = "global" },
-            { name = "EZO_RELOAD_UI", mode = "global" },
+            {
+                name = "EZO_RELOAD_UI",
+                keyboard = { preferred = "KEY_NUMPAD_MINUS" },
+                mode = "global",
+            },
         },
     })
 end
