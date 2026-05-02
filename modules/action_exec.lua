@@ -30,8 +30,6 @@ function X.Execute(actionId, ctx)
     if not ok then
         if EZO and EZO.Print then
             EZO.Print(zo_strformat(GetString(EZO_MSG_ACTION_FAILED), tostring(actionId)))
-        else
-            d("[EZOTools] Error en acción: " .. tostring(actionId) .. " (" .. tostring(resOrErr) .. ")")
         end
         return false
     end

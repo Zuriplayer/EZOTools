@@ -80,6 +80,44 @@ function EZO.SetDebugModeEnabled(enabled)
     end
 end
 
+function EZO.DebugLog(msg)
+    if not EZO.IsDebugModeEnabled() then
+        return false
+    end
+    if type(LibDebugLogger) ~= "function" then
+        return false
+    end
+
+    local logger = EZO._debugLogger
+    if logger == nil then
+        local ok, created = pcall(LibDebugLogger, ADDON_NAME)
+        if ok then
+            logger = created
+            EZO._debugLogger = logger
+        end
+    end
+
+    if logger and type(logger.Debug) == "function" then
+        local ok = pcall(function()
+            logger:Debug(tostring(msg))
+        end)
+        return ok == true
+    end
+
+    return false
+end
+
+function EZO.DebugPrint(msg)
+    if EZO.DebugLog(msg) then
+        return true
+    end
+    if EZO.IsDebugModeEnabled() and type(EZO.Print) == "function" then
+        EZO.Print(msg)
+        return true
+    end
+    return false
+end
+
 function EZO.CanOpenDebugLogViewer()
     if not EZO.IsDebugModeEnabled() then
         return false
@@ -1073,7 +1111,7 @@ function EZOTools_ToggleCommandPanel()
     if type(ezo) == "table" and type(ezo.ToggleCommandPanel) == "function" then
         return ezo.ToggleCommandPanel()
     end
-    d("[EZOTools] Panel de comandos no disponible (ToggleCommandPanel no cargado)")
+    safeChat(GetString(EZO_MSG_CMD_PANEL_MISSING))
 end
 
 function EZOTools_ToggleUtilityPanel()
@@ -1081,7 +1119,7 @@ function EZOTools_ToggleUtilityPanel()
     if type(ezo) == "table" and type(ezo.ToggleUtilityPanel) == "function" then
         return ezo.ToggleUtilityPanel()
     end
-    d("[EZOTools] Panel de utilidades no disponible (ToggleUtilityPanel no cargado)")
+    safeChat(GetString(EZO_MSG_UTILITY_PANEL_MISSING))
 end
 
 

@@ -5,6 +5,15 @@
 EZOTools_ContextMenu = EZOTools_ContextMenu or {}
 local EZO = EZOTools
 
+local function ReportarErrorMenu(err)
+    if not (EZO and type(EZO.IsDebugModeEnabled) == "function" and EZO.IsDebugModeEnabled()) then
+        return
+    end
+    if EZO and type(EZO.DebugPrint) == "function" then
+        EZO.DebugPrint(zo_strformat(GetString(EZO_MSG_MENU_CALLBACK_FAILED), tostring(err)))
+    end
+end
+
 -- Construye la lista de entradas usando el módulo actions (fuente única de verdad)
 local function ConstruirEntradas()
     if _G.EZOTools_Actions and type(_G.EZOTools_Actions.BuildEntries) == "function" then
@@ -56,7 +65,7 @@ function EZOTools_ContextMenu.OpenMouse(anchor)
                 local ok, retOrErr = pcall(e.callback or function() end)
                 local mantenerAbierto = (ok and retOrErr == true) or false
                 if not ok then
-                    d("|cF00000EZO error de menú:|r " .. tostring(retOrErr))
+                    ReportarErrorMenu(retOrErr)
                 end
                 if not mantenerAbierto then
                     if HideMenu then HideMenu() end
@@ -79,7 +88,7 @@ local function AbrirMenuContextualGamepad()
             for _, e in ipairs(entradas) do
                 GAMEPAD_CONTEXT_MENU:AddOption(e.text or "?", function()
                     local ok2, err2 = pcall(e.callback or function() end)
-                    if not ok2 then d("|cF00000EZO error de menú:|r " .. tostring(err2)) end
+                    if not ok2 then ReportarErrorMenu(err2) end
                     if GAMEPAD_CONTEXT_MENU.Hide then GAMEPAD_CONTEXT_MENU:Hide() end
                 end)
             end
@@ -117,7 +126,7 @@ local function AbrirDialogoGamepad()
                         local data = dialog.entryList:GetTargetData()
                         if data and data.entryData and data.entryData.callback then
                             local ok, err = pcall(data.entryData.callback)
-                            if not ok then d("|cF00000EZO error de menú:|r " .. tostring(err)) end
+                            if not ok then ReportarErrorMenu(err) end
                         end
                         ZO_Dialogs_ReleaseDialogOnButtonPress(nombre)
                     end,

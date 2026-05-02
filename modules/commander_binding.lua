@@ -56,8 +56,6 @@ end
 local function AvisarNoDisponible(ezo)
     if ezo and ezo.Print then
         ezo.Print(GetString(EZO_MSG_CMD_PANEL_MISSING))
-    else
-        d(GetString(EZO_MSG_CMD_PANEL_MISSING))
     end
 end
 
