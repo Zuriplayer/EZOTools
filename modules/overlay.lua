@@ -1,7 +1,7 @@
 -- Módulo de overlay visual de EZOTools.
 -- Gestiona la ventana flotante (logo + texto) que sirve como punto de acceso al menú.
--- El aviso de "Tabardo de Hermandad" ha sido eliminado (obsoleto desde Update 49:
--- el juego permite mostrar el escudo de hermandad sin llevar tabardo equipado,
+-- El aviso de "Tabardo de gremio" ha sido eliminado (obsoleto desde Update 49:
+-- el juego permite mostrar el escudo de gremio sin llevar tabardo equipado,
 -- por lo que la detección por BAG_WORN ya no es fiable).
 
 EZOTools_Overlay = EZOTools_Overlay or {}
@@ -313,7 +313,7 @@ end
 -- Lógica de prioridad:
 --   1. Tabardo equipado → nombre de la guild del tabardo (amarillo discreto)
 --   2. Guild representada en selector C → nombre en color configurable
---   3. Ninguna → "Sin hermandad" / "No guild" en color neutro
+--   3. Ninguna → "Sin gremio" / "No guild" en color neutro
 local function RefrescarEtiquetaGuild()
     if not overlayGuildLabel then return end
     RefrescarTexturaLogoCentral()
