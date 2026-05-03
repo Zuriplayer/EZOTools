@@ -175,6 +175,93 @@ local function ConstruirReporteInfo()
     return lineas
 end
 
+local function FormatearResultadoFuncion(nombre, ...)
+    local fn = _G[nombre]
+    if type(fn) ~= "function" then
+        return string.format("%s: unavailable", nombre)
+    end
+    local ok, v1, v2, v3, v4 = pcall(fn, ...)
+    if not ok then
+        return string.format("%s: error=%s", nombre, tostring(v1))
+    end
+    local valores = { v1, v2, v3, v4 }
+    local partes = {}
+    for i = 1, 4 do
+        if valores[i] ~= nil then
+            partes[#partes + 1] = string.format("result%d=%s", i, tostring(valores[i]))
+        end
+    end
+    if #partes == 0 then
+        return string.format("%s: ok result=nil", nombre)
+    end
+    return string.format("%s: ok -- %s", nombre, table.concat(partes, " -- "))
+end
+
+local function ConstruirReporteHouse()
+    local lineas = {
+        "=== House diagnostic ===",
+    }
+
+    local zonaIdx = GetUnitZoneIndex and GetUnitZoneIndex("player") or nil
+    local zona = (zonaIdx and GetZoneNameByIndex and GetZoneNameByIndex(zonaIdx)) or "?"
+    lineas[#lineas + 1] = "zoneName=" .. tostring(zona)
+
+    lineas[#lineas + 1] = FormatearResultadoFuncion("GetMapName")
+    if type(GetCurrentMapZoneIndex) == "function" then
+        local ok, mapZoneIndex = pcall(GetCurrentMapZoneIndex)
+        lineas[#lineas + 1] = "GetCurrentMapZoneIndex=" .. tostring(ok and mapZoneIndex or "error")
+        if ok and type(GetZoneId) == "function" then
+            local okZone, zoneId = pcall(GetZoneId, mapZoneIndex)
+            lineas[#lineas + 1] = "GetZoneId(currentMapZoneIndex)=" .. tostring(okZone and zoneId or "error")
+        end
+    else
+        lineas[#lineas + 1] = "GetCurrentMapZoneIndex=unavailable"
+    end
+
+    lineas[#lineas + 1] = FormatearResultadoFuncion("GetCurrentZoneHouseId")
+    lineas[#lineas + 1] = FormatearResultadoFuncion("GetHousingPrimaryHouse")
+    lineas[#lineas + 1] = FormatearResultadoFuncion("IsOwnerOfCurrentHouse")
+    lineas[#lineas + 1] = FormatearResultadoFuncion("IsLocalPlayerHouseOwner")
+    lineas[#lineas + 1] = FormatearResultadoFuncion("CanLocalPlayerEditHouse")
+    lineas[#lineas + 1] = FormatearResultadoFuncion("CanLocalPlayerBrowseFurniture")
+    lineas[#lineas + 1] = FormatearResultadoFuncion("CanLeaveCurrentLocationViaTeleport")
+    lineas[#lineas + 1] = FormatearResultadoFuncion("GetCurrentHouseOwner")
+    lineas[#lineas + 1] = "COLLECTIBLE_CATEGORY_TYPE_HOUSE=" .. tostring(COLLECTIBLE_CATEGORY_TYPE_HOUSE)
+
+    if COLLECTIBLE_CATEGORY_TYPE_HOUSE ~= nil then
+        lineas[#lineas + 1] = FormatearResultadoFuncion("GetTotalCollectiblesByCategoryType", COLLECTIBLE_CATEGORY_TYPE_HOUSE)
+        lineas[#lineas + 1] = FormatearResultadoFuncion("GetCollectibleIdFromType", COLLECTIBLE_CATEGORY_TYPE_HOUSE, 1)
+    end
+    do
+        local saved = EZO and EZO.sv and EZO.sv.overlay and EZO.sv.overlay.recentOwnHouses
+        lineas[#lineas + 1] = "recentOwnHouses=" .. tostring(type(saved) == "table" and #saved or 0)
+    end
+    do
+        local saved = EZO and EZO.sv and EZO.sv.overlay and EZO.sv.overlay.recentOtherHouses
+        lineas[#lineas + 1] = "recentOtherHouses=" .. tostring(type(saved) == "table" and #saved or 0)
+    end
+
+    local currentHouseId = nil
+    if type(GetCurrentZoneHouseId) == "function" then
+        local ok, houseId = pcall(GetCurrentZoneHouseId)
+        if ok then currentHouseId = tonumber(houseId) or 0 end
+    end
+    if currentHouseId and currentHouseId > 0 then
+        lineas[#lineas + 1] = FormatearResultadoFuncion("CanJumpToHouseFromCurrentLocation", currentHouseId)
+        if _G.HOUSING_SOCIAL_MANAGER and type(_G.HOUSING_SOCIAL_MANAGER.GetHouseName) == "function" then
+            local okName, houseName = pcall(function()
+                return _G.HOUSING_SOCIAL_MANAGER:GetHouseName(currentHouseId)
+            end)
+            lineas[#lineas + 1] = "HOUSING_SOCIAL_MANAGER:GetHouseName(currentHouseId)=" .. tostring(okName and houseName or "error")
+        else
+            lineas[#lineas + 1] = "HOUSING_SOCIAL_MANAGER:GetHouseName=unavailable"
+        end
+    end
+
+    lineas[#lineas + 1] = "========================"
+    return lineas
+end
+
 function Debug.EmitReport(titulo, lineas)
     local reporte = {}
     local tituloFinal = tostring(titulo or "EZOTools debug")
@@ -210,6 +297,7 @@ local function MostrarAyudaDebug()
         GetString(EZO_CMD_DEBUG_DOTS),
         GetString(EZO_CMD_DEBUG_LAYOUT),
         GetString(EZO_CMD_DEBUG_FOOD),
+        GetString(EZO_CMD_DEBUG_HOUSE),
     })
 end
 
@@ -379,6 +467,10 @@ function Debug.Execute(sub, arg)
     end
     if sub == "food" then
         EjecutarDebugFood(arg)
+        return true
+    end
+    if sub == "house" then
+        Debug.EmitReport("EZOTools debug house", ConstruirReporteHouse())
         return true
     end
     MostrarAyudaDebug()

@@ -200,6 +200,8 @@ function EZO:Initialize()
             lastFoodItemLink = "",
             lastFoodItemName = "",
             recentFoodItems = {},
+            recentOwnHouses = {},
+            recentOtherHouses = {},
             x                = nil,
             y                = nil,
         },

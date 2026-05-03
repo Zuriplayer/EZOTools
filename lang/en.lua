@@ -141,6 +141,14 @@ EZO_STRINGS_EN = {
     EZO_UTILITY_ENTRY_PET       = "Pet",
     EZO_UTILITY_ENTRY_COMPANION = "Companion",
     EZO_UTILITY_ENTRY_ASSISTANT = "Assistant",
+    EZO_UTILITY_ENTRY_HOUSES    = "Houses",
+    EZO_UTILITY_ENTRY_OTHER_HOUSES = "Other players' houses",
+    EZO_UTILITY_HOUSES_OPEN_COLLECTIONS = "Open houses collection",
+    EZO_UTILITY_HOUSES_HISTORY_EMPTY = "No owned houses are saved yet.|nVisit an owned house different from your primary house to add it here.",
+    EZO_UTILITY_HOUSES_VISIT_HINT = "Visit your owned houses to remember the last 10.",
+    EZO_UTILITY_OTHER_HOUSES_HISTORY_EMPTY = "No other players' houses are saved yet.|nThey will be remembered as you visit specific houses owned by other players.",
+    EZO_UTILITY_OTHER_HOUSES_VISIT_HINT = "Visit other players' houses to remember the last 20.",
+    EZO_UTILITY_HOUSES_FALLBACK_NAME = "House",
 
     -- -------------------------------------------------------------------------
     -- Chat messages: travel
@@ -200,6 +208,7 @@ EZO_STRINGS_EN = {
     EZO_CMD_DEBUG_TEXLOAD       = "  /ezo debug texload  — texture loading test",
     EZO_CMD_DEBUG_DOTS          = "  /ezo debug dots     — pet/ally icon state",
     EZO_CMD_DEBUG_LAYOUT        = "  /ezo debug layout   — toggle side icon preview",
+    EZO_CMD_DEBUG_HOUSE         = "  /ezo debug house    — current housing diagnostic",
 
     EZO_CMD_GUILDS_NONE         = "You do not belong to any guild.",
     EZO_CMD_GUILDS_HEADER       = "Guilds (<<1>>):",
