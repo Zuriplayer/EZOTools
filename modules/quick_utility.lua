@@ -5,6 +5,14 @@ EZOTools_QuickUtility = EZOTools_QuickUtility or {}
 
 local MOD = EZOTools_QuickUtility
 
+local CATEGORY_DEFINITIONS = {
+    { key = "assistant", textKey = "EZO_UTILITY_ENTRY_ASSISTANT" },
+    { key = "companion", textKey = "EZO_UTILITY_ENTRY_COMPANION" },
+    { key = "food", textKey = "EZO_UTILITY_ENTRY_FOOD" },
+    { key = "pet", textKey = "EZO_UTILITY_ENTRY_PET" },
+    { key = "mount", textKey = "EZO_UTILITY_ENTRY_MOUNT" },
+}
+
 local function ObtenerOverlay()
     local overlay = _G.EZOTools_Overlay
     if type(overlay) == "table" then
@@ -13,10 +21,12 @@ local function ObtenerOverlay()
     return nil
 end
 
-local function AgregarEntrada(entries, key, textId)
-    if type(entries) ~= "table" or type(key) ~= "string" or key == "" or not textId then
+local function AgregarEntrada(entries, key, textKey)
+    if type(entries) ~= "table" or type(key) ~= "string" or key == "" or type(textKey) ~= "string" then
         return
     end
+    local textId = _G[textKey]
+    if textId == nil then return end
     local text = GetString(textId)
     if type(text) ~= "string" or text == "" then
         return
@@ -36,11 +46,9 @@ end
 
 function MOD.BuildEntries()
     local entries = {}
-    AgregarEntrada(entries, "assistant", EZO_UTILITY_ENTRY_ASSISTANT)
-    AgregarEntrada(entries, "companion", EZO_UTILITY_ENTRY_COMPANION)
-    AgregarEntrada(entries, "food", EZO_UTILITY_ENTRY_FOOD)
-    AgregarEntrada(entries, "pet", EZO_UTILITY_ENTRY_PET)
-    AgregarEntrada(entries, "mount", EZO_UTILITY_ENTRY_MOUNT)
+    for _, definition in ipairs(CATEGORY_DEFINITIONS) do
+        AgregarEntrada(entries, definition.key, definition.textKey)
+    end
     return entries
 end
 
