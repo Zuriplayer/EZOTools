@@ -18,14 +18,29 @@ local function RegisterWithEZOBindings()
             {
                 name = "EZO_TOGGLE_COMMAND_PANEL",
                 keyboard = { preferred = "CTRL+ALT+KEY_NUMPAD0" },
-                gamepad = { preferred = "KEY_GAMEPAD_BUTTON_3_HOLD" },
+                gamepad = {
+                    preferred = "KEY_GAMEPAD_BUTTON_3_HOLD",
+                    allowNativeReuse = {
+                        KEY_GAMEPAD_BUTTON_3_HOLD = {
+                            housing = true,
+                            ui = true,
+                        },
+                    },
+                },
                 priority = 100,
                 mode = "global",
             },
             {
                 name = "EZO_TOGGLE_UTILITY_PANEL",
                 keyboard = { preferred = "CTRL+ALT+KEY_NUMPAD1" },
-                gamepad = { preferred = "KEY_GAMEPAD_BUTTON_4_HOLD" },
+                gamepad = {
+                    preferred = "KEY_GAMEPAD_BUTTON_4_HOLD",
+                    allowNativeReuse = {
+                        KEY_GAMEPAD_BUTTON_4_HOLD = {
+                            ui = true,
+                        },
+                    },
+                },
                 priority = 90,
                 mode = "global",
             },
