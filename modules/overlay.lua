@@ -36,40 +36,6 @@ local TOOLTIP_ICON_WIDTH = 360
 local TOOLTIP_ICON_HEIGHT = 120
 local FOOD_PENDING_WINDOW_MS = 4000
 
-local DEFAULT_OVERLAY_TEXTURES = {
-    "/AddOns/EZOTools/media/ezotools_logo.dds",
-    "/AddOns/EZOTools/Media/ezotools_logo.dds",
-    "EZOTools/media/ezotools_logo.dds",
-    "EZOTools/Media/ezotools_logo.dds",
-}
-
-local GUILD_OVERLAY_TEXTURES = {
-    ["children of lamae"] = {
-        "/AddOns/EZOTools/media/guild_overlays/children_of_lamae.dds",
-        "EZOTools/media/guild_overlays/children_of_lamae.dds",
-    },
-    ["fuego"] = {
-        "/AddOns/EZOTools/media/guild_overlays/fuego.dds",
-        "EZOTools/media/guild_overlays/fuego.dds",
-    },
-    ["hojablanca"] = {
-        "/AddOns/EZOTools/media/guild_overlays/hojablanca.dds",
-        "EZOTools/media/guild_overlays/hojablanca.dds",
-    },
-    ["liga latina"] = {
-        "/AddOns/EZOTools/media/guild_overlays/liga_latina.dds",
-        "EZOTools/media/guild_overlays/liga_latina.dds",
-    },
-    ["ad-minions"] = {
-        "/AddOns/EZOTools/media/guild_overlays/minion.dds",
-        "EZOTools/media/guild_overlays/minion.dds",
-    },
-    ["sombras de lorkhan"] = {
-        "/AddOns/EZOTools/media/guild_overlays/sombra.dds",
-        "EZOTools/media/guild_overlays/sombra.dds",
-    },
-}
-
 -- Estado de combate (se actualiza vía evento)
 local enCombate = false
 
@@ -191,85 +157,6 @@ local function AplicarEstadoBloqueo()
     overlayWin:SetMouseEnabled(enHUD)
 end
 
--- Actualiza la etiqueta de guild en el overlay con el valor actual de GetRepresentedGuildId().
--- Se llama desde Refresh() y desde el poll periódico.
--- Devuelve el nombre de la guild representada actualmente, o nil si no hay ninguna.
--- Devuelve el nombre de la guild del tabardo equipado, o nil si no hay tabardo.
--- Prioridad 1: si el jugador lleva tabardo equipado, mostramos la guild del tabardo.
-local function ObtenerGuildTabardo()
-    -- IsPlayerWearingGuildTabard() es la API más directa (API 101049)
-    if type(IsPlayerWearingGuildTabard) == "function" then
-        if not IsPlayerWearingGuildTabard() then return nil end
-    end
-    -- Verificar la ranura de tabardo en BAG_WORN para obtener el guildId asociado
-    local SLOT_TABARD = EQUIP_SLOT_TABARD or 10
-    if type(GetItemType) == "function" then
-        local itemType = GetItemType(BAG_WORN, SLOT_TABARD)
-        if itemType ~= ITEMTYPE_TABARD then return nil end
-    end
-    -- Obtener el nombre de la guild a través del link del item
-    if type(GetItemLink) == "function" and type(GetItemLinkGuildName) == "function" then
-        local link = GetItemLink(BAG_WORN, SLOT_TABARD, LINK_STYLE_DEFAULT)
-        if link and link ~= "" then
-            local guildName = GetItemLinkGuildName(link)
-            if guildName and guildName ~= "" then return guildName end
-        end
-    end
-    -- Fallback: buscar en las guilds del jugador cuál tiene tabardo equipado
-    -- usando IsPlayerWearingGuildTabard + iteración de guilds
-    if type(GetNumGuilds) == "function" and type(GetGuildId) == "function" then
-        local numGuilds = GetNumGuilds()
-        for i = 1, numGuilds do
-            local guildId = GetGuildId(i)
-            -- No hay API directa para saber qué guild es el tabardo equipado
-            -- IsPlayerWearingGuildTabard() solo devuelve bool, sin guildId
-            -- Si llegamos aquí, confirmamos que hay tabardo pero no podemos
-            -- obtener el nombre de la guild — devolvemos indicador genérico
-        end
-    end
-    return "" -- tabardo equipado pero guild desconocida (fallback)
-end
-
--- Devuelve el nombre de la guild del selector C (Guild Nameplate, U49), o nil.
--- GetRepresentedGuildId() es la API oficial que corresponde al selector Guild Nameplate.
-local function ObtenerGuildRepresentada()
-    if type(GetRepresentedGuildId) ~= "function" then return nil end
-    local guildId = GetRepresentedGuildId()
-    if not guildId or guildId == 0 then return nil end
-    if type(GetGuildName) ~= "function" then return nil end
-    return GetGuildName(guildId)
-end
-
-local function NormalizarClaveGuild(nombre)
-    if type(nombre) ~= "string" then return nil end
-    nombre = zo_strtrim(nombre)
-    if nombre == "" then return nil end
-    nombre = zo_strlower(nombre)
-    nombre = nombre:gsub("%s+", " ")
-    return nombre
-end
-
-local function ObtenerRutasLogoGuildRepresentada()
-    if not (EZO.sv and EZO.sv.overlay and EZO.sv.overlay.guildCustomImageEnabled == true) then
-        return nil
-    end
-    if ObtenerGuildTabardo() ~= nil then
-        return nil
-    end
-    local nombreGuild = ObtenerGuildRepresentada()
-    local claveGuild = NormalizarClaveGuild(nombreGuild)
-    if not claveGuild then return nil end
-    return GUILD_OVERLAY_TEXTURES[claveGuild]
-end
-
-local function ObtenerRutasLogoCentral()
-    local rutasGuild = ObtenerRutasLogoGuildRepresentada()
-    if type(rutasGuild) == "table" and #rutasGuild > 0 then
-        return rutasGuild, DEFAULT_OVERLAY_TEXTURES
-    end
-    return DEFAULT_OVERLAY_TEXTURES, nil
-end
-
 local function AplicarTexturaConFallback(ctrl, rutasPrimarias, rutasFallback)
     if not ctrl then return false end
 
@@ -305,7 +192,11 @@ end
 
 local function RefrescarTexturaLogoCentral()
     if not overlayTex then return end
-    local rutasPrimarias, rutasFallback = ObtenerRutasLogoCentral()
+    local guildOverlay = EZOTools_GuildOverlay
+    if not (guildOverlay and type(guildOverlay.GetCentralTexturePaths) == "function") then
+        return
+    end
+    local rutasPrimarias, rutasFallback = guildOverlay.GetCentralTexturePaths()
     AplicarTexturaConFallback(overlayTex, rutasPrimarias, rutasFallback)
 end
 
@@ -319,7 +210,8 @@ local function RefrescarEtiquetaGuild()
     RefrescarTexturaLogoCentral()
 
     -- Prioridad 1: tabardo equipado
-    local nombreTabardo = ObtenerGuildTabardo()
+    local guildOverlay = EZOTools_GuildOverlay
+    local nombreTabardo = guildOverlay and guildOverlay.GetTabardGuildName and guildOverlay.GetTabardGuildName() or nil
     if nombreTabardo ~= nil then
         -- Hay tabardo equipado
         if nombreTabardo ~= "" then
@@ -333,7 +225,7 @@ local function RefrescarEtiquetaGuild()
     end
 
     -- Prioridad 2: guild representada (selector C, Guild Nameplate U49)
-    local nombreGuild = ObtenerGuildRepresentada()
+    local nombreGuild = guildOverlay and guildOverlay.GetRepresentedGuildName and guildOverlay.GetRepresentedGuildName() or nil
     if nombreGuild then
         overlayGuildLabel:SetText(nombreGuild)
         local r, g, b, a = ObtenerColorOverlay(
