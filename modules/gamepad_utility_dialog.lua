@@ -9,6 +9,7 @@ EZO.GamepadUtilityDialog = EZO.GamepadUtilityDialog or {}
 local Dialog = EZO.GamepadUtilityDialog
 
 local NOMBRE_DIALOGO = "EZO_GAMEPAD_UTILITY_DIALOG"
+local QuickUtility = _G.EZOTools_QuickUtility
 
 local function ConstruirSubtituloDialogo()
     local autor = tostring((EZO and EZO.AUTHOR) or "@Zuriplayer")
@@ -17,11 +18,8 @@ local function ConstruirSubtituloDialogo()
 end
 
 local function RecopilarAcciones()
-    if _G.EZOTools_Overlay and type(_G.EZOTools_Overlay.BuildQuickUtilityEntries) == "function" then
-        local ok, entries = pcall(_G.EZOTools_Overlay.BuildQuickUtilityEntries)
-        if ok and type(entries) == "table" then
-            return entries
-        end
+    if QuickUtility and type(QuickUtility.BuildEntries) == "function" then
+        return QuickUtility.BuildEntries()
     end
     return {}
 end

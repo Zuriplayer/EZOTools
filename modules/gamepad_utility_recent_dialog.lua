@@ -12,14 +12,15 @@ local NOMBRE_DIALOGO = "EZO_GAMEPAD_UTILITY_RECENT_DIALOG"
 Dialog.DIALOG_NAME = NOMBRE_DIALOGO
 Dialog._currentKey = nil
 Dialog._currentTitle = nil
+local QuickUtility = _G.EZOTools_QuickUtility
 
 local function CerrarDialogoActual()
     EZOTools_CerrarDialogoGamepad(NOMBRE_DIALOGO)
 end
 
 local function OcultarPreviewActual()
-    if _G.EZOTools_Overlay and type(_G.EZOTools_Overlay.HideQuickUtilityPreview) == "function" then
-        pcall(_G.EZOTools_Overlay.HideQuickUtilityPreview)
+    if QuickUtility and type(QuickUtility.HidePreview) == "function" then
+        QuickUtility.HidePreview()
     end
 end
 
@@ -35,11 +36,8 @@ local function ReabrirDialogoUtilidades()
 end
 
 local function RecopilarEntradasRecientes()
-    if _G.EZOTools_Overlay and type(_G.EZOTools_Overlay.BuildQuickUtilityRecentEntries) == "function" then
-        local ok, entries = pcall(_G.EZOTools_Overlay.BuildQuickUtilityRecentEntries, Dialog._currentKey, true)
-        if ok and type(entries) == "table" then
-            return entries
-        end
+    if QuickUtility and type(QuickUtility.BuildRecentEntries) == "function" then
+        return QuickUtility.BuildRecentEntries(Dialog._currentKey, true)
     end
     return {}
 end
@@ -51,11 +49,8 @@ local ActivarSeleccionDialogoGamepad = EZOTools_ActivarSeleccionDialogoGamepad
 
 local function NormalizarTextoEntradaLista(texto)
     texto = tostring(texto or "")
-    if _G.EZOTools_Overlay and type(_G.EZOTools_Overlay.NormalizeTooltipText) == "function" then
-        local ok, normalized = pcall(_G.EZOTools_Overlay.NormalizeTooltipText, texto)
-        if ok and type(normalized) == "string" then
-            texto = normalized
-        end
+    if QuickUtility and type(QuickUtility.NormalizeTooltipText) == "function" then
+        texto = QuickUtility.NormalizeTooltipText(texto)
     end
     texto = texto:gsub("|H.-|h(.-)|h", "%1")
     texto = texto:gsub("|c%x%x%x%x%x%x", "")
@@ -77,8 +72,8 @@ local function AplicarPreviewSeleccionado(control, data)
     Dialog._lastPreviewControl = control
     OcultarPreviewActual()
 
-    if _G.EZOTools_Overlay and type(_G.EZOTools_Overlay.ShowQuickUtilityPreview) == "function" then
-        pcall(_G.EZOTools_Overlay.ShowQuickUtilityPreview, control, data)
+    if QuickUtility and type(QuickUtility.ShowPreview) == "function" then
+        QuickUtility.ShowPreview(control, data)
     end
 end
 
@@ -136,9 +131,9 @@ local function AsegurarRegistrado()
             if dialog.entryList and dialog.entryList.GetNumItems
                 and dialog.entryList:GetNumItems() == 0 then
                 local config = nil
-                if _G.EZOTools_Overlay and type(_G.EZOTools_Overlay.GetQuickUtilityHistoryEmptyLabel) == "function" then
-                    local ok, text = pcall(_G.EZOTools_Overlay.GetQuickUtilityHistoryEmptyLabel, Dialog._currentKey)
-                    if ok and type(text) == "string" and text ~= "" then
+                if QuickUtility and type(QuickUtility.GetHistoryEmptyLabel) == "function" then
+                    local text = QuickUtility.GetHistoryEmptyLabel(Dialog._currentKey)
+                    if type(text) == "string" and text ~= "" then
                         config = NormalizarTextoEntradaLista(text)
                     end
                 end

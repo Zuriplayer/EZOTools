@@ -1,8 +1,8 @@
 ## Title: E|cB040FFZ|rOTools
 ## Author: @Zuriplayer
 ## Description: Quick command panel for gamepad and mouse. Travel, group actions, house shortcuts, leader jump, and repair/recharge helpers.
-## Version: 1.0.106
-## AddOnVersion: 10017
+## Version: 1.0.107
+## AddOnVersion: 10018
 ## APIVersion: 101049 101050
 ## DependsOn: LibAddonMenu-2.0
 ## OptionalDependsOn: LibChatMessage LibDebugLogger DebugLogViewer LibSlashCommander
@@ -28,6 +28,7 @@ modules/maintenance.lua
 modules/actions.lua
 modules/menu.lua
 modules/overlay.lua
+modules/quick_utility.lua
 modules/context_menu.lua
 modules/keybinds.lua
 media/ezotools_logo.dds
