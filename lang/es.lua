@@ -140,6 +140,14 @@ EZO_STRINGS_ES = {
     EZO_UTILITY_ENTRY_PET       = "Mascota",
     EZO_UTILITY_ENTRY_COMPANION = "Compañero",
     EZO_UTILITY_ENTRY_ASSISTANT = "Asistente",
+    EZO_UTILITY_ENTRY_HOUSES    = "Casas",
+    EZO_UTILITY_ENTRY_OTHER_HOUSES = "Casas de otros",
+    EZO_UTILITY_HOUSES_OPEN_COLLECTIONS = "Abrir colección de casas",
+    EZO_UTILITY_HOUSES_HISTORY_EMPTY = "No hay casas propias guardadas todavía.|nVisita una casa propia distinta de tu casa principal para añadirla aquí.",
+    EZO_UTILITY_HOUSES_VISIT_HINT = "Visita tus casas propias para memorizar las 10 últimas.",
+    EZO_UTILITY_OTHER_HOUSES_HISTORY_EMPTY = "No hay casas de otros jugadores guardadas todavía.|nSe memorizarán conforme visites casas concretas de otros jugadores.",
+    EZO_UTILITY_OTHER_HOUSES_VISIT_HINT = "Visita casas de otros jugadores para memorizar las 20 últimas.",
+    EZO_UTILITY_HOUSES_FALLBACK_NAME = "Casa",
 
     -- -------------------------------------------------------------------------
     -- Mensajes de chat: viajes
@@ -199,6 +207,7 @@ EZO_STRINGS_ES = {
     EZO_CMD_DEBUG_TEXLOAD       = "  /ezo debug texload  — prueba de carga de texturas",
     EZO_CMD_DEBUG_DOTS          = "  /ezo debug dots     — estado de iconos de mascota y aliados",
     EZO_CMD_DEBUG_LAYOUT        = "  /ezo debug layout   — alterna preview de slots laterales",
+    EZO_CMD_DEBUG_HOUSE         = "  /ezo debug house    — diagnóstico de vivienda actual",
 
     EZO_CMD_GUILDS_NONE         = "No perteneces a ningún gremio.",
     EZO_CMD_GUILDS_HEADER       = "Gremios (<<1>>):",

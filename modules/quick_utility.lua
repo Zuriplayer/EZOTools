@@ -11,6 +11,8 @@ local CATEGORY_DEFINITIONS = {
     { key = "food", textKey = "EZO_UTILITY_ENTRY_FOOD" },
     { key = "pet", textKey = "EZO_UTILITY_ENTRY_PET" },
     { key = "mount", textKey = "EZO_UTILITY_ENTRY_MOUNT" },
+    { key = "houses", textKey = "EZO_UTILITY_ENTRY_HOUSES" },
+    { key = "otherHouses", textKey = "EZO_UTILITY_ENTRY_OTHER_HOUSES" },
 }
 
 local function ObtenerOverlay()
@@ -53,6 +55,7 @@ function MOD.BuildEntries()
 end
 
 function MOD.BuildRecentEntries(key, useEmptyAction)
+    key = tostring(key or "")
     local overlay = ObtenerOverlay()
     if overlay and type(overlay.BuildQuickUtilityRecentEntries) == "function" then
         local ok, entries = pcall(overlay.BuildQuickUtilityRecentEntries, key, useEmptyAction)
@@ -64,6 +67,7 @@ function MOD.BuildRecentEntries(key, useEmptyAction)
 end
 
 function MOD.GetHistoryEmptyLabel(key)
+    key = tostring(key or "")
     local overlay = ObtenerOverlay()
     if overlay and type(overlay.GetQuickUtilityHistoryEmptyLabel) == "function" then
         local ok, text = pcall(overlay.GetQuickUtilityHistoryEmptyLabel, key)

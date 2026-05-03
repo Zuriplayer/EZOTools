@@ -58,6 +58,8 @@ local ALLY_ICON_SCALE_WEIGHT_UP = 0.60
 local ALLY_SWITCH_INITIAL_DELAY_MS = 1500
 local ALLY_SWITCH_RETRY_DELAY_MS = 500
 local ALLY_SWITCH_MAX_RETRIES = 6
+local OWN_HOUSE_HISTORY_LIMIT = 10
+local OTHER_HOUSE_HISTORY_LIMIT = 20
 local allySwitchPending = false
 local companionSuspendidoCollectibleId = 0
 local companionRestauracionPendiente = false
@@ -2553,6 +2555,259 @@ local function ObtenerHistorialCollectibles(clave)
     return history
 end
 
+local function ObtenerNombreCasaPropia(houseId)
+    houseId = tonumber(houseId) or 0
+    if houseId <= 0 then
+        return ""
+    end
+    local manager = _G.HOUSING_SOCIAL_MANAGER
+    if manager and type(manager.GetHouseName) == "function" then
+        local ok, nombre = pcall(function()
+            return manager:GetHouseName(houseId)
+        end)
+        if ok and type(nombre) == "string" and nombre ~= "" then
+            return nombre
+        end
+    end
+    return zo_strformat(GetString(EZO_UTILITY_HOUSES_FALLBACK_NAME) .. " <<1>>", houseId)
+end
+
+local function ObtenerCasaPrincipalId()
+    if type(GetHousingPrimaryHouse) ~= "function" then
+        return 0
+    end
+    local ok, houseId = pcall(GetHousingPrimaryHouse)
+    if ok then
+        return tonumber(houseId) or 0
+    end
+    return 0
+end
+
+local function ObtenerCasaActualPropiaId()
+    if type(GetCurrentZoneHouseId) ~= "function" then
+        return 0
+    end
+    local ok, houseId = pcall(GetCurrentZoneHouseId)
+    houseId = ok and (tonumber(houseId) or 0) or 0
+    if houseId <= 0 then
+        return 0
+    end
+
+    if type(IsOwnerOfCurrentHouse) == "function" then
+        local okOwner, isOwner = pcall(IsOwnerOfCurrentHouse)
+        if not okOwner or isOwner ~= true then
+            return 0
+        end
+    else
+        return 0
+    end
+
+    if houseId == ObtenerCasaPrincipalId() then
+        return 0
+    end
+    return houseId
+end
+
+local function ObtenerPropietarioCasaActual()
+    if type(GetCurrentHouseOwner) ~= "function" then
+        return ""
+    end
+    local ok, owner = pcall(GetCurrentHouseOwner)
+    if not ok then
+        return ""
+    end
+    owner = tostring(owner or "")
+    return zo_strtrim(owner)
+end
+
+local function ObtenerCasaActualAjena()
+    if type(GetCurrentZoneHouseId) ~= "function" then
+        return nil
+    end
+    local ok, houseId = pcall(GetCurrentZoneHouseId)
+    houseId = ok and (tonumber(houseId) or 0) or 0
+    if houseId <= 0 then
+        return nil
+    end
+
+    if type(IsOwnerOfCurrentHouse) == "function" then
+        local okOwner, isOwner = pcall(IsOwnerOfCurrentHouse)
+        if not okOwner or isOwner == true then
+            return nil
+        end
+    end
+
+    local owner = ObtenerPropietarioCasaActual()
+    if owner == "" then
+        return nil
+    end
+    local player = type(GetDisplayName) == "function" and tostring(GetDisplayName() or "") or ""
+    if player ~= "" and zo_strlower(owner) == zo_strlower(player) then
+        return nil
+    end
+
+    return {
+        houseId = houseId,
+        owner = owner,
+        name = ObtenerNombreCasaPropia(houseId),
+    }
+end
+
+local function ObtenerHistorialCasasPropias()
+    local overlaySV = ObtenerOverlaySVParaClave("recentOwnHouses")
+    if not overlaySV then
+        return {}
+    end
+    local history = overlaySV.recentOwnHouses
+    if type(history) ~= "table" then
+        history = {}
+        overlaySV.recentOwnHouses = history
+    end
+    return history
+end
+
+local function ObtenerHistorialCasasAjenas()
+    local overlaySV = ObtenerOverlaySVParaClave("recentOtherHouses")
+    if not overlaySV then
+        return {}
+    end
+    local history = overlaySV.recentOtherHouses
+    if type(history) ~= "table" then
+        history = {}
+        overlaySV.recentOtherHouses = history
+    end
+    return history
+end
+
+local function GuardarCasaPropiaEnHistorial(houseId)
+    local overlaySV = ObtenerOverlaySVParaClave("recentOwnHouses")
+    if not overlaySV then return end
+    houseId = tonumber(houseId) or 0
+    if houseId <= 0 or houseId == ObtenerCasaPrincipalId() then
+        return
+    end
+
+    local history = ObtenerHistorialCasasPropias()
+    local nombre = ObtenerNombreCasaPropia(houseId)
+    local newHistory = {
+        {
+            houseId = houseId,
+            name = nombre,
+        },
+    }
+
+    for _, entry in ipairs(history) do
+        local oldHouseId = nil
+        local oldName = ""
+        if type(entry) == "table" then
+            oldHouseId = tonumber(entry.houseId) or 0
+            oldName = tostring(entry.name or "")
+        else
+            oldHouseId = tonumber(entry) or 0
+        end
+        if oldHouseId > 0 and oldHouseId ~= houseId and oldHouseId ~= ObtenerCasaPrincipalId() then
+            newHistory[#newHistory + 1] = {
+                houseId = oldHouseId,
+                name = oldName ~= "" and oldName or ObtenerNombreCasaPropia(oldHouseId),
+            }
+        end
+        if #newHistory >= OWN_HOUSE_HISTORY_LIMIT then
+            break
+        end
+    end
+
+    overlaySV.recentOwnHouses = newHistory
+end
+
+local function GuardarCasaAjenaEnHistorial(houseId, owner, houseName)
+    local overlaySV = ObtenerOverlaySVParaClave("recentOtherHouses")
+    if not overlaySV then return end
+    houseId = tonumber(houseId) or 0
+    owner = zo_strtrim(tostring(owner or ""))
+    if houseId <= 0 or owner == "" then
+        return
+    end
+
+    local ownerKey = zo_strlower(owner)
+    local history = ObtenerHistorialCasasAjenas()
+    local newHistory = {
+        {
+            houseId = houseId,
+            owner = owner,
+            name = tostring(houseName or "") ~= "" and tostring(houseName) or ObtenerNombreCasaPropia(houseId),
+        },
+    }
+
+    for _, entry in ipairs(history) do
+        if type(entry) == "table" then
+            local oldHouseId = tonumber(entry.houseId) or 0
+            local oldOwner = zo_strtrim(tostring(entry.owner or ""))
+            local oldOwnerKey = zo_strlower(oldOwner)
+            if oldHouseId > 0 and oldOwner ~= "" and not (oldHouseId == houseId and oldOwnerKey == ownerKey) then
+                newHistory[#newHistory + 1] = {
+                    houseId = oldHouseId,
+                    owner = oldOwner,
+                    name = tostring(entry.name or "") ~= "" and tostring(entry.name) or ObtenerNombreCasaPropia(oldHouseId),
+                }
+            end
+        end
+        if #newHistory >= OTHER_HOUSE_HISTORY_LIMIT then
+            break
+        end
+    end
+
+    overlaySV.recentOtherHouses = newHistory
+end
+
+local function RecordarCasaPropiaActual()
+    local houseId = ObtenerCasaActualPropiaId()
+    if houseId > 0 then
+        GuardarCasaPropiaEnHistorial(houseId)
+        return true
+    end
+    return false
+end
+
+local function RecordarCasaAjenaActual()
+    local house = ObtenerCasaActualAjena()
+    if type(house) == "table" then
+        GuardarCasaAjenaEnHistorial(house.houseId, house.owner, house.name)
+        return true
+    end
+    return false
+end
+
+local function ViajarACasaPropia(houseId)
+    houseId = tonumber(houseId) or 0
+    if houseId <= 0 or type(RequestJumpToHouse) ~= "function" then
+        return false
+    end
+    GuardarCasaPropiaEnHistorial(houseId)
+    return EjecutarTrasCerrarUtilidades(function()
+        RequestJumpToHouse(houseId)
+    end)
+end
+
+local function ViajarACasaAjena(houseId, owner)
+    houseId = tonumber(houseId) or 0
+    owner = zo_strtrim(tostring(owner or ""))
+    if houseId <= 0 or owner == "" then
+        return false
+    end
+    local manager = _G.HOUSING_SOCIAL_MANAGER
+    if not ((manager and type(manager.VisitHouse) == "function") or type(JumpToSpecificHouse) == "function") then
+        return false
+    end
+    GuardarCasaAjenaEnHistorial(houseId, owner, ObtenerNombreCasaPropia(houseId))
+    return EjecutarTrasCerrarUtilidades(function()
+        if manager and type(manager.VisitHouse) == "function" then
+            manager:VisitHouse(houseId, owner, false)
+        elseif type(JumpToSpecificHouse) == "function" then
+            JumpToSpecificHouse(owner, houseId, false)
+        end
+    end)
+end
+
 local function ObtenerCollectibleRecordado(clave)
     local overlaySV = ObtenerOverlaySVParaClave(clave)
     if not overlaySV then return 0 end
@@ -3051,6 +3306,8 @@ function MOD.Refresh()
     RefrescarTexturaLogoCentral()
     RefrescarEtiquetaGuild()
     AplicarEscalaVisual()
+    RecordarCasaPropiaActual()
+    RecordarCasaAjenaActual()
     RefrescarDot()
     ActualizarVisibilidad()
 end
@@ -3126,6 +3383,12 @@ function MOD.ExecuteQuickUtilityAction(clave)
         return InvocarMonturaRecordada()
     end
 
+    if clave == "houses" then
+        return EjecutarTrasCerrarUtilidades(function()
+            AbrirColeccionPorCategoriaRaiz(COLLECTIBLE_CATEGORY_TYPE_HOUSE)
+        end)
+    end
+
     return false
 end
 
@@ -3179,6 +3442,89 @@ function MOD.BuildQuickUtilityRecentEntries(clave, usarAccionVacia)
         return entries
     end
 
+    if clave == "houses" then
+        local primaryHouseId = ObtenerCasaPrincipalId()
+        local history = ObtenerHistorialCasasPropias()
+        for _, entry in ipairs(history) do
+            local houseId = 0
+            local houseName = ""
+            if type(entry) == "table" then
+                houseId = tonumber(entry.houseId) or 0
+                houseName = tostring(entry.name or "")
+            else
+                houseId = tonumber(entry) or 0
+            end
+            if houseId > 0 and houseId ~= primaryHouseId then
+                if houseName == "" then
+                    houseName = ObtenerNombreCasaPropia(houseId)
+                end
+                local label = NormalizarTextoEtiqueta(houseName)
+                if label ~= "" then
+                    AgregarEntrada(label, function()
+                        return ViajarACasaPropia(houseId)
+                    end, {
+                        previewKind = "house",
+                        previewHouseId = houseId,
+                    })
+                end
+            end
+        end
+
+        if #entries == 0 then
+            AgregarEntrada(GetString(EZO_UTILITY_HOUSES_VISIT_HINT), function()
+                return false
+            end, {
+                empty = true,
+            })
+        end
+
+        if usarAccionVacia == true or #entries == 0 then
+            AgregarEntrada(GetString(EZO_UTILITY_HOUSES_OPEN_COLLECTIONS), function()
+                return MOD.ExecuteQuickUtilityAction("houses")
+            end, {
+                emptyAction = true,
+            })
+        end
+
+        return entries
+    end
+
+    if clave == "otherHouses" then
+        local history = ObtenerHistorialCasasAjenas()
+        for _, entry in ipairs(history) do
+            if type(entry) == "table" then
+                local houseId = tonumber(entry.houseId) or 0
+                local owner = zo_strtrim(tostring(entry.owner or ""))
+                if houseId > 0 and owner ~= "" then
+                    local houseName = tostring(entry.name or "")
+                    if houseName == "" then
+                        houseName = ObtenerNombreCasaPropia(houseId)
+                    end
+                    local label = NormalizarTextoEtiqueta(zo_strformat("<<1>> - <<2>>", houseName, owner))
+                    if label ~= "" then
+                        AgregarEntrada(label, function()
+                            return ViajarACasaAjena(houseId, owner)
+                        end, {
+                            previewKind = "otherHouse",
+                            previewHouseId = houseId,
+                            previewOwner = owner,
+                        })
+                    end
+                end
+            end
+        end
+
+        if #entries == 0 then
+            AgregarEntrada(GetString(EZO_UTILITY_OTHER_HOUSES_VISIT_HINT), function()
+                return false
+            end, {
+                empty = true,
+            })
+        end
+
+        return entries
+    end
+
     local config = ObtenerConfiguracionAliado(clave)
     if not config then
         return entries
@@ -3220,6 +3566,12 @@ end
 function MOD.GetQuickUtilityHistoryEmptyLabel(clave)
     if clave == "food" then
         return GetString(EZO_SIDE_WIDGET_FOOD_HISTORY_EMPTY)
+    end
+    if clave == "houses" then
+        return GetString(EZO_UTILITY_HOUSES_HISTORY_EMPTY)
+    end
+    if clave == "otherHouses" then
+        return GetString(EZO_UTILITY_OTHER_HOUSES_HISTORY_EMPTY)
     end
 
     local config = ObtenerConfiguracionAliado(clave)
