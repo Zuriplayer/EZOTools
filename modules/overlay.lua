@@ -7,15 +7,13 @@
 EZOTools_Overlay = EZOTools_Overlay or {}
 local MOD = EZOTools_Overlay
 local EZO = EZOTools
+local WIDGETS = EZOTools_OverlayWidgets
 
 -- Controles de la ventana (se crean en EnsureControls la primera vez)
 local overlayWin, overlayTex, overlayLabel, overlayGuildLabel, overlayMaintDot, overlayChargeDot, overlayFoodDot, overlayMountDot, overlayPetDot, overlayCompanionDot, overlayAssistantDot
 local overlaySideSlotsLeft, overlaySideSlotsRight = {}, {}
 local overlaySideWidgetsLeft, overlaySideWidgetsRight = {}, {}
 local overlaySideWidgetTexturesLeft, overlaySideWidgetTexturesRight = {}, {}
-local overlaySideWidgetData = { left = {}, right = {} }
-local overlaySideWidgetRegistry = { left = {}, right = {} }
-local overlayLayoutPreviewEnabled = false
 local overlayWidgetTooltipWin, overlayWidgetTooltipBackdrop, overlayWidgetTooltipLabel
 local overlayAllyTooltipActive = false
 local overlaySideWidgetTooltipActive = false
@@ -46,21 +44,6 @@ local cachedRepresentedGuildId = nil
 
 -- Slots laterales preparados para futuras alertas/estados. Se calculan contra un radio
 -- seguro del logo en vez de depender de la transparencia exacta del DDS.
-local SIDE_SLOT_COUNT    = 4
-local SIDE_SLOT_BASE     = 22
-local SIDE_SLOT_MIN      = 18
-local SIDE_SLOT_GAP      = 6
-local SIDE_SLOT_MARGIN   = 12
-local SIDE_SLOT_RADIUS_X = 0.50
-local SIDE_SLOT_RADIUS_Y = 0.78
-local SIDE_SLOT_Y        = { -0.50, -0.16, 0.16, 0.50 }
-local SIDE_WIDGET_ASSIGNMENTS = {
-    foodBuff        = { side = "right", index = 1 },
-    repairEquipped  = { side = "left", index = 1 },
-    repairKits      = { side = "left", index = 2 },
-    rechargeWeapons = { side = "left", index = 3 },
-    soulGems        = { side = "left", index = 4 },
-}
 -- Tamaños base para calcular escala
 local BASE_TEX         = 128   -- píxeles base de la textura del logo
 local BASE_FONT_PC     = 20    -- tamaño de fuente base en modo teclado/ratón
@@ -272,14 +255,11 @@ local function ObtenerTexturasWidgetLaterales(side)
 end
 
 local function ObtenerDatosWidgetLaterales(side)
-    return overlaySideWidgetData[side]
+    return WIDGETS and WIDGETS.GetDataList(side)
 end
 
 local function ObtenerNombreLadoWidget(side)
-    if side == "left" then
-        return GetString(EZO_SIDE_WIDGET_LEFT)
-    end
-    return GetString(EZO_SIDE_WIDGET_RIGHT)
+    return WIDGETS and WIDGETS.GetSideName(side) or tostring(side or "")
 end
 
 local function OcultarTooltipWidget()
@@ -328,30 +308,10 @@ local function AplicarTamanoFijoTooltipIconos()
 end
 
 local function ConstruirTooltipPreviewWidget(side, index)
-    for key, slotInfo in pairs(SIDE_WIDGET_ASSIGNMENTS) do
-        if slotInfo and slotInfo.side == side and slotInfo.index == index then
-            if key == "foodBuff" then
-                return GetString(EZO_SIDE_WIDGET_FOOD_PREVIEW_TOOLTIP)
-            end
-            if key == "repairEquipped" then
-                return GetString(EZO_SIDE_WIDGET_REPAIR_EQUIPPED_PREVIEW_TOOLTIP)
-            end
-            if key == "repairKits" then
-                return GetString(EZO_SIDE_WIDGET_REPAIR_KITS_PREVIEW_TOOLTIP)
-            end
-            if key == "rechargeWeapons" then
-                return GetString(EZO_SIDE_WIDGET_RECHARGE_WEAPONS_PREVIEW_TOOLTIP)
-            end
-            if key == "soulGems" then
-                return GetString(EZO_SIDE_WIDGET_SOUL_GEMS_PREVIEW_TOOLTIP)
-            end
-        end
+    if WIDGETS and type(WIDGETS.GetPreviewTooltip) == "function" then
+        return WIDGETS.GetPreviewTooltip(side, index)
     end
-
-    return zo_strformat(
-        GetString(EZO_SIDE_WIDGET_PREVIEW_TOOLTIP),
-        ObtenerNombreLadoWidget(side),
-        tostring(index))
+    return zo_strformat(GetString(EZO_SIDE_WIDGET_PREVIEW_TOOLTIP), ObtenerNombreLadoWidget(side), tostring(index))
 end
 
 local function FormatearTiempoRestanteCorto(segundos)
@@ -515,8 +475,8 @@ local function ObtenerTooltipWidget(side, index, data)
         return nil
     end
     if type(data) ~= "table" then
-        if overlayLayoutPreviewEnabled then
-            local foodSlot = SIDE_WIDGET_ASSIGNMENTS.foodBuff
+        if WIDGETS and WIDGETS.IsLayoutPreviewEnabled() then
+            local foodSlot = WIDGETS.GetAssignment("foodBuff")
             if foodSlot and foodSlot.side == side and foodSlot.index == index and type(ConstruirTooltipComida) == "function" then
                 local foodInfo = ObtenerInfoBuffComida()
                 local foodRecordadoBag, _, foodRecordadoNombre, _, foodRecordadoQuality = BuscarConsumibleRecordadoComida()
@@ -538,7 +498,7 @@ local function ObtenerTooltipWidget(side, index, data)
         end
         return baseText
     end
-    if overlayLayoutPreviewEnabled then
+    if WIDGETS and WIDGETS.IsLayoutPreviewEnabled() then
         return ConstruirTooltipPreviewWidget(side, index)
     end
     return nil
@@ -1708,118 +1668,19 @@ local function EjecutarAccionWidget(side, index, data, button)
     })
 end
 
-local function ConstruirWidgetLateralData(config)
-    if type(config) ~= "table" then return nil end
-    return {
-        slotKey = config.slotKey,
-        visible = config.visible ~= false,
-        texture = config.texture,
-        color = config.color,
-        alpha = config.alpha or 1,
-        tooltipText = config.tooltipText,
-        tooltipStringId = config.tooltipStringId,
-        tooltipArgs = config.tooltipArgs,
-        actionId = config.actionId,
-        secondaryActionId = config.secondaryActionId,
-        gamepadActionId = config.gamepadActionId,
-        primaryHandler = config.primaryHandler,
-        secondaryHandler = config.secondaryHandler,
-    }
-end
-
-local function ObtenerPreviewWidgetData(side, index)
-    local previewTexture = "/esoui/art/buttons/large_leftarrow_up.dds"
-    local previewColors = {
-        left = {
-            { 0.95, 0.85, 0.35, 0.95 },
-            { 0.75, 0.86, 0.40, 0.95 },
-            { 0.45, 0.80, 0.95, 0.95 },
-            { 0.90, 0.55, 0.85, 0.95 },
-        },
-        right = {
-            { 0.95, 0.70, 0.30, 0.95 },
-            { 0.70, 0.70, 0.95, 0.95 },
-            { 0.92, 0.92, 0.92, 0.95 },
-            { 0.95, 0.35, 0.35, 0.95 },
-        },
-    }
-
-    local assignedPreview = {
-        repairEquipped = {
-            texture = "/esoui/art/hud/broken_armor.dds",
-            color = { 1.0, 0.30, 0.30, 0.95 },
-        },
-        repairKits = {
-            texture = "/esoui/art/icons/quest_crate_001.dds",
-            color = { 1.0, 0.32, 0.22, 0.95 },
-        },
-        rechargeWeapons = {
-            texture = "/esoui/art/hud/broken_weapon.dds",
-            color = { 1.0, 0.30, 0.30, 0.95 },
-        },
-        soulGems = {
-            texture = "/esoui/art/icons/soulgem_006_filled.dds",
-            color = { 1.0, 0.45, 0.15, 0.95 },
-        },
-        foodBuff = {
-            texture = "/esoui/art/inventory/inventory_tabIcon_Craftbag_provisioning_up.dds",
-            color = { 0.35, 0.85, 0.35, 0.95 },
-        },
-    }
-
-    for key, slotInfo in pairs(SIDE_WIDGET_ASSIGNMENTS) do
-        if slotInfo and slotInfo.side == side and slotInfo.index == index and assignedPreview[key] then
-            return {
-                visible = true,
-                texture = assignedPreview[key].texture,
-                color = assignedPreview[key].color,
-                alpha = 0.95,
-            }
-        end
-    end
-
-    return {
-        visible = true,
-        texture = previewTexture,
-        color = previewColors[side][index],
-        alpha = 0.95,
-    }
-end
-
 local function ObtenerRenderDataWidget(side, index)
-    local data = ObtenerDatosWidgetLaterales(side)[index]
-    if type(data) == "table" and data.visible ~= false and type(data.texture) == "string" and data.texture ~= "" then
-        return data
-    end
-    if overlayLayoutPreviewEnabled then
-        return ObtenerPreviewWidgetData(side, index)
+    if WIDGETS and type(WIDGETS.GetRenderData) == "function" then
+        return WIDGETS.GetRenderData(side, index)
     end
     return nil
 end
 
 local AplicarWidgetsLaterales
 
-local function ReconstruirRegistroWidgetsLaterales()
-    overlaySideWidgetRegistry.left = {}
-    overlaySideWidgetRegistry.right = {}
-    for _, side in ipairs({ "left", "right" }) do
-        local dataList = ObtenerDatosWidgetLaterales(side)
-        local registry = overlaySideWidgetRegistry[side]
-        for i = 1, SIDE_SLOT_COUNT do
-            local data = dataList[i]
-            if type(data) == "table" and data.visible ~= false then
-                registry[i] = data.slotKey or true
-            else
-                registry[i] = false
-            end
-        end
-    end
-end
 local function AsignarWidgetLateralInterno(slotInfo, data)
-    if not slotInfo or not slotInfo.side or not slotInfo.index then return end
-    local lista = ObtenerDatosWidgetLaterales(slotInfo.side)
-    if not lista then return end
-    lista[slotInfo.index] = data
+    if WIDGETS and type(WIDGETS.Assign) == "function" then
+        WIDGETS.Assign(slotInfo, data)
+    end
 end
 
 local function RefrescarWidgetsLateralesEstado()
@@ -1860,7 +1721,7 @@ local function RefrescarWidgetsLateralesEstado()
         foodLegendaria
     )
 
-    AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.foodBuff, ConstruirWidgetLateralData({
+    AsignarWidgetLateralInterno(WIDGETS.GetAssignment("foodBuff"), WIDGETS.BuildData({
         slotKey = "food_buff",
         visible = true,
         texture = "/esoui/art/inventory/inventory_tabIcon_Craftbag_provisioning_up.dds",
@@ -1872,7 +1733,7 @@ local function RefrescarWidgetsLateralesEstado()
     }))
 
     if lowRepairKits and type(repairKitCount) == "number" and type(repairKitThreshold) == "number" then
-        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairKits, ConstruirWidgetLateralData({
+        AsignarWidgetLateralInterno(WIDGETS.GetAssignment("repairKits"), WIDGETS.BuildData({
             slotKey = "repair_kits",
             visible = true,
             texture = "/esoui/art/icons/quest_crate_001.dds",
@@ -1884,11 +1745,11 @@ local function RefrescarWidgetsLateralesEstado()
             gamepadActionId = "OPEN_ADDON_SETTINGS",
         }))
     else
-        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairKits, nil)
+        AsignarWidgetLateralInterno(WIDGETS.GetAssignment("repairKits"), nil)
     end
 
     if lowSoulGems and type(soulGemCount) == "number" and type(soulGemThreshold) == "number" then
-        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.soulGems, ConstruirWidgetLateralData({
+        AsignarWidgetLateralInterno(WIDGETS.GetAssignment("soulGems"), WIDGETS.BuildData({
             slotKey = "soul_gems",
             visible = true,
             texture = "/esoui/art/icons/soulgem_006_filled.dds",
@@ -1900,11 +1761,11 @@ local function RefrescarWidgetsLateralesEstado()
             gamepadActionId = "OPEN_ADDON_SETTINGS",
         }))
     else
-        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.soulGems, nil)
+        AsignarWidgetLateralInterno(WIDGETS.GetAssignment("soulGems"), nil)
     end
 
     if canRepairEquipped then
-        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairEquipped, ConstruirWidgetLateralData({
+        AsignarWidgetLateralInterno(WIDGETS.GetAssignment("repairEquipped"), WIDGETS.BuildData({
             slotKey = "repair_equipped",
             visible = true,
             texture = "/esoui/art/hud/broken_armor.dds",
@@ -1917,11 +1778,11 @@ local function RefrescarWidgetsLateralesEstado()
             gamepadActionId = "REPAIR_EQUIPPED",
         }))
     else
-        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.repairEquipped, nil)
+        AsignarWidgetLateralInterno(WIDGETS.GetAssignment("repairEquipped"), nil)
     end
 
     if canRechargeWeapons then
-        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.rechargeWeapons, ConstruirWidgetLateralData({
+        AsignarWidgetLateralInterno(WIDGETS.GetAssignment("rechargeWeapons"), WIDGETS.BuildData({
             slotKey = "recharge_weapons",
             visible = true,
             texture = "/esoui/art/hud/broken_weapon.dds",
@@ -1934,7 +1795,7 @@ local function RefrescarWidgetsLateralesEstado()
             gamepadActionId = "RECHARGE_WEAPONS",
         }))
     else
-        AsignarWidgetLateralInterno(SIDE_WIDGET_ASSIGNMENTS.rechargeWeapons, nil)
+        AsignarWidgetLateralInterno(WIDGETS.GetAssignment("rechargeWeapons"), nil)
     end
 
     AplicarWidgetsLaterales()
@@ -1943,7 +1804,7 @@ end
 local function AplicarPreviewSlotsLaterales()
     for _, side in ipairs({ "left", "right" }) do
         local lista = ObtenerSlotsLaterales(side)
-        for i = 1, SIDE_SLOT_COUNT do
+        for i = 1, WIDGETS.GetSlotCount() do
             local ctrl = lista[i]
             if ctrl then
                 ctrl:SetHidden(true)
@@ -1953,11 +1814,11 @@ local function AplicarPreviewSlotsLaterales()
 end
 
 AplicarWidgetsLaterales = function()
-    ReconstruirRegistroWidgetsLaterales()
+    WIDGETS.RebuildRegistry()
     for _, side in ipairs({ "left", "right" }) do
         local widgets = ObtenerWidgetsLaterales(side)
         local textures = ObtenerTexturasWidgetLaterales(side)
-        for i = 1, SIDE_SLOT_COUNT do
+        for i = 1, WIDGETS.GetSlotCount() do
             local host = widgets[i]
             local tex = textures[i]
             local data = ObtenerRenderDataWidget(side, i)
@@ -1985,10 +1846,10 @@ local function AsegurarSlotsLaterales()
     }
     for side, prefijo in pairs(nombres) do
         local lista = ObtenerSlotsLaterales(side)
-        for i = 1, SIDE_SLOT_COUNT do
+        for i = 1, WIDGETS.GetSlotCount() do
             if not lista[i] then
                 local ctrl = WINDOW_MANAGER:CreateControl(prefijo .. i, overlayWin, CT_TEXTURE)
-                ctrl:SetDimensions(SIDE_SLOT_BASE, SIDE_SLOT_BASE)
+                ctrl:SetDimensions(WIDGETS.GetSlotBase(), WIDGETS.GetSlotBase())
                 ctrl:SetHidden(true)
                 lista[i] = ctrl
             end
@@ -2004,10 +1865,10 @@ local function AsegurarWidgetsLaterales()
     for side, prefijo in pairs(nombres) do
         local widgets = ObtenerWidgetsLaterales(side)
         local textures = ObtenerTexturasWidgetLaterales(side)
-        for i = 1, SIDE_SLOT_COUNT do
+        for i = 1, WIDGETS.GetSlotCount() do
             if not widgets[i] then
                 local host = WINDOW_MANAGER:CreateControl(prefijo .. i, overlayWin, CT_CONTROL)
-                host:SetDimensions(SIDE_SLOT_BASE, SIDE_SLOT_BASE)
+                host:SetDimensions(WIDGETS.GetSlotBase(), WIDGETS.GetSlotBase())
                 host:SetHidden(true)
                 host:SetMouseEnabled(true)
                 host:SetDrawLayer(DL_CONTROLS)
@@ -2057,10 +1918,10 @@ local function AplicarLayoutSlotsLaterales(texPx)
     AsegurarWidgetsLaterales()
 
     local s          = tonumber(EZO.sv.overlay.scale) or 1
-    local slotSize   = math.max(SIDE_SLOT_MIN, math.floor(SIDE_SLOT_BASE * s + 0.5))
-    local slotGap    = math.max(4, math.floor(SIDE_SLOT_GAP * s + 0.5))
-    local radiusX    = math.max(slotSize, math.floor(texPx * SIDE_SLOT_RADIUS_X + 0.5))
-    local radiusY    = math.max(slotSize, math.floor(texPx * SIDE_SLOT_RADIUS_Y + 0.5))
+    local slotSize   = math.max(WIDGETS.GetSlotMin(), math.floor(WIDGETS.GetSlotBase() * s + 0.5))
+    local slotGap    = math.max(4, math.floor(WIDGETS.GetSlotGap() * s + 0.5))
+    local radiusX    = math.max(slotSize, math.floor(texPx * WIDGETS.GetRadiusX() + 0.5))
+    local radiusY    = math.max(slotSize, math.floor(texPx * WIDGETS.GetRadiusY() + 0.5))
     local halfSlot   = math.floor(slotSize * 0.5 + 0.5)
     local maxExtent  = math.floor(texPx * 0.5 + 0.5)
     local lados = {
@@ -2068,7 +1929,7 @@ local function AplicarLayoutSlotsLaterales(texPx)
         { side = "right", sign =  1 },
     }
 
-    for idx, yRatio in ipairs(SIDE_SLOT_Y) do
+    for idx, yRatio in ipairs(WIDGETS.GetYRatios()) do
         local yOffset = math.floor(radiusY * yRatio + 0.5)
         local yNorm   = math.min(0.98, math.abs(yOffset) / math.max(1, radiusY))
         local curveX  = math.floor(math.sqrt(math.max(0, 1 - yNorm * yNorm)) * radiusX + 0.5)
@@ -2101,7 +1962,7 @@ end
 local function AplicarPulsoWidgetComida()
     if type(overlayFoodPulseState) ~= "table" then return end
 
-    local slotInfo = SIDE_WIDGET_ASSIGNMENTS.foodBuff
+    local slotInfo = WIDGETS.GetAssignment("foodBuff")
     if not slotInfo then return end
 
     local textures = ObtenerTexturasWidgetLaterales(slotInfo.side)
@@ -2132,7 +1993,7 @@ function MOD.GetSideSlot(side, index)
 end
 
 function MOD.GetSideSlotCount()
-    return SIDE_SLOT_COUNT
+    return WIDGETS.GetSlotCount()
 end
 
 function MOD.GetSideWidget(side, index)
@@ -2141,78 +2002,46 @@ function MOD.GetSideWidget(side, index)
 end
 
 function MOD.GetSideWidgetSlotState(side, index)
-    local lista = overlaySideWidgetRegistry[side]
+    local lista = WIDGETS.GetRegistryList(side)
     if not lista or type(index) ~= "number" then return nil end
     return lista[index]
 end
 
 function MOD.GetSideWidgetRegistry()
-    local snapshot = { left = {}, right = {} }
-    for _, side in ipairs({ "left", "right" }) do
-        for i = 1, SIDE_SLOT_COUNT do
-            snapshot[side][i] = overlaySideWidgetRegistry[side][i] or false
-        end
-    end
-    return snapshot
+    return WIDGETS.GetRegistrySnapshot()
 end
 
 function MOD.FindFreeSideWidgetSlot(side)
-    local lista = overlaySideWidgetRegistry[side]
-    if not lista then return nil end
-    for i = 1, SIDE_SLOT_COUNT do
-        if not lista[i] then
-            return i
-        end
-    end
-    return nil
+    return WIDGETS.FindFreeSlot(side)
 end
 
 function MOD.SetSideWidgetData(side, index, data)
-    local lista = ObtenerDatosWidgetLaterales(side)
-    if not lista or type(index) ~= "number" or index < 1 or index > SIDE_SLOT_COUNT then return end
-    if type(data) ~= "table" then
-        lista[index] = nil
-    else
-        lista[index] = {
-            visible = data.visible,
-            texture = data.texture,
-            color = data.color,
-            alpha = data.alpha,
-            tooltipText = data.tooltipText,
-            tooltipStringId = data.tooltipStringId,
-            tooltipArgs = data.tooltipArgs,
-            actionId = data.actionId,
-            gamepadActionId = data.gamepadActionId,
-            secondaryActionId = data.secondaryActionId,
-            slotKey = data.slotKey,
-        }
+    if WIDGETS.SetData(side, index, data) then
+        MOD.Refresh()
     end
-    MOD.Refresh()
 end
 
 function MOD.ClearSideWidgetData(side, index)
-    local lista = ObtenerDatosWidgetLaterales(side)
-    if not lista then return end
-    lista[index] = nil
-    MOD.Refresh()
+    if WIDGETS.ClearData(side, index) then
+        MOD.Refresh()
+    end
 end
 
 function MOD.ClearAllSideWidgetData()
-    overlaySideWidgetData.left = {}
-    overlaySideWidgetData.right = {}
+    WIDGETS.ClearAllData()
     MOD.Refresh()
 end
 
 function MOD.ToggleLayoutPreview()
-    overlayLayoutPreviewEnabled = not overlayLayoutPreviewEnabled
-    if not overlayLayoutPreviewEnabled then
+    local enabled = WIDGETS.ToggleLayoutPreview()
+    if not enabled then
         OcultarTooltipWidget()
     end
     MOD.Refresh()
-    return overlayLayoutPreviewEnabled
+    return enabled
 end
 function MOD.IsLayoutPreviewEnabled()
-    return overlayLayoutPreviewEnabled
+    return WIDGETS.IsLayoutPreviewEnabled()
 end
 
 function MOD.SetFoodDebugState(state)
@@ -2297,7 +2126,7 @@ local function AplicarEscalaVisual()
     end
 
     if overlayWin then
-        local margin   = math.max(16, math.floor(SIDE_SLOT_MARGIN * s + 0.5))
+        local margin   = math.max(16, math.floor(WIDGETS.GetSlotMargin() * s + 0.5))
         local halfW    = math.max(math.floor(texPx * 0.5 + 0.5), sideExtent) + margin
         local totalH   =
             OVERLAY_TOP_PADDING +
