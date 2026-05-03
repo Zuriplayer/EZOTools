@@ -63,6 +63,45 @@ local function RegisterWithEZOBindings()
     })
 end
 
+local function RegisterWithEZOKeybinds()
+    if not (EZOKeybinds and type(EZOKeybinds.RegisterAddonDefaults) == "function") then
+        return
+    end
+
+    EZOKeybinds:RegisterAddonDefaults(ADDON_NAME, {
+        {
+            action = "EZO_TOGGLE_COMMAND_PANEL",
+            keyboard = {
+                preferred = "CTRL+ALT+KEY_NUMPAD0",
+            },
+            gamepad = {
+                preferred = "KEY_GAMEPAD_BUTTON_3_HOLD",
+            },
+        },
+        {
+            action = "EZO_TOGGLE_UTILITY_PANEL",
+            keyboard = {
+                preferred = "CTRL+ALT+KEY_NUMPAD1",
+            },
+            gamepad = {
+                preferred = "KEY_GAMEPAD_BUTTON_4_HOLD",
+            },
+        },
+        {
+            action = "EZO_TRAVEL_PRIMARY_HOUSE",
+            keyboard = {
+                preferred = "ALT+KEY_H",
+            },
+        },
+        {
+            action = "EZO_RELOAD_UI",
+            keyboard = {
+                preferred = "KEY_NUMPAD_MINUS",
+            },
+        },
+    })
+end
+
 -- Función de chat unificada: usa LibChatMessage si está disponible, si no d()
 local function safeChat(msg)
     if LibChatMessage then
@@ -658,6 +697,7 @@ function EZO:Initialize()
     if self.RegisterSlashCommands then self:RegisterSlashCommands() end
 
     RegisterWithEZOBindings()
+    RegisterWithEZOKeybinds()
 
 
     -- Asignar keybinds por defecto del panel de comandos.
