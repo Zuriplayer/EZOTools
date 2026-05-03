@@ -9,6 +9,7 @@ local Manager = EZO.SideMenuManager
 
 local menus = {}
 local children = {}
+local activationOrder = {}
 
 local function ObtenerEZO()
     local ezo = _G.EZOTools
@@ -84,6 +85,16 @@ local function ActivarPrimeroVisible(ids)
     return false
 end
 
+local function EstaAlgunoVisible(ids)
+    if type(ids) ~= "table" then return false end
+    for _, id in ipairs(ids) do
+        if EstaDialogoVisible(ObtenerDialogo(id)) then
+            return true
+        end
+    end
+    return false
+end
+
 local function CerrarLista(ids)
     if type(ids) ~= "table" then return end
     for _, id in ipairs(ids) do
@@ -91,18 +102,53 @@ local function CerrarLista(ids)
     end
 end
 
+local function CopiarLista(origen)
+    local copia = {}
+    if type(origen) ~= "table" then
+        return copia
+    end
+    for _, valor in ipairs(origen) do
+        copia[#copia + 1] = valor
+    end
+    return copia
+end
+
+local function NormalizarConfig(id, config, tipo)
+    return {
+        id = id,
+        type = tipo,
+        dialog = config.dialog,
+        parent = config.parent,
+        prioritizes = CopiarLista(config.prioritizes),
+        closes = CopiarLista(config.closes),
+        missingStringId = config.missingStringId,
+    }
+end
+
 function Manager.RegisterMenu(id, config)
     if type(id) ~= "string" or id == "" or type(config) ~= "table" then
         return
     end
-    menus[id] = config
+    menus[id] = NormalizarConfig(id, config, "menu")
 end
 
 function Manager.RegisterChild(id, config)
     if type(id) ~= "string" or id == "" or type(config) ~= "table" then
         return
     end
-    children[id] = config
+    children[id] = NormalizarConfig(id, config, "child")
+end
+
+function Manager.SetActivationOrder(order)
+    activationOrder = CopiarLista(order)
+end
+
+function Manager.GetMenuConfig(id)
+    return menus[id]
+end
+
+function Manager.GetChildConfig(id)
+    return children[id]
 end
 
 function Manager.IsDialogVisible(id)
@@ -110,6 +156,10 @@ function Manager.IsDialogVisible(id)
 end
 
 function Manager.HasInteractiveDialogOpen()
+    if EstaAlgunoVisible(activationOrder) then
+        return true
+    end
+
     for id in pairs(children) do
         if Manager.IsDialogVisible(id) then return true end
     end
@@ -120,9 +170,7 @@ function Manager.HasInteractiveDialogOpen()
 end
 
 function Manager.ActivateVisibleSelection()
-    local ezo = ObtenerEZO()
-    local order = ezo and ezo._sideMenuActivationOrder or nil
-    if ActivarPrimeroVisible(order) then
+    if ActivarPrimeroVisible(activationOrder) then
         return true
     end
 
@@ -202,33 +250,53 @@ local function DialogoAjustes()
     return nil
 end
 
-Manager.RegisterMenu("command", {
-    dialog = DialogoPrincipal,
-    prioritizes = { "settings" },
-    closes = { "utility", "utilityRecent" },
-    missingStringId = EZO_MSG_CMD_PANEL_MISSING,
-})
+-- Registro declarativo de menus laterales propios de EZOTools.
+-- Para anadir un nuevo menu lateral:
+-- 1. crear su dialogo con SideMenuCore;
+-- 2. registrarlo aqui como menu;
+-- 3. anadirlo a closes/prioritizes segun corresponda;
+-- 4. exponer un wrapper de keybind que llame a Manager.Toggle(id).
+local MENU_DEFINITIONS = {
+    {
+        id = "command",
+        dialog = DialogoPrincipal,
+        prioritizes = { "settings" },
+        closes = { "utility", "utilityRecent" },
+        missingStringId = EZO_MSG_CMD_PANEL_MISSING,
+    },
+    {
+        id = "utility",
+        dialog = DialogoUtilidades,
+        prioritizes = { "settings", "utilityRecent" },
+        closes = { "command" },
+        missingStringId = EZO_MSG_UTILITY_PANEL_MISSING,
+    },
+}
 
-Manager.RegisterMenu("utility", {
-    dialog = DialogoUtilidades,
-    prioritizes = { "settings", "utilityRecent" },
-    closes = { "command" },
-    missingStringId = EZO_MSG_UTILITY_PANEL_MISSING,
-})
+local CHILD_DEFINITIONS = {
+    {
+        id = "settings",
+        dialog = DialogoAjustes,
+        parent = "command",
+    },
+    {
+        id = "utilityRecent",
+        dialog = DialogoUtilidadesRecientes,
+        parent = "utility",
+    },
+}
 
-Manager.RegisterChild("settings", {
-    dialog = DialogoAjustes,
-    parent = "command",
-})
+for _, def in ipairs(MENU_DEFINITIONS) do
+    Manager.RegisterMenu(def.id, def)
+end
 
-Manager.RegisterChild("utilityRecent", {
-    dialog = DialogoUtilidadesRecientes,
-    parent = "utility",
-})
+for _, def in ipairs(CHILD_DEFINITIONS) do
+    Manager.RegisterChild(def.id, def)
+end
 
-EZO._sideMenuActivationOrder = {
+Manager.SetActivationOrder({
     "settings",
     "utilityRecent",
     "utility",
     "command",
-}
+})
