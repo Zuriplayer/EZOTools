@@ -877,6 +877,30 @@ local function ObtenerPrimerCollectibleDeCategoria(categoryType)
     return 0
 end
 
+local function ObtenerCategoriaRaizColeccionPorTipo(categoryType)
+    if categoryType == nil or not ZO_COLLECTIBLE_DATA_MANAGER or type(ZO_COLLECTIBLE_DATA_MANAGER.CategoryIterator) ~= "function" then
+        return nil
+    end
+
+    local filtros = nil
+    if ZO_CollectibleCategoryData and type(ZO_CollectibleCategoryData.HasShownCollectiblesInCollection) == "function" then
+        filtros = { ZO_CollectibleCategoryData.HasShownCollectiblesInCollection }
+    end
+
+    for _, categoryData in ZO_COLLECTIBLE_DATA_MANAGER:CategoryIterator(filtros) do
+        if categoryData and type(categoryData.IsTopLevelCategory) == "function" and categoryData:IsTopLevelCategory() then
+            if type(categoryData.GetCollectibleCategoryTypesInCategory) == "function" then
+                local categoryTypes = categoryData:GetCollectibleCategoryTypesInCategory()
+                if categoryTypes and categoryTypes[categoryType] == true then
+                    return categoryData
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
 local function AbrirLibroColecciones()
     if EsModoGamepadPreferido() then
         return MostrarEscena("gamepadCollectionsBook")
@@ -888,7 +912,78 @@ local function AbrirLibroColecciones()
     return MostrarEscenaMenuKeyboard("collectionsBook")
 end
 
-local function AbrirColeccionPorCollectible(collectibleId)
+local function SeleccionarCategoriaRaizColeccionesKeyboard(categoryData)
+    if not categoryData or not COLLECTIONS_BOOK then
+        return false
+    end
+    if type(COLLECTIONS_BOOK.PerformDeferredInitialize) == "function" then
+        COLLECTIONS_BOOK:PerformDeferredInitialize()
+    end
+    if COLLECTIONS_BOOK.refreshGroups and type(COLLECTIONS_BOOK.refreshGroups.UpdateRefreshGroups) == "function" then
+        COLLECTIONS_BOOK.refreshGroups:UpdateRefreshGroups()
+    end
+
+    local categoryId = type(categoryData.GetId) == "function" and categoryData:GetId() or nil
+    local categoryNode = categoryId and COLLECTIONS_BOOK.categoryNodeLookupData and COLLECTIONS_BOOK.categoryNodeLookupData[categoryId] or nil
+    if categoryNode and COLLECTIONS_BOOK.categoryTree then
+        if type(categoryNode.IsLeaf) == "function" and categoryNode:IsLeaf() and type(COLLECTIONS_BOOK.categoryTree.SelectNode) == "function" then
+            COLLECTIONS_BOOK.categoryTree:SelectNode(categoryNode)
+        elseif type(COLLECTIONS_BOOK.categoryTree.SetNodeOpen) == "function" then
+            COLLECTIONS_BOOK.categoryTree:SetNodeOpen(categoryNode, true)
+        else
+            return false
+        end
+    else
+        return false
+    end
+
+    if MAIN_MENU_KEYBOARD and type(MAIN_MENU_KEYBOARD.ToggleSceneGroup) == "function" then
+        MAIN_MENU_KEYBOARD:ToggleSceneGroup("collectionsSceneGroup", "collectionsBook")
+        return true
+    end
+    return MostrarEscenaMenuKeyboard("collectionsBook")
+end
+
+local function SeleccionarCategoriaRaizColeccionesGamepad(categoryData)
+    if not categoryData then
+        return false
+    end
+    if not AbrirLibroColecciones() then
+        return false
+    end
+
+    local function seleccionarCategoria()
+        if GAMEPAD_COLLECTIONS_BOOK and type(GAMEPAD_COLLECTIONS_BOOK.ViewCategory) == "function" then
+            GAMEPAD_COLLECTIONS_BOOK:ViewCategory(categoryData)
+        end
+    end
+
+    if type(zo_callLater) == "function" then
+        zo_callLater(seleccionarCategoria, 80)
+    else
+        seleccionarCategoria()
+    end
+    return true
+end
+
+local AbrirColeccionPorCollectible
+
+local function AbrirColeccionPorCategoriaRaiz(categoryType)
+    local categoryData = ObtenerCategoriaRaizColeccionPorTipo(categoryType)
+    if categoryData then
+        if EsModoGamepadPreferido() then
+            if SeleccionarCategoriaRaizColeccionesGamepad(categoryData) then
+                return true
+            end
+        elseif SeleccionarCategoriaRaizColeccionesKeyboard(categoryData) then
+            return true
+        end
+    end
+
+    return AbrirColeccionPorCollectible(ObtenerPrimerCollectibleDeCategoria(categoryType))
+end
+
+AbrirColeccionPorCollectible = function(collectibleId)
     local finalId = tonumber(collectibleId) or 0
     if finalId > 0 and COLLECTIONS_BOOK_SINGLETON and type(COLLECTIONS_BOOK_SINGLETON.BrowseToCollectible) == "function" then
         COLLECTIONS_BOOK_SINGLETON:BrowseToCollectible(finalId)
@@ -903,7 +998,11 @@ local function AbrirColeccionAliado(tipo)
     local config = ObtenerConfiguracionAliado and ObtenerConfiguracionAliado(tipo) or nil
     return EjecutarTrasCerrarUtilidades(function()
         local categoryType = config and config.collectibleCategoryType or nil
-        AbrirColeccionPorCollectible(ObtenerPrimerCollectibleDeCategoria(categoryType))
+        if config and config.openCategoryRoot == true then
+            AbrirColeccionPorCategoriaRaiz(categoryType)
+        else
+            AbrirColeccionPorCollectible(ObtenerPrimerCollectibleDeCategoria(categoryType))
+        end
     end)
 end
 
@@ -1637,6 +1736,7 @@ local ALLY_ICON_MENU_CONFIG = {
         historyEmptyKey = "EZO_DOT_MOUNT_HISTORY_EMPTY",
         emptyActionKey = "EZO_UTILITY_EMPTY_OPEN_MOUNT_COLLECTIONS",
         collectibleCategoryType = COLLECTIBLE_CATEGORY_TYPE_MOUNT,
+        openCategoryRoot = true,
         historyLimit = 10,
         showRecentHoverPreview = true,
     },
@@ -1647,6 +1747,7 @@ local ALLY_ICON_MENU_CONFIG = {
         historyEmptyKey = "EZO_DOT_PET_HISTORY_EMPTY",
         emptyActionKey = "EZO_UTILITY_EMPTY_OPEN_PET_COLLECTIONS",
         collectibleCategoryType = COLLECTIBLE_CATEGORY_TYPE_VANITY_PET,
+        openCategoryRoot = true,
         historyLimit = 10,
         showRecentHoverPreview = true,
     },
