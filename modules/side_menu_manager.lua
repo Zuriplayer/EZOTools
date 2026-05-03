@@ -19,6 +19,24 @@ end
 
 local function ResolverDialogo(config)
     if type(config) ~= "table" then return nil end
+
+    local dialogKey = config.dialogKey
+    if type(dialogKey) == "string" and dialogKey ~= "" then
+        local ezo = ObtenerEZO()
+        local dialog = ezo and ezo[dialogKey] or nil
+        if type(dialog) == "table" and type(dialog.Open) == "function" then
+            return dialog
+        end
+    end
+
+    local legacyGlobal = config.legacyGlobal
+    if type(legacyGlobal) == "string" and legacyGlobal ~= "" then
+        local dialog = _G[legacyGlobal]
+        if type(dialog) == "table" and type(dialog.Open) == "function" then
+            return dialog
+        end
+    end
+
     local dialog = config.dialog
     if type(dialog) == "function" then
         local ok, resolved = pcall(dialog)
@@ -118,6 +136,8 @@ local function NormalizarConfig(id, config, tipo)
         id = id,
         type = tipo,
         dialog = config.dialog,
+        dialogKey = config.dialogKey,
+        legacyGlobal = config.legacyGlobal,
         parent = config.parent,
         prioritizes = CopiarLista(config.prioritizes),
         closes = CopiarLista(config.closes),
@@ -214,42 +234,6 @@ function Manager.Toggle(id)
     end
 end
 
-local function DialogoPrincipal()
-    local ezo = ObtenerEZO()
-    if not ezo then return nil end
-    if ezo.GamepadDialog and type(ezo.GamepadDialog.Open) == "function" then
-        return ezo.GamepadDialog
-    end
-    if _G.EZOTools_GamepadDialog and type(_G.EZOTools_GamepadDialog.Open) == "function" then
-        return _G.EZOTools_GamepadDialog
-    end
-    return nil
-end
-
-local function DialogoUtilidades()
-    local ezo = ObtenerEZO()
-    if ezo and ezo.GamepadUtilityDialog and type(ezo.GamepadUtilityDialog.Open) == "function" then
-        return ezo.GamepadUtilityDialog
-    end
-    return nil
-end
-
-local function DialogoUtilidadesRecientes()
-    local ezo = ObtenerEZO()
-    if ezo and ezo.GamepadUtilityRecentDialog and type(ezo.GamepadUtilityRecentDialog.Open) == "function" then
-        return ezo.GamepadUtilityRecentDialog
-    end
-    return nil
-end
-
-local function DialogoAjustes()
-    local ezo = ObtenerEZO()
-    if ezo and ezo.GamepadSettingsDialog and type(ezo.GamepadSettingsDialog.Open) == "function" then
-        return ezo.GamepadSettingsDialog
-    end
-    return nil
-end
-
 -- Registro declarativo de menus laterales propios de EZOTools.
 -- Para anadir un nuevo menu lateral:
 -- 1. crear su dialogo con SideMenuCore;
@@ -259,14 +243,15 @@ end
 local MENU_DEFINITIONS = {
     {
         id = "command",
-        dialog = DialogoPrincipal,
+        dialogKey = "GamepadDialog",
+        legacyGlobal = "EZOTools_GamepadDialog",
         prioritizes = { "settings" },
         closes = { "utility", "utilityRecent" },
         missingStringId = EZO_MSG_CMD_PANEL_MISSING,
     },
     {
         id = "utility",
-        dialog = DialogoUtilidades,
+        dialogKey = "GamepadUtilityDialog",
         prioritizes = { "settings", "utilityRecent" },
         closes = { "command" },
         missingStringId = EZO_MSG_UTILITY_PANEL_MISSING,
@@ -276,12 +261,12 @@ local MENU_DEFINITIONS = {
 local CHILD_DEFINITIONS = {
     {
         id = "settings",
-        dialog = DialogoAjustes,
+        dialogKey = "GamepadSettingsDialog",
         parent = "command",
     },
     {
         id = "utilityRecent",
-        dialog = DialogoUtilidadesRecientes,
+        dialogKey = "GamepadUtilityRecentDialog",
         parent = "utility",
     },
 }
