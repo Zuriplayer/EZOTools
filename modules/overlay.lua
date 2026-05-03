@@ -3068,20 +3068,8 @@ function MOD.RefreshDot()
     RefrescarDot()
 end
 
-function MOD.BuildQuickUtilityEntries()
-    local entries = {}
-
-    local function AgregarEntrada(clave, texto, callback)
-        if type(texto) ~= "string" or texto == "" or type(callback) ~= "function" then
-            return
-        end
-        entries[#entries + 1] = {
-            key = clave,
-            text = texto,
-            callback = callback,
-        }
-    end
-
+function MOD.ExecuteQuickUtilityAction(clave)
+    clave = tostring(clave or "")
     local function EjecutarAccionAliado(estaActivoFn, ocultarFn, invocarFn, msgOcultarId, msgInvocarId)
         local activo = type(estaActivoFn) == "function" and estaActivoFn() == true
         if EZO and type(EZO.Print) == "function" then
@@ -3100,7 +3088,7 @@ function MOD.BuildQuickUtilityEntries()
         return ok
     end
 
-    AgregarEntrada("assistant", GetString(EZO_UTILITY_ENTRY_ASSISTANT), function()
+    if clave == "assistant" then
         return EjecutarAccionAliado(
             function() return ObtenerAssistantActivoId() ~= 0 end,
             OcultarAsistenteActivo,
@@ -3108,9 +3096,9 @@ function MOD.BuildQuickUtilityEntries()
             EZO_MSG_HIDE_ASSISTANT,
             EZO_MSG_SUMMON_ASSISTANT
         )
-    end)
+    end
 
-    AgregarEntrada("companion", GetString(EZO_UTILITY_ENTRY_COMPANION), function()
+    if clave == "companion" then
         return EjecutarAccionAliado(
             function() return ObtenerCompanionActivoCollectibleId() ~= 0 end,
             OcultarCompanionActivo,
@@ -3118,13 +3106,13 @@ function MOD.BuildQuickUtilityEntries()
             EZO_MSG_HIDE_COMPANION,
             EZO_MSG_SUMMON_COMPANION
         )
-    end)
+    end
 
-    AgregarEntrada("food", GetString(EZO_UTILITY_ENTRY_FOOD), function()
+    if clave == "food" then
         return ReusarComidaRecordadaConSeguridad()
-    end)
+    end
 
-    AgregarEntrada("pet", GetString(EZO_UTILITY_ENTRY_PET), function()
+    if clave == "pet" then
         return EjecutarAccionAliado(
             function() return ObtenerMascotaActivaId() ~= 0 end,
             OcultarMascotaActiva,
@@ -3132,13 +3120,13 @@ function MOD.BuildQuickUtilityEntries()
             EZO_MSG_HIDE_PET,
             EZO_MSG_SUMMON_PET
         )
-    end)
+    end
 
-    AgregarEntrada("mount", GetString(EZO_UTILITY_ENTRY_MOUNT), function()
+    if clave == "mount" then
         return InvocarMonturaRecordada()
-    end)
+    end
 
-    return entries
+    return false
 end
 
 function MOD.BuildQuickUtilityRecentEntries(clave, usarAccionVacia)
