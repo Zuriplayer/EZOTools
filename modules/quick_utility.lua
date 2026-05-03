@@ -1,6 +1,6 @@
--- Fachada de datos/previews para HOLD Y.
--- De momento delega en overlay.lua para no mover logica funcional sensible.
--- El objetivo es que los dialogos de utilidades no dependan directamente del overlay.
+-- Proveedor de entradas de HOLD Y.
+-- Construye el menu principal y delega en overlay.lua la ejecucion/recientes/previews
+-- que aun dependen de comida, colecciones y tooltips del overlay.
 EZOTools_QuickUtility = EZOTools_QuickUtility or {}
 
 local MOD = EZOTools_QuickUtility
@@ -13,15 +13,35 @@ local function ObtenerOverlay()
     return nil
 end
 
-function MOD.BuildEntries()
-    local overlay = ObtenerOverlay()
-    if overlay and type(overlay.BuildQuickUtilityEntries) == "function" then
-        local ok, entries = pcall(overlay.BuildQuickUtilityEntries)
-        if ok and type(entries) == "table" then
-            return entries
-        end
+local function AgregarEntrada(entries, key, textId)
+    if type(entries) ~= "table" or type(key) ~= "string" or key == "" or not textId then
+        return
     end
-    return {}
+    local text = GetString(textId)
+    if type(text) ~= "string" or text == "" then
+        return
+    end
+    entries[#entries + 1] = {
+        key = key,
+        text = text,
+        callback = function()
+            local overlay = ObtenerOverlay()
+            if overlay and type(overlay.ExecuteQuickUtilityAction) == "function" then
+                return overlay.ExecuteQuickUtilityAction(key)
+            end
+            return false
+        end,
+    }
+end
+
+function MOD.BuildEntries()
+    local entries = {}
+    AgregarEntrada(entries, "assistant", EZO_UTILITY_ENTRY_ASSISTANT)
+    AgregarEntrada(entries, "companion", EZO_UTILITY_ENTRY_COMPANION)
+    AgregarEntrada(entries, "food", EZO_UTILITY_ENTRY_FOOD)
+    AgregarEntrada(entries, "pet", EZO_UTILITY_ENTRY_PET)
+    AgregarEntrada(entries, "mount", EZO_UTILITY_ENTRY_MOUNT)
+    return entries
 end
 
 function MOD.BuildRecentEntries(key, useEmptyAction)
