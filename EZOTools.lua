@@ -103,57 +103,7 @@ local function MigrateLegacyCharacterOverlayData(csvOverlay, accountOverlay)
         end
     end
 
-    if tostring(accountOverlay.lastFoodItemLink or "") == "" then
-        local itemLink = tostring(csvOverlay.lastFoodItemLink or "")
-        if itemLink ~= "" then
-            accountOverlay.lastFoodItemLink = itemLink
-        end
-    end
-
-    if tostring(accountOverlay.lastFoodItemName or "") == "" then
-        local itemName = tostring(csvOverlay.lastFoodItemName or "")
-        if itemName ~= "" then
-            accountOverlay.lastFoodItemName = itemName
-        end
-    end
-
     MergeUniqueNumberHistory(accountOverlay, csvOverlay, "recentCompanionCollectibles", 5)
-
-    if type(csvOverlay.recentFoodItems) == "table" then
-        local mergedFood = {}
-        local seenFood = {}
-
-        local function AddFood(entry)
-            if type(entry) ~= "table" then return end
-            local itemLink = tostring(entry.itemLink or "")
-            local itemName = tostring(entry.itemName or "")
-            local key = (itemLink ~= "") and itemLink or itemName
-            if key == "" or seenFood[key] then
-                return
-            end
-            seenFood[key] = true
-            mergedFood[#mergedFood + 1] = {
-                itemLink = itemLink,
-                itemName = itemName,
-            }
-        end
-
-        if type(accountOverlay.recentFoodItems) == "table" then
-            for _, entry in ipairs(accountOverlay.recentFoodItems) do
-                AddFood(entry)
-                if #mergedFood >= 5 then break end
-            end
-        end
-
-        if #mergedFood < 5 then
-            for _, entry in ipairs(csvOverlay.recentFoodItems) do
-                AddFood(entry)
-                if #mergedFood >= 5 then break end
-            end
-        end
-
-        accountOverlay.recentFoodItems = mergedFood
-    end
 end
 
 function EZO:Initialize()
@@ -197,9 +147,6 @@ function EZO:Initialize()
             recentPetCollectibles = {},
             recentCompanionCollectibles = {},
             recentAssistantCollectibles = {},
-            lastFoodItemLink = "",
-            lastFoodItemName = "",
-            recentFoodItems = {},
             recentOwnHouses = {},
             recentOtherHouses = {},
             x                = nil,

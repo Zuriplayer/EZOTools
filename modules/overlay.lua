@@ -865,8 +865,21 @@ local function ObtenerOverlaySVParaClave(clave)
     return overlaySV
 end
 
+local function ObtenerFoodSV()
+    local overlaySV = EZO and EZO.csv and EZO.csv.overlay or nil
+    if type(overlaySV) ~= "table" then
+        return nil
+    end
+    overlaySV.lastFoodItemLink = tostring(overlaySV.lastFoodItemLink or "")
+    overlaySV.lastFoodItemName = tostring(overlaySV.lastFoodItemName or "")
+    if type(overlaySV.recentFoodItems) ~= "table" then
+        overlaySV.recentFoodItems = {}
+    end
+    return overlaySV
+end
+
 local function GuardarComidaRecordada(itemLink, itemName)
-    local overlaySV = ObtenerOverlaySVParaClave("lastFoodItemLink")
+    local overlaySV = ObtenerFoodSV()
     if not overlaySV then return end
     overlaySV.lastFoodItemLink = tostring(itemLink or "")
     overlaySV.lastFoodItemName = tostring(itemName or "")
@@ -883,7 +896,7 @@ local function ObtenerMomentoActualMs()
 end
 
 local function GuardarComidaEnHistorial(itemLink, itemName)
-    local overlaySV = ObtenerOverlaySVParaClave("recentFoodItems")
+    local overlaySV = ObtenerFoodSV()
     if not overlaySV then return end
     local link = tostring(itemLink or "")
     local name = tostring(itemName or "")
@@ -1118,7 +1131,7 @@ BuscarConsumibleComidaPorReferencia = function(targetLink, targetName)
 end
 
 BuscarConsumibleRecordadoComida = function()
-    local overlaySV = ObtenerOverlaySVParaClave("lastFoodItemLink")
+    local overlaySV = ObtenerFoodSV()
     local targetLink = tostring(overlaySV and overlaySV.lastFoodItemLink or "")
     local targetName = tostring(overlaySV and overlaySV.lastFoodItemName or "")
     return BuscarConsumibleComidaPorReferencia(targetLink, targetName)
@@ -1143,7 +1156,7 @@ ConstruirTooltipComida = function(foodInfo, foodRecordadoNombre, foodRecordadoDi
     end
 
     if not (type(foodInfo) == "table" and foodInfo.active) and foodRecordadoDisponible then
-        local overlaySV = ObtenerOverlaySVParaClave("lastFoodItemName")
+        local overlaySV = ObtenerFoodSV()
         local nombre = tostring(foodRecordadoNombre or (overlaySV and overlaySV.lastFoodItemName) or "")
         if foodLegendaria then
             return zo_strformat(
@@ -3412,7 +3425,7 @@ function MOD.BuildQuickUtilityRecentEntries(clave, usarAccionVacia)
     end
 
     if clave == "food" then
-        local overlaySV = ObtenerOverlaySVParaClave("recentFoodItems")
+        local overlaySV = ObtenerFoodSV()
         local history = overlaySV and overlaySV.recentFoodItems or nil
         if type(history) == "table" then
             for _, entry in ipairs(history) do
