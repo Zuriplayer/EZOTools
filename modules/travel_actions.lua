@@ -54,6 +54,48 @@ function EZO.CanJumpToLeader()
     return JumpToGroupLeader ~= nil
 end
 
+function EZO.GetLeaderJumpMenuText()
+    local baseText = GetString(EZO_MENU_JUMP_LEADER)
+    if not GetGroupLeaderUnitTag then
+        return baseText
+    end
+
+    local leaderTag = GetGroupLeaderUnitTag()
+    if not leaderTag or leaderTag == "" then
+        return baseText
+    end
+
+    local displayName = ""
+    if type(GetUnitDisplayName) == "function" then
+        local okName, name = pcall(GetUnitDisplayName, leaderTag)
+        if okName then
+            displayName = tostring(name or "")
+        end
+    end
+
+    local zoneName = ""
+    if type(GetUnitZoneIndex) == "function" and type(GetZoneNameByIndex) == "function" then
+        local okZoneIndex, zoneIndex = pcall(GetUnitZoneIndex, leaderTag)
+        if okZoneIndex and zoneIndex then
+            local okZoneName, name = pcall(GetZoneNameByIndex, zoneIndex)
+            if okZoneName then
+                zoneName = tostring(name or "")
+            end
+        end
+    end
+
+    if displayName ~= "" and zoneName ~= "" then
+        return zo_strformat(GetString(EZO_MENU_JUMP_LEADER_WITH_LOCATION), displayName, zoneName)
+    end
+    if zoneName ~= "" then
+        return zo_strformat(GetString(EZO_MENU_JUMP_LEADER_ZONE), zoneName)
+    end
+    if displayName ~= "" then
+        return zo_strformat(GetString(EZO_MENU_JUMP_LEADER_PLAYER), displayName)
+    end
+    return baseText
+end
+
 function EZO.JumpToLeader()
     if not IsUnitGrouped or not IsUnitGrouped("player") then
         Print(GetString(EZO_MSG_NOT_IN_GROUP))
