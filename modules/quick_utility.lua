@@ -23,6 +23,19 @@ local function ObtenerOverlay()
     return nil
 end
 
+local function ObtenerHouseProvider()
+    local provider = _G.EZOTools_QuickUtilityHouses
+    if type(provider) == "table" then
+        return provider
+    end
+    return nil
+end
+
+local function EsCategoriaCasas(key)
+    key = tostring(key or "")
+    return key == "houses" or key == "otherHouses"
+end
+
 local function AgregarEntrada(entries, key, textKey)
     if type(entries) ~= "table" or type(key) ~= "string" or key == "" or type(textKey) ~= "string" then
         return
@@ -37,6 +50,12 @@ local function AgregarEntrada(entries, key, textKey)
         key = key,
         text = text,
         callback = function()
+            if EsCategoriaCasas(key) then
+                local provider = ObtenerHouseProvider()
+                if provider and type(provider.ExecuteAction) == "function" then
+                    return provider.ExecuteAction(key)
+                end
+            end
             local overlay = ObtenerOverlay()
             if overlay and type(overlay.ExecuteQuickUtilityAction) == "function" then
                 return overlay.ExecuteQuickUtilityAction(key)
@@ -56,6 +75,17 @@ end
 
 function MOD.BuildRecentEntries(key, useEmptyAction)
     key = tostring(key or "")
+    if EsCategoriaCasas(key) then
+        local provider = ObtenerHouseProvider()
+        if provider and type(provider.BuildRecentEntries) == "function" then
+            local ok, entries = pcall(provider.BuildRecentEntries, key, useEmptyAction)
+            if ok and type(entries) == "table" then
+                return entries
+            end
+        end
+        return {}
+    end
+
     local overlay = ObtenerOverlay()
     if overlay and type(overlay.BuildQuickUtilityRecentEntries) == "function" then
         local ok, entries = pcall(overlay.BuildQuickUtilityRecentEntries, key, useEmptyAction)
@@ -68,6 +98,17 @@ end
 
 function MOD.GetHistoryEmptyLabel(key)
     key = tostring(key or "")
+    if EsCategoriaCasas(key) then
+        local provider = ObtenerHouseProvider()
+        if provider and type(provider.GetHistoryEmptyLabel) == "function" then
+            local ok, text = pcall(provider.GetHistoryEmptyLabel, key)
+            if ok and type(text) == "string" then
+                return text
+            end
+        end
+        return ""
+    end
+
     local overlay = ObtenerOverlay()
     if overlay and type(overlay.GetQuickUtilityHistoryEmptyLabel) == "function" then
         local ok, text = pcall(overlay.GetQuickUtilityHistoryEmptyLabel, key)

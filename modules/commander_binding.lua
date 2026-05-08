@@ -22,6 +22,28 @@ local function AvisarNoDisponible(stringId)
     end
 end
 
+local function EsModoGamepadPreferido()
+    if type(IsInGamepadPreferredMode) == "function" then
+        return IsInGamepadPreferredMode() == true
+    end
+    if type(IsInGamepadMode) == "function" then
+        return IsInGamepadMode() == true
+    end
+    return false
+end
+
+local function EstaJugadorEnCombate()
+    if type(IsUnitInCombat) ~= "function" then
+        return false
+    end
+    local ok, enCombate = pcall(IsUnitInCombat, "player")
+    return ok and enCombate == true
+end
+
+local function DebeBloquearMenuLateralEnCombate()
+    return EsModoGamepadPreferido() and EstaJugadorEnCombate()
+end
+
 function EZO.HasInteractiveDialogOpen()
     local manager = ObtenerManager()
     return manager and type(manager.HasInteractiveDialogOpen) == "function" and manager.HasInteractiveDialogOpen() == true
@@ -36,6 +58,9 @@ function EZO.ActivateVisibleDialogSelection()
 end
 
 function EZO.ToggleCommandPanel()
+    if DebeBloquearMenuLateralEnCombate() then
+        return false
+    end
     local manager = ObtenerManager()
     if not (manager and type(manager.Toggle) == "function") then
         AvisarNoDisponible(EZO_MSG_CMD_PANEL_MISSING)
@@ -45,6 +70,9 @@ function EZO.ToggleCommandPanel()
 end
 
 function EZO.ToggleUtilityPanel()
+    if DebeBloquearMenuLateralEnCombate() then
+        return false
+    end
     local manager = ObtenerManager()
     if not (manager and type(manager.Toggle) == "function") then
         AvisarNoDisponible(EZO_MSG_UTILITY_PANEL_MISSING)

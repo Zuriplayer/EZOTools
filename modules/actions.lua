@@ -60,17 +60,6 @@ end
 function A.BuildEntries()
     local entradas = {}
 
-    -- Ajustes rápidos (submenú lateral, sin cambio de escena)
-    AgregarEntrada(entradas,
-        GetString(EZO_MENU_SETTINGS),
-        function() return Trigger("OPEN_SETTINGS") end,
-        "settings")
-
-    -- Ajustes completos del addon vía LibAddonMenu
-    AgregarEntrada(entradas,
-        GetString(EZO_MENU_ADDON_SETTINGS),
-        function() return Trigger("OPEN_ADDON_SETTINGS") end)
-
     -- Viaje: casa principal del jugador (oculto en combate — el juego rechaza el viaje)
     if not JugadorEnCombate() then
         if type(GetHousingPrimaryHouse) == "function" and type(RequestJumpToHouse) == "function" then
@@ -109,8 +98,15 @@ function A.BuildEntries()
         and type(EZO.JumpToLeader) == "function" then
         local ok, puede = LlamadaSegura(EZO.CanJumpToLeader)
         if ok and puede == true then
+            local leaderText = GetString(EZO_MENU_JUMP_LEADER)
+            if type(EZO.GetLeaderJumpMenuText) == "function" then
+                local okText, text = LlamadaSegura(EZO.GetLeaderJumpMenuText)
+                if okText and type(text) == "string" and text ~= "" then
+                    leaderText = text
+                end
+            end
             AgregarEntrada(entradas,
-                GetString(EZO_MENU_JUMP_LEADER),
+                leaderText,
                 function() return Trigger("JUMP_TO_LEADER") end)
         end
     end
@@ -164,6 +160,16 @@ function A.BuildEntries()
     AgregarEntrada(entradas,
         GetString(EZO_MENU_RELOAD),
         function() ReloadUI() end)
+
+    -- Ajustes al final, justo encima de cerrar, para no separar las acciones principales.
+    AgregarEntrada(entradas,
+        GetString(EZO_MENU_SETTINGS),
+        function() return Trigger("OPEN_SETTINGS") end,
+        "settings")
+
+    AgregarEntrada(entradas,
+        GetString(EZO_MENU_ADDON_SETTINGS),
+        function() return Trigger("OPEN_ADDON_SETTINGS") end)
 
     -- Cerrar menú (siempre al final)
     AgregarEntrada(entradas,
