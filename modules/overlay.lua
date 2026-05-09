@@ -8,6 +8,7 @@ EZOTools_Overlay = EZOTools_Overlay or {}
 local MOD = EZOTools_Overlay
 local EZO = EZOTools
 local WIDGETS = EZOTools_OverlayWidgets
+local FOOD = EZOTools_QuickUtilityFood
 
 -- Controles de la ventana (se crean en EnsureControls la primera vez)
 local overlayWin, overlayTex, overlayLabel, overlayGuildLabel, overlayMaintDot, overlayChargeDot, overlayFoodDot, overlayMountDot, overlayPetDot, overlayCompanionDot, overlayAssistantDot
@@ -17,22 +18,13 @@ local overlaySideWidgetTexturesLeft, overlaySideWidgetTexturesRight = {}, {}
 local overlayWidgetTooltipWin, overlayWidgetTooltipBackdrop, overlayWidgetTooltipLabel
 local overlayAllyTooltipActive = false
 local overlaySideWidgetTooltipActive = false
-local overlayFoodDebugState = nil
 local overlayFoodPulseLastRefreshMs = 0
 local overlayAllyTooltipLastRefreshMs = 0
 local overlayFoodPulseState = nil
-local overlayFoodConfirmDialogRegistered = false
-local overlayFoodBackpackCache = {}
-local overlayFoodPendingItem = nil
-local ObtenerInfoBuffComida
-local ConstruirTooltipComida
-local BuscarConsumibleRecordadoComida
-local BuscarConsumibleComidaPorReferencia
 local AbrirMenuHistorialAliado
 local EstaMontado
 local TOOLTIP_ICON_WIDTH = 360
 local TOOLTIP_ICON_HEIGHT = 120
-local FOOD_PENDING_WINDOW_MS = 4000
 
 -- Estado de combate (se actualiza vía evento)
 local enCombate = false
@@ -65,7 +57,6 @@ local OVERLAY_TOP_PADDING = 4
 local OVERLAY_ROW_GAP_SMALL = 4
 local OVERLAY_ROW_GAP_NORMAL = 6
 local OVERLAY_BOTTOM_PADDING = 18
-local FOOD_ALERT_SECONDS = 15 * 60
 local FOOD_PULSE_REFRESH_MS = 120
 local ALLY_TOOLTIP_REFRESH_MS = 80
 
@@ -314,20 +305,6 @@ local function ConstruirTooltipPreviewWidget(side, index)
     return zo_strformat(GetString(EZO_SIDE_WIDGET_PREVIEW_TOOLTIP), ObtenerNombreLadoWidget(side), tostring(index))
 end
 
-local function FormatearTiempoRestanteCorto(segundos)
-    segundos = math.max(0, math.floor(tonumber(segundos) or 0))
-    local horas = math.floor(segundos / 3600)
-    local minutos = math.floor((segundos % 3600) / 60)
-    local secs = segundos % 60
-    if horas > 0 then
-        return zo_strformat(GetString(EZO_TIME_REMAINING_HM), tostring(horas), tostring(minutos))
-    end
-    if minutos > 0 then
-        return zo_strformat(GetString(EZO_TIME_REMAINING_MS), tostring(minutos), tostring(secs))
-    end
-    return zo_strformat(GetString(EZO_TIME_REMAINING_S), tostring(secs))
-end
-
 local function CalcularPulsoAlfa(periodoSeg, minAlpha, maxAlpha)
     if type(GetFrameTimeSeconds) ~= "function" then
         return maxAlpha
@@ -340,134 +317,8 @@ local function CalcularPulsoAlfa(periodoSeg, minAlpha, maxAlpha)
     return minimo + (maximo - minimo) * onda
 end
 
-local function ObtenerEstadoVisualComida(foodInfo)
-    local estado = {
-        color = { 1.0, 0.30, 0.30, 0.95 },
-        alpha = 1,
-        tooltip = GetString(EZO_SIDE_WIDGET_FOOD_NONE_TOOLTIP),
-        pulse = nil,
-    }
-
-    if not (type(foodInfo) == "table" and foodInfo.active) then
-        estado.alpha = CalcularPulsoAlfa(0.85, 0.35, 1.0)
-        estado.pulse = {
-            color = estado.color,
-            period = 0.85,
-            minAlpha = 0.35,
-            maxAlpha = 1.0,
-        }
-        return estado
-    end
-
-    local remainingSeconds = tonumber(foodInfo.remainingSeconds)
-    if remainingSeconds ~= nil then
-        if remainingSeconds > FOOD_ALERT_SECONDS then
-            estado.color = { 0.35, 0.85, 0.35, 0.95 }
-            estado.alpha = 1
-        else
-            estado.color = { 1.0, 0.62, 0.10, 1.0 }
-            estado.alpha = CalcularPulsoAlfa(0.7, 0.45, 1.0)
-            estado.pulse = {
-                color = estado.color,
-                period = 0.7,
-                minAlpha = 0.45,
-                maxAlpha = 1.0,
-            }
-        end
-        estado.tooltip = zo_strformat(
-            GetString(EZO_SIDE_WIDGET_FOOD_ACTIVE_TOOLTIP),
-            tostring(foodInfo.name or ""),
-            FormatearTiempoRestanteCorto(remainingSeconds)
-        )
-        return estado
-    end
-
-    estado.color = { 0.35, 0.85, 0.35, 0.95 }
-    estado.alpha = 1
-    estado.tooltip = zo_strformat(
-        GetString(EZO_SIDE_WIDGET_FOOD_ACTIVE_NO_TIME_TOOLTIP),
-        tostring(foodInfo.name or "")
-    )
-    return estado
-end
-
 local function NecesitaPulsoComida()
     return type(overlayFoodPulseState) == "table"
-end
-
-local function CalcularSegundosRestantesBuff(endTime)
-    if type(endTime) ~= "number" then return nil end
-    local candidatos = {}
-    local maxRazonable = 7 * 24 * 60 * 60
-
-    if type(GetFrameTimeSeconds) == "function" then
-        local diff = endTime - GetFrameTimeSeconds()
-        if diff >= 0 and diff <= maxRazonable then
-            table.insert(candidatos, diff)
-        end
-    end
-    if type(GetFrameTimeMilliseconds) == "function" then
-        local diff = (endTime - GetFrameTimeMilliseconds()) / 1000
-        if diff >= 0 and diff <= maxRazonable then
-            table.insert(candidatos, diff)
-        end
-    end
-    if type(GetGameTimeMilliseconds) == "function" then
-        local diff = (endTime - GetGameTimeMilliseconds()) / 1000
-        if diff >= 0 and diff <= maxRazonable then
-            table.insert(candidatos, diff)
-        end
-    end
-
-    if #candidatos == 0 then return nil end
-    table.sort(candidatos, function(a, b) return a < b end)
-    return candidatos[1]
-end
-
-ObtenerInfoBuffComida = function()
-    if overlayFoodDebugState == "green" then
-        return {
-            active = true,
-            name = GetString(EZO_DEBUG_FOOD_NAME),
-            remainingSeconds = 20 * 60,
-        }
-    end
-    if overlayFoodDebugState == "yellow" then
-        return {
-            active = true,
-            name = GetString(EZO_DEBUG_FOOD_NAME),
-            remainingSeconds = 4 * 60 + 30,
-        }
-    end
-    if overlayFoodDebugState == "red" then
-        return { active = false }
-    end
-
-    if type(GetNumBuffs) ~= "function" or type(GetUnitBuffInfo) ~= "function" then
-        return { active = false }
-    end
-
-    local num = GetNumBuffs("player")
-    local mejor = nil
-    for i = 1, num do
-        local buffName, _, endTime, _, _, _, _, _, _, _, _, canClickOff = GetUnitBuffInfo("player", i)
-        if endTime and endTime > 0 and canClickOff == true then
-            local candidato = {
-                active = true,
-                name = buffName,
-                remainingSeconds = CalcularSegundosRestantesBuff(endTime),
-            }
-            if not mejor then
-                mejor = candidato
-            elseif type(candidato.remainingSeconds) == "number" and type(mejor.remainingSeconds) == "number" and candidato.remainingSeconds > mejor.remainingSeconds then
-                mejor = candidato
-            elseif mejor.remainingSeconds == nil and candidato.remainingSeconds ~= nil then
-                mejor = candidato
-            end
-        end
-    end
-
-    return mejor or { active = false }
 end
 
 local function ObtenerTooltipWidget(side, index, data)
@@ -477,12 +328,8 @@ local function ObtenerTooltipWidget(side, index, data)
     if type(data) ~= "table" then
         if WIDGETS and WIDGETS.IsLayoutPreviewEnabled() then
             local foodSlot = WIDGETS.GetAssignment("foodBuff")
-            if foodSlot and foodSlot.side == side and foodSlot.index == index and type(ConstruirTooltipComida) == "function" then
-                local foodInfo = ObtenerInfoBuffComida()
-                local foodRecordadoBag, _, foodRecordadoNombre, _, foodRecordadoQuality = BuscarConsumibleRecordadoComida()
-                local foodRecordadoDisponible = foodRecordadoBag ~= nil
-                local foodLegendaria = type(ITEM_QUALITY_LEGENDARY) == "number" and foodRecordadoQuality == ITEM_QUALITY_LEGENDARY
-                return ConstruirTooltipComida(foodInfo, foodRecordadoNombre, foodRecordadoDisponible, foodLegendaria)
+            if foodSlot and foodSlot.side == side and foodSlot.index == index and FOOD and type(FOOD.BuildLayoutPreviewTooltip) == "function" then
+                return FOOD.BuildLayoutPreviewTooltip()
             end
             return ConstruirTooltipPreviewWidget(side, index)
         end
@@ -513,22 +360,6 @@ local function NormalizarTextoTooltip(texto)
     return texto
 end
 MOD.NormalizeTooltipText = NormalizarTextoTooltip
-
-local function NormalizarTextoEtiqueta(texto)
-    if type(texto) ~= "string" then
-        return ""
-    end
-    texto = NormalizarTextoTooltip(texto)
-    texto = texto:gsub("|H.-|h(.-)|h", "%1")
-    texto = texto:gsub("|c%x%x%x%x%x%x", "")
-    texto = texto:gsub("|r", "")
-    texto = texto:gsub("%^%a+", "")
-    texto = texto:gsub("%s+", " ")
-    if type(zo_strtrim) == "function" then
-        return zo_strtrim(texto)
-    end
-    return texto:gsub("^%s+", ""):gsub("%s+$", "")
-end
 
 local function MostrarTooltipWidget(ctrl, side, index, data)
     local texto = ObtenerTooltipWidget(side, index, data)
@@ -604,34 +435,6 @@ local function ObtenerDescripcionCollectible(collectibleId)
         local descripcion = GetCollectibleDescription(collectibleId)
         if type(descripcion) == "string" and descripcion ~= "" then
             return descripcion
-        end
-    end
-    return nil
-end
-
-local function EsConsumibleDeComidaOBebida(bagId, slotIndex)
-    if type(GetItemType) ~= "function" then return false end
-    local itemType = GetItemType(bagId, slotIndex)
-    if itemType ~= ITEMTYPE_FOOD and itemType ~= ITEMTYPE_DRINK then
-        return false
-    end
-    if type(IsItemUsable) == "function" and not IsItemUsable(bagId, slotIndex) then
-        return false
-    end
-    return true
-end
-
-local function ObtenerNombreItem(bagId, slotIndex, itemLink)
-    if type(GetItemLinkName) == "function" and type(itemLink) == "string" and itemLink ~= "" then
-        local nombreLink = GetItemLinkName(itemLink)
-        if type(nombreLink) == "string" and nombreLink ~= "" then
-            return nombreLink
-        end
-    end
-    if type(GetItemName) == "function" then
-        local nombreItem = GetItemName(bagId, slotIndex)
-        if type(nombreItem) == "string" and nombreItem ~= "" then
-            return nombreItem
         end
     end
     return nil
@@ -861,606 +664,6 @@ end
 local function ObtenerOverlaySVParaClave(clave)
     local overlaySV = EZO and EZO.sv and EZO.sv.overlay or nil
     return overlaySV
-end
-
-local function ObtenerFoodSV()
-    local overlaySV = EZO and EZO.csv and EZO.csv.overlay or nil
-    if type(overlaySV) ~= "table" then
-        return nil
-    end
-    overlaySV.lastFoodItemLink = tostring(overlaySV.lastFoodItemLink or "")
-    overlaySV.lastFoodItemName = tostring(overlaySV.lastFoodItemName or "")
-    if type(overlaySV.recentFoodItems) ~= "table" then
-        overlaySV.recentFoodItems = {}
-    end
-    return overlaySV
-end
-
-local function GuardarComidaRecordada(itemLink, itemName)
-    local overlaySV = ObtenerFoodSV()
-    if not overlaySV then return end
-    overlaySV.lastFoodItemLink = tostring(itemLink or "")
-    overlaySV.lastFoodItemName = tostring(itemName or "")
-end
-
-local function ObtenerMomentoActualMs()
-    if type(GetGameTimeMilliseconds) == "function" then
-        return GetGameTimeMilliseconds()
-    end
-    if type(GetFrameTimeMilliseconds) == "function" then
-        return GetFrameTimeMilliseconds()
-    end
-    return nil
-end
-
-local function GuardarComidaEnHistorial(itemLink, itemName)
-    local overlaySV = ObtenerFoodSV()
-    if not overlaySV then return end
-    local link = tostring(itemLink or "")
-    local name = tostring(itemName or "")
-    if link == "" and name == "" then
-        return
-    end
-
-    local history = overlaySV.recentFoodItems
-    if type(history) ~= "table" then
-        history = {}
-        overlaySV.recentFoodItems = history
-    end
-
-    local newHistory = {
-        {
-            itemLink = link,
-            itemName = name,
-        }
-    }
-
-    for _, entry in ipairs(history) do
-        if type(entry) == "table" then
-            local entryLink = tostring(entry.itemLink or "")
-            local entryName = tostring(entry.itemName or "")
-            local sameLink = (link ~= "" and entryLink == link)
-            local sameName = (link == "" and name ~= "" and entryName == name)
-            if not sameLink and not sameName then
-                newHistory[#newHistory + 1] = {
-                    itemLink = entryLink,
-                    itemName = entryName,
-                }
-            end
-        end
-        if #newHistory >= 5 then
-            break
-        end
-    end
-
-    overlaySV.recentFoodItems = newHistory
-end
-
-local function ObtenerDescripcionUsoItem(itemLink)
-    if type(GetItemLinkOnUseAbilityInfo) ~= "function" then
-        return nil
-    end
-    local hasAbility, abilityHeader, abilityDescription = GetItemLinkOnUseAbilityInfo(itemLink)
-    if not hasAbility then
-        return nil
-    end
-    if type(abilityDescription) == "string" and abilityDescription ~= "" then
-        return abilityDescription
-    end
-    if type(abilityHeader) == "string" and abilityHeader ~= "" then
-        return abilityHeader
-    end
-    return nil
-end
-
-local function ObtenerCabeceraUsoItem(itemLink)
-    if type(GetItemLinkOnUseAbilityInfo) ~= "function" then
-        return nil
-    end
-    local hasAbility, abilityHeader = GetItemLinkOnUseAbilityInfo(itemLink)
-    if not hasAbility then
-        return nil
-    end
-    if type(abilityHeader) == "string" and abilityHeader ~= "" then
-        return abilityHeader
-    end
-    return nil
-end
-
-local function LeerEstadoConsumibleComidaMochila(slotIndex)
-    if type(slotIndex) ~= "number" then
-        return nil
-    end
-    if not EsConsumibleDeComidaOBebida(BAG_BACKPACK, slotIndex) then
-        return nil
-    end
-
-    local itemLink = ""
-    if type(GetItemLink) == "function" then
-        itemLink = tostring(GetItemLink(BAG_BACKPACK, slotIndex, LINK_STYLE_DEFAULT) or "")
-    end
-    local itemName = ObtenerNombreItem(BAG_BACKPACK, slotIndex, itemLink)
-    local stackSize = 0
-    if type(GetSlotStackSize) == "function" then
-        local currentStackSize = GetSlotStackSize(BAG_BACKPACK, slotIndex)
-        stackSize = tonumber(currentStackSize) or 0
-    end
-
-    return {
-        itemLink = itemLink,
-        itemName = tostring(itemName or ""),
-        stackSize = stackSize,
-    }
-end
-
-local function ActualizarCacheConsumibleComidaMochila(slotIndex)
-    if type(slotIndex) ~= "number" then
-        return
-    end
-    overlayFoodBackpackCache[slotIndex] = LeerEstadoConsumibleComidaMochila(slotIndex)
-end
-
-local function SincronizarCacheConsumiblesComidaMochila()
-    overlayFoodBackpackCache = {}
-    if type(GetBagSize) ~= "function" then
-        return
-    end
-    local bagSize = GetBagSize(BAG_BACKPACK)
-    if type(bagSize) ~= "number" or bagSize <= 0 then
-        return
-    end
-    for slotIndex = 0, bagSize - 1 do
-        ActualizarCacheConsumibleComidaMochila(slotIndex)
-    end
-end
-
-local function RegistrarConsumoComidaPendiente(previousEntry, stackCountChange)
-    if type(previousEntry) ~= "table" then
-        return
-    end
-    local delta = tonumber(stackCountChange) or 0
-    if delta >= 0 then
-        return
-    end
-
-    local itemLink = tostring(previousEntry.itemLink or "")
-    local itemName = tostring(previousEntry.itemName or "")
-    if itemLink == "" and itemName == "" then
-        return
-    end
-
-    overlayFoodPendingItem = {
-        itemLink = itemLink,
-        itemName = itemName,
-        timestampMs = ObtenerMomentoActualMs(),
-    }
-
-    -- Consumir una comida/bebida desde la mochila suele bajar exactamente una unidad.
-    -- Guardamos la referencia en ese momento para no depender del orden entre mochila y buff.
-    if delta == -1 then
-        GuardarComidaRecordada(itemLink, itemName)
-        GuardarComidaEnHistorial(itemLink, itemName)
-    end
-end
-
-local function IntentarRecordarComidaPendiente()
-    if type(overlayFoodPendingItem) ~= "table" then
-        return false
-    end
-
-    local foodInfo = ObtenerInfoBuffComida()
-    if not (type(foodInfo) == "table" and foodInfo.active) then
-        return false
-    end
-
-    local nowMs = ObtenerMomentoActualMs()
-    local pendingMs = tonumber(overlayFoodPendingItem.timestampMs)
-    if nowMs and pendingMs and (nowMs - pendingMs) > FOOD_PENDING_WINDOW_MS then
-        overlayFoodPendingItem = nil
-        return false
-    end
-
-    local itemLink = tostring(overlayFoodPendingItem.itemLink or "")
-    local itemName = tostring(overlayFoodPendingItem.itemName or "")
-    if itemLink == "" and itemName == "" then
-        overlayFoodPendingItem = nil
-        return false
-    end
-
-    GuardarComidaRecordada(itemLink, itemName)
-    GuardarComidaEnHistorial(itemLink, itemName)
-    overlayFoodPendingItem = nil
-    return true
-end
-
-local function ObtenerCalidadItem(bagId, slotIndex, itemLink)
-    if type(GetItemQuality) == "function" then
-        local quality = GetItemQuality(bagId, slotIndex)
-        if type(quality) == "number" then
-            return quality
-        end
-    end
-    if type(GetItemLinkQuality) == "function" and type(itemLink) == "string" and itemLink ~= "" then
-        local quality = GetItemLinkQuality(itemLink)
-        if type(quality) == "number" then
-            return quality
-        end
-    end
-    return nil
-end
-
-BuscarConsumibleComidaPorReferencia = function(targetLink, targetName)
-    if type(GetBagSize) ~= "function" then return nil end
-
-    targetLink = tostring(targetLink or "")
-    targetName = tostring(targetName or "")
-    if targetLink == "" and targetName == "" then
-        return nil
-    end
-
-    local bagSize = GetBagSize(BAG_BACKPACK)
-    if type(bagSize) ~= "number" or bagSize <= 0 then return nil end
-
-    local fallbackBag, fallbackSlot, fallbackName = nil, nil, nil
-    for slotIndex = 0, bagSize - 1 do
-        if EsConsumibleDeComidaOBebida(BAG_BACKPACK, slotIndex) then
-            local itemLink = ""
-            if type(GetItemLink) == "function" then
-                itemLink = tostring(GetItemLink(BAG_BACKPACK, slotIndex, LINK_STYLE_DEFAULT) or "")
-            end
-            local itemName = ObtenerNombreItem(BAG_BACKPACK, slotIndex, itemLink)
-            if targetLink ~= "" and itemLink == targetLink then
-                return BAG_BACKPACK, slotIndex, itemName or targetName, itemLink, ObtenerCalidadItem(BAG_BACKPACK, slotIndex, itemLink), ObtenerDescripcionUsoItem(itemLink)
-            end
-            if not fallbackBag and targetName ~= "" and type(itemName) == "string" and itemName == targetName then
-                fallbackBag, fallbackSlot, fallbackName = BAG_BACKPACK, slotIndex, itemName
-            end
-        end
-    end
-
-    if fallbackBag then
-        local itemLink = ""
-        if type(GetItemLink) == "function" then
-            itemLink = tostring(GetItemLink(fallbackBag, fallbackSlot, LINK_STYLE_DEFAULT) or "")
-        end
-        return fallbackBag, fallbackSlot, fallbackName, itemLink, ObtenerCalidadItem(fallbackBag, fallbackSlot, itemLink), ObtenerDescripcionUsoItem(itemLink)
-    end
-    return nil
-end
-
-BuscarConsumibleRecordadoComida = function()
-    local overlaySV = ObtenerFoodSV()
-    local targetLink = tostring(overlaySV and overlaySV.lastFoodItemLink or "")
-    local targetName = tostring(overlaySV and overlaySV.lastFoodItemName or "")
-    return BuscarConsumibleComidaPorReferencia(targetLink, targetName)
-end
-
-ConstruirTooltipComida = function(foodInfo, foodRecordadoNombre, foodRecordadoDisponible, foodLegendaria)
-    local foodState = ObtenerEstadoVisualComida(foodInfo)
-    local tooltip = foodState.tooltip
-    local remainingSeconds = type(foodInfo) == "table" and tonumber(foodInfo.remainingSeconds) or nil
-
-    if type(foodInfo) == "table" and foodInfo.active and remainingSeconds ~= nil and remainingSeconds <= FOOD_ALERT_SECONDS and foodRecordadoDisponible then
-        if foodLegendaria then
-            return zo_strformat(
-                GetString(EZO_SIDE_WIDGET_FOOD_ALERT_REUSE_LEGENDARY_TOOLTIP),
-                tostring(foodInfo.name or "")
-            )
-        end
-        return zo_strformat(
-            GetString(EZO_SIDE_WIDGET_FOOD_ALERT_REUSE_TOOLTIP),
-            tostring(foodInfo.name or "")
-        )
-    end
-
-    if not (type(foodInfo) == "table" and foodInfo.active) and foodRecordadoDisponible then
-        local overlaySV = ObtenerFoodSV()
-        local nombre = tostring(foodRecordadoNombre or (overlaySV and overlaySV.lastFoodItemName) or "")
-        if foodLegendaria then
-            return zo_strformat(
-                GetString(EZO_SIDE_WIDGET_FOOD_RECALL_LEGENDARY_TOOLTIP),
-                nombre
-            )
-        end
-        return zo_strformat(
-            GetString(EZO_SIDE_WIDGET_FOOD_RECALL_TOOLTIP),
-            nombre
-        )
-    end
-
-    if type(foodInfo) == "table" and foodInfo.active and foodRecordadoDisponible and remainingSeconds ~= nil then
-        local tiempo = FormatearTiempoRestanteCorto(remainingSeconds)
-        if foodLegendaria then
-            return zo_strformat(
-                GetString(EZO_SIDE_WIDGET_FOOD_ACTIVE_REUSE_LEGENDARY_TOOLTIP),
-                tostring(foodInfo.name or ""),
-                tiempo
-            )
-        end
-        return zo_strformat(
-            GetString(EZO_SIDE_WIDGET_FOOD_ACTIVE_REUSE_TOOLTIP),
-            tostring(foodInfo.name or ""),
-            tiempo
-        )
-    end
-
-    return tooltip
-end
-
-local function RecordarComidaActiva()
-    local foodInfo = ObtenerInfoBuffComida()
-    if not (type(foodInfo) == "table" and foodInfo.active and type(foodInfo.name) == "string" and foodInfo.name ~= "") then
-        return false
-    end
-    if IntentarRecordarComidaPendiente() then
-        return true
-    end
-    if type(GetBagSize) ~= "function" then return false end
-
-    local bagSize = GetBagSize(BAG_BACKPACK)
-    if type(bagSize) ~= "number" or bagSize <= 0 then return false end
-
-    for slotIndex = 0, bagSize - 1 do
-        if EsConsumibleDeComidaOBebida(BAG_BACKPACK, slotIndex) then
-            local itemLink = ""
-            if type(GetItemLink) == "function" then
-                itemLink = tostring(GetItemLink(BAG_BACKPACK, slotIndex, LINK_STYLE_DEFAULT) or "")
-            end
-            local itemName = ObtenerNombreItem(BAG_BACKPACK, slotIndex, itemLink)
-            local abilityHeader = ObtenerCabeceraUsoItem(itemLink)
-            local coincideNombre = type(itemName) == "string" and itemName == foodInfo.name
-            local coincideCabecera = type(abilityHeader) == "string" and abilityHeader == foodInfo.name
-            if coincideNombre or coincideCabecera then
-                GuardarComidaRecordada(itemLink, itemName)
-                GuardarComidaEnHistorial(itemLink, itemName)
-                return true
-            end
-        end
-    end
-    return false
-end
-
-local function ConsumirComidaEnSlot(bagId, slotIndex, itemName, itemLink)
-    if not bagId or slotIndex == nil then
-        return false
-    end
-
-    if type(IsItemUsable) == "function" then
-        local usable, usableOnlyFromActionSlot = IsItemUsable(bagId, slotIndex)
-        if not usable or usableOnlyFromActionSlot then
-            return false
-        end
-    end
-
-    if type(CanInteractWithItem) == "function" and not CanInteractWithItem(bagId, slotIndex) then
-        return false
-    end
-
-    GuardarComidaRecordada(itemLink, itemName)
-    GuardarComidaEnHistorial(itemLink, itemName)
-
-    -- En ESO la ruta protegida puede devolver false sin lanzar error. Hay que
-    -- respetar ese resultado y no tratarlo como consumo correcto.
-    if type(IsProtectedFunction) == "function" and IsProtectedFunction("UseItem") then
-        if type(CallSecureProtected) ~= "function" then
-            return false
-        end
-        local okSecure, secureResult = pcall(CallSecureProtected, "UseItem", bagId, slotIndex)
-        return okSecure and secureResult == true
-    end
-
-    if type(UseItem) ~= "function" then
-        return false
-    end
-
-    local ok, res = pcall(UseItem, bagId, slotIndex)
-    if ok and res ~= false then
-        return true
-    end
-    return false
-end
-
-local function ConsumirComidaRecordada()
-    local bagId, slotIndex, itemName, itemLink = BuscarConsumibleRecordadoComida()
-    return ConsumirComidaEnSlot(bagId, slotIndex, itemName, itemLink)
-end
-
-local function VerificarConsumoComidaDebug(foodInfoAntes)
-    if not (EZO and type(EZO.IsDebugModeEnabled) == "function" and EZO.IsDebugModeEnabled()) then
-        return
-    end
-    if type(zo_callLater) ~= "function" then
-        return
-    end
-
-    zo_callLater(function()
-        local foodInfoDespues = ObtenerInfoBuffComida()
-        local antesActivo = type(foodInfoAntes) == "table" and foodInfoAntes.active == true
-        local despuesActivo = type(foodInfoDespues) == "table" and foodInfoDespues.active == true
-        local antesNombre = antesActivo and tostring(foodInfoAntes.name or "") or ""
-        local despuesNombre = despuesActivo and tostring(foodInfoDespues.name or "") or ""
-        local antesSeg = antesActivo and tonumber(foodInfoAntes.remainingSeconds) or nil
-        local despuesSeg = despuesActivo and tonumber(foodInfoDespues.remainingSeconds) or nil
-
-        local consumido = false
-        if not antesActivo and despuesActivo then
-            consumido = true
-        elseif antesActivo and despuesActivo then
-            if antesNombre ~= "" and despuesNombre ~= "" and antesNombre ~= despuesNombre then
-                consumido = true
-            elseif type(antesSeg) == "number" and type(despuesSeg) == "number" and despuesSeg > (antesSeg + 30) then
-                consumido = true
-            end
-        end
-
-        if not consumido and EZO and type(EZO.Print) == "function" then
-            EZO.Print(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_FAILED))
-        end
-    end, 1500)
-end
-
-local function AsegurarDialogoConfirmacionComida()
-    if overlayFoodConfirmDialogRegistered then
-        return
-    end
-
-    ZO_Dialogs_RegisterCustomDialog("EZOTOOLS_CONFIRM_FOOD_REUSE", {
-        title = {
-            text = function(dialog)
-                local data = dialog.data or {}
-                return data.title or GetString(EZO_SIDE_WIDGET_FOOD_CONFIRM_TITLE)
-            end,
-        },
-        mainText = {
-            text = function(dialog)
-                local data = dialog.data or {}
-                return data.text or ""
-            end,
-        },
-        buttons = {
-            {
-                control = ZO_Dialogs_CreateButtonControl,
-                text = SI_DIALOG_CONFIRM,
-                callback = function(dialog)
-                    local data = dialog.data or {}
-                    if type(data.onConfirm) == "function" then
-                        data.onConfirm()
-                    end
-                end,
-            },
-            {
-                control = ZO_Dialogs_CreateButtonControl,
-                text = SI_DIALOG_CANCEL,
-            },
-        },
-    })
-
-    overlayFoodConfirmDialogRegistered = true
-end
-
-local function PedirConfirmacionComidaLegendaria(itemName, effectDescription, remainingSeconds, onConfirm)
-    if type(onConfirm) ~= "function" then
-        return false
-    end
-
-    AsegurarDialogoConfirmacionComida()
-
-    local descripcion = tostring(effectDescription or "")
-    local texto
-    local tiempoRestante = tonumber(remainingSeconds)
-    local incluirTiempo = tiempoRestante ~= nil and tiempoRestante > FOOD_ALERT_SECONDS
-    if descripcion ~= "" and incluirTiempo then
-        texto = zo_strformat(
-            GetString(EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT_WITH_EFFECT_AND_TIME),
-            tostring(itemName or ""),
-            descripcion,
-            FormatearTiempoRestanteCorto(tiempoRestante)
-        )
-    elseif descripcion ~= "" then
-        texto = zo_strformat(
-            GetString(EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT_WITH_EFFECT),
-            tostring(itemName or ""),
-            descripcion
-        )
-    elseif incluirTiempo then
-        texto = zo_strformat(
-            GetString(EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT_WITH_TIME),
-            tostring(itemName or ""),
-            FormatearTiempoRestanteCorto(tiempoRestante)
-        )
-    else
-        texto = zo_strformat(
-            GetString(EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT),
-            tostring(itemName or "")
-        )
-    end
-
-    if type(ZO_Dialogs_ShowDialog) == "function" then
-        ZO_Dialogs_ShowDialog("EZOTOOLS_CONFIRM_FOOD_REUSE", {
-            title = GetString(EZO_SIDE_WIDGET_FOOD_CONFIRM_TITLE),
-            text = NormalizarTextoTooltip(texto),
-            onConfirm = onConfirm,
-        })
-        return true
-    end
-
-    return false
-end
-
-local function ReusarComidaRecordadaConSeguridad()
-    local foodInfoAntes = ObtenerInfoBuffComida()
-    local bagId, slotIndex, itemName, itemLink, quality, effectDescription = BuscarConsumibleRecordadoComida()
-    local debugActivo = EZO and type(EZO.IsDebugModeEnabled) == "function" and EZO.IsDebugModeEnabled()
-    if not bagId or slotIndex == nil then
-        if debugActivo and EZO and type(EZO.Print) == "function" then
-            EZO.Print(GetString(EZO_MSG_DEBUG_FOOD_NO_RECORDED))
-        end
-        return false
-    end
-
-    local qualityLegendary = (type(ITEM_QUALITY_LEGENDARY) == "number") and ITEM_QUALITY_LEGENDARY or nil
-    if qualityLegendary and quality == qualityLegendary then
-        local remainingSeconds = type(foodInfoAntes) == "table" and tonumber(foodInfoAntes.remainingSeconds) or nil
-        return PedirConfirmacionComidaLegendaria(itemName, effectDescription, remainingSeconds, function()
-            if debugActivo and EZO and type(EZO.Print) == "function" then
-                EZO.Print(zo_strformat(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT), tostring(itemName or "")))
-            end
-            if ConsumirComidaRecordada() then
-                VerificarConsumoComidaDebug(foodInfoAntes)
-            elseif debugActivo and EZO and type(EZO.Print) == "function" then
-                EZO.Print(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_FAILED))
-            end
-        end)
-    end
-
-    if debugActivo and EZO and type(EZO.Print) == "function" then
-        EZO.Print(zo_strformat(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT), tostring(itemName or "")))
-    end
-    local ok = ConsumirComidaRecordada()
-    if ok then
-        VerificarConsumoComidaDebug(foodInfoAntes)
-    elseif debugActivo and EZO and type(EZO.Print) == "function" then
-        EZO.Print(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_FAILED))
-    end
-    return ok
-end
-
-local function ConsumirComidaHistorialConSeguridad(itemLink, itemName)
-    local foodInfoAntes = ObtenerInfoBuffComida()
-    local bagId, slotIndex, resolvedName, resolvedLink, quality, effectDescription = BuscarConsumibleComidaPorReferencia(itemLink, itemName)
-    local debugActivo = EZO and type(EZO.IsDebugModeEnabled) == "function" and EZO.IsDebugModeEnabled()
-    if not bagId or slotIndex == nil then
-        if debugActivo and EZO and type(EZO.Print) == "function" then
-            EZO.Print(GetString(EZO_MSG_DEBUG_FOOD_NO_RECORDED))
-        end
-        return false
-    end
-
-    local finalName = tostring(resolvedName or itemName or "")
-    local qualityLegendary = (type(ITEM_QUALITY_LEGENDARY) == "number") and ITEM_QUALITY_LEGENDARY or nil
-    if qualityLegendary and quality == qualityLegendary then
-        return PedirConfirmacionComidaLegendaria(finalName, effectDescription, nil, function()
-            if debugActivo and EZO and type(EZO.Print) == "function" then
-                EZO.Print(zo_strformat(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT), finalName))
-            end
-            if ConsumirComidaEnSlot(bagId, slotIndex, finalName, resolvedLink) then
-                VerificarConsumoComidaDebug(foodInfoAntes)
-            elseif debugActivo and EZO and type(EZO.Print) == "function" then
-                EZO.Print(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_FAILED))
-            end
-        end)
-    end
-
-    if debugActivo and EZO and type(EZO.Print) == "function" then
-        EZO.Print(zo_strformat(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT), finalName))
-    end
-    local ok = ConsumirComidaEnSlot(bagId, slotIndex, finalName, resolvedLink)
-    if ok then
-        VerificarConsumoComidaDebug(foodInfoAntes)
-    elseif debugActivo and EZO and type(EZO.Print) == "function" then
-        EZO.Print(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_FAILED))
-    end
-    return ok
 end
 
 local function AnadirEntradaMenuReciente(label, onSelect, tooltipText, enabled, onEnter, onExit)
@@ -1707,42 +910,18 @@ local function RefrescarWidgetsLateralesEstado()
     local rechargeThreshold = (EZO.sv and EZO.sv.general and tonumber(EZO.sv.general.rechargeThreshold)) or 50
     local canRepairEquipped = type(EZOTools.CanRepairEquipped) == "function" and EZOTools.CanRepairEquipped() or false
     local canRechargeWeapons = type(EZOTools.CanRechargeWeapons) == "function" and EZOTools.CanRechargeWeapons() or false
-    local foodInfo = ObtenerInfoBuffComida()
-    RecordarComidaActiva()
-    local foodState = ObtenerEstadoVisualComida(foodInfo)
-    overlayFoodPulseState = foodState.pulse
-    local foodPrimaryHandler = nil
-    local foodSecondaryHandler = nil
-    local foodContextualTooltip = foodState.tooltip
-    local foodRecordadoBag, _, foodRecordadoNombre, _, foodRecordadoQuality = BuscarConsumibleRecordadoComida()
-    local foodRecordadoDisponible = foodRecordadoBag ~= nil
-    local foodLegendaria = type(ITEM_QUALITY_LEGENDARY) == "number" and foodRecordadoQuality == ITEM_QUALITY_LEGENDARY
-
-    if foodRecordadoDisponible then
-        foodPrimaryHandler = function()
-            return ReusarComidaRecordadaConSeguridad()
-        end
-        foodSecondaryHandler = function()
-            return false
-        end
-    end
-
-    foodContextualTooltip = ConstruirTooltipComida(
-        foodInfo,
-        foodRecordadoNombre,
-        foodRecordadoDisponible,
-        foodLegendaria
-    )
+    local foodWidgetData = FOOD and type(FOOD.BuildWidgetData) == "function" and FOOD.BuildWidgetData() or nil
+    overlayFoodPulseState = foodWidgetData and foodWidgetData.pulse or nil
 
     AsignarWidgetLateralInterno(WIDGETS.GetAssignment("foodBuff"), WIDGETS.BuildData({
-        slotKey = "food_buff",
+        slotKey = foodWidgetData and foodWidgetData.slotKey or "food_buff",
         visible = true,
-        texture = "/esoui/art/inventory/inventory_tabIcon_Craftbag_provisioning_up.dds",
-        color = foodState.color,
-        alpha = foodState.alpha,
-        tooltipText = foodContextualTooltip,
-        primaryHandler = foodPrimaryHandler,
-        secondaryHandler = foodSecondaryHandler,
+        texture = foodWidgetData and foodWidgetData.texture or "/esoui/art/inventory/inventory_tabIcon_Craftbag_provisioning_up.dds",
+        color = foodWidgetData and foodWidgetData.color or { 1.0, 0.30, 0.30, 0.95 },
+        alpha = foodWidgetData and foodWidgetData.alpha or 1,
+        tooltipText = foodWidgetData and foodWidgetData.tooltipText or GetString(EZO_SIDE_WIDGET_FOOD_NONE_TOOLTIP),
+        primaryHandler = foodWidgetData and foodWidgetData.primaryHandler or nil,
+        secondaryHandler = foodWidgetData and foodWidgetData.secondaryHandler or nil,
     }))
 
     if lowRepairKits and type(repairKitCount) == "number" and type(repairKitThreshold) == "number" then
@@ -2058,14 +1237,10 @@ function MOD.IsLayoutPreviewEnabled()
 end
 
 function MOD.SetFoodDebugState(state)
-    state = zo_strlower(tostring(state or ""))
-    if state == "" or state == "auto" or state == "off" then
-        overlayFoodDebugState = nil
-    elseif not (EZO and type(EZO.IsDebugModeEnabled) == "function" and EZO.IsDebugModeEnabled()) then
+    if not (FOOD and type(FOOD.SetDebugState) == "function") then
         return false
-    elseif state == "green" or state == "yellow" or state == "red" then
-        overlayFoodDebugState = state
-    else
+    end
+    if not FOOD.SetDebugState(state) then
         return false
     end
     if not (EZO and EZO.sv) then
@@ -2460,7 +1635,7 @@ end
 --   buffs pasivos permanentes → canClickOff=false siempre (ej: Boon: The Thief)
 -- Regla: canClickOff=true + endTime>0 es exclusivo de comida/bebida.
 local function TieneBuffComida()
-    return ObtenerInfoBuffComida().active == true
+    return FOOD and type(FOOD.HasFoodBuff) == "function" and FOOD.HasFoodBuff() == true
 end
 
 ObtenerMascotaActivaId = function()
@@ -2808,13 +1983,7 @@ local function InvocarAliadoDesdeHistorial(tipo, collectibleId)
     end
     if tipo == "assistant" then
         if ObtenerCompanionActivoCollectibleId() ~= 0 then
-            GuardarCompanionSuspendidoSiProcede()
-            return ProgramarCambioEntreAliados(
-                config.rememberedKey,
-                function() return ObtenerCompanionActivoCollectibleId() ~= 0 end,
-                OcultarCompanionActivo,
-                collectibleId
-            )
+            LimpiarCompanionSuspendido()
         end
         return InvocarCollectiblePorId(collectibleId)
     end
@@ -2957,9 +2126,8 @@ OcultarAsistenteActivo = function()
         return false
     end
     UseCollectible(assistId)
-    -- No restaurar aquí el companion: ESO todavía puede seguir cerrando el assistant.
-    -- Dejamos la restauración marcada para que se ejecute cuando el estado real ya esté limpio.
-    MarcarRestauracionCompanionSuspendido()
+    -- ESO restaura el companion suspendido por el assistant; no forzar ese flujo desde el addon.
+    LimpiarCompanionSuspendido()
     return true
 end
 
@@ -2989,12 +2157,7 @@ end
 
 InvocarAsistenteRecordada = function()
     if ObtenerCompanionActivoCollectibleId() ~= 0 then
-        GuardarCompanionSuspendidoSiProcede()
-        return ProgramarCambioEntreAliados(
-            "lastAssistantCollectibleId",
-            function() return ObtenerCompanionActivoCollectibleId() ~= 0 end,
-            OcultarCompanionActivo
-        )
+        LimpiarCompanionSuspendido()
     end
     return InvocarCollectibleRecordado("lastAssistantCollectibleId")
 end
@@ -3125,7 +2288,10 @@ function MOD.ExecuteQuickUtilityAction(clave)
     end
 
     if clave == "food" then
-        return ReusarComidaRecordadaConSeguridad()
+        if FOOD and type(FOOD.ReuseRecordedFood) == "function" then
+            return FOOD.ReuseRecordedFood()
+        end
+        return false
     end
 
     if clave == "pet" then
@@ -3165,32 +2331,11 @@ function MOD.BuildQuickUtilityRecentEntries(clave, usarAccionVacia)
     end
 
     if clave == "food" then
-        local overlaySV = ObtenerFoodSV()
-        local history = overlaySV and overlaySV.recentFoodItems or nil
-        if type(history) == "table" then
-            for _, entry in ipairs(history) do
-                if type(entry) == "table" then
-                    local itemLink = tostring(entry.itemLink or "")
-                    local itemName = tostring(entry.itemName or "")
-                    local _, _, resolvedName = BuscarConsumibleComidaPorReferencia(itemLink, itemName)
-                    local label = NormalizarTextoEtiqueta(tostring(resolvedName or itemName or ""))
-                    if label ~= "" then
-                        AgregarEntrada(label, function()
-                            return ConsumirComidaHistorialConSeguridad(itemLink, itemName)
-                        end, {
-                            previewKind = "item",
-                            previewItemLink = itemLink,
-                        })
-                    end
-                end
+        if FOOD and type(FOOD.BuildRecentEntries) == "function" then
+            local ok, foodEntries = pcall(FOOD.BuildRecentEntries)
+            if ok and type(foodEntries) == "table" then
+                return foodEntries
             end
-        end
-        if #entries == 0 then
-            entries[#entries + 1] = {
-                text = GetString(EZO_SIDE_WIDGET_FOOD_HISTORY_EMPTY),
-                empty = true,
-                callback = function() end,
-            }
         end
         return entries
     end
@@ -3235,7 +2380,10 @@ end
 
 function MOD.GetQuickUtilityHistoryEmptyLabel(clave)
     if clave == "food" then
-        return GetString(EZO_SIDE_WIDGET_FOOD_HISTORY_EMPTY)
+        if FOOD and type(FOOD.GetHistoryEmptyLabel) == "function" then
+            return FOOD.GetHistoryEmptyLabel()
+        end
+        return ""
     end
     local config = ObtenerConfiguracionAliado(clave)
     if config then
@@ -3287,7 +2435,9 @@ end
 function MOD.Init()
     AsegurarControles()
     MOD.Refresh()
-    SincronizarCacheConsumiblesComidaMochila()
+    if FOOD and type(FOOD.SyncBackpackCache) == "function" then
+        FOOD.SyncBackpackCache()
+    end
 
     -- Refrescar fuente al cambiar modo gamepad/teclado
     EVENT_MANAGER:RegisterForEvent("EZOTools_Overlay_Font",
@@ -3344,7 +2494,9 @@ function MOD.Init()
         function(_, changeType, _, _, unitTag, _, _, _, _, _, abilityType)
             if unitTag == "player" and abilityType == ABILITY_TYPE_NONCOMBATBONUS then
                 if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED or changeType == EFFECT_RESULT_FULL_REFRESH then
-                    RecordarComidaActiva()
+                    if FOOD and type(FOOD.RecordActiveFood) == "function" then
+                        FOOD.RecordActiveFood()
+                    end
                 end
                 RefrescarDot()
             end
@@ -3374,9 +2526,9 @@ function MOD.Init()
                 -- Cualquier cambio en equipo equipado: refrescar dot mantenimiento
                 RefrescarDot()
             elseif bag == BAG_BACKPACK then
-                local previousEntry = overlayFoodBackpackCache[slot]
-                RegistrarConsumoComidaPendiente(previousEntry, stackCountChange)
-                ActualizarCacheConsumibleComidaMochila(slot)
+                if FOOD and type(FOOD.HandleInventorySlotUpdate) == "function" then
+                    FOOD.HandleInventorySlotUpdate(slot, stackCountChange)
+                end
                 -- Equipar/desequipar desde mochila también puede cambiar el estado
                 RefrescarDot()
             end

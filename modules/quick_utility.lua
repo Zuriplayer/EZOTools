@@ -1,6 +1,5 @@
 -- Proveedor de entradas de HOLD Y.
--- Construye el menu principal y delega en overlay.lua la ejecucion/recientes/previews
--- que aun dependen de comida, colecciones y tooltips del overlay.
+-- Construye el menu principal y delega en proveedores dedicados cuando existen.
 EZOTools_QuickUtility = EZOTools_QuickUtility or {}
 
 local MOD = EZOTools_QuickUtility
@@ -25,6 +24,14 @@ end
 
 local function ObtenerHouseProvider()
     local provider = _G.EZOTools_QuickUtilityHouses
+    if type(provider) == "table" then
+        return provider
+    end
+    return nil
+end
+
+local function ObtenerFoodProvider()
+    local provider = _G.EZOTools_QuickUtilityFood
     if type(provider) == "table" then
         return provider
     end
@@ -56,6 +63,12 @@ local function AgregarEntrada(entries, key, textKey)
                     return provider.ExecuteAction(key)
                 end
             end
+            if key == "food" then
+                local provider = ObtenerFoodProvider()
+                if provider and type(provider.ReuseRecordedFood) == "function" then
+                    return provider.ReuseRecordedFood()
+                end
+            end
             local overlay = ObtenerOverlay()
             if overlay and type(overlay.ExecuteQuickUtilityAction) == "function" then
                 return overlay.ExecuteQuickUtilityAction(key)
@@ -75,6 +88,16 @@ end
 
 function MOD.BuildRecentEntries(key, useEmptyAction)
     key = tostring(key or "")
+    if key == "food" then
+        local provider = ObtenerFoodProvider()
+        if provider and type(provider.BuildRecentEntries) == "function" then
+            local ok, entries = pcall(provider.BuildRecentEntries)
+            if ok and type(entries) == "table" then
+                return entries
+            end
+        end
+        return {}
+    end
     if EsCategoriaCasas(key) then
         local provider = ObtenerHouseProvider()
         if provider and type(provider.BuildRecentEntries) == "function" then
@@ -98,6 +121,16 @@ end
 
 function MOD.GetHistoryEmptyLabel(key)
     key = tostring(key or "")
+    if key == "food" then
+        local provider = ObtenerFoodProvider()
+        if provider and type(provider.GetHistoryEmptyLabel) == "function" then
+            local ok, text = pcall(provider.GetHistoryEmptyLabel)
+            if ok and type(text) == "string" then
+                return text
+            end
+        end
+        return ""
+    end
     if EsCategoriaCasas(key) then
         local provider = ObtenerHouseProvider()
         if provider and type(provider.GetHistoryEmptyLabel) == "function" then
