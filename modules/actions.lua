@@ -59,9 +59,10 @@ end
 -- Devuelve la lista de entradas del menú con visibilidad ya evaluada
 function A.BuildEntries()
     local entradas = {}
+    local enCombate = JugadorEnCombate()
 
     -- Viaje: casa principal del jugador (oculto en combate — el juego rechaza el viaje)
-    if not JugadorEnCombate() then
+    if not enCombate then
         if type(GetHousingPrimaryHouse) == "function" and type(RequestJumpToHouse) == "function" then
             local ok, houseId = LlamadaSegura(GetHousingPrimaryHouse)
             if ok and type(houseId) == "number" and houseId ~= 0 then
@@ -75,7 +76,7 @@ function A.BuildEntries()
     end
 
     -- Viaje: casas configuradas (solo fuera de combate)
-    if not JugadorEnCombate() then
+    if not enCombate then
         if EZO and type(EZO.JumpCraftingHall) == "function"
             and EZO.sv and EZO.sv.friends
             and EZO.sv.friends.craftingHall ~= "" then
@@ -93,7 +94,8 @@ function A.BuildEntries()
     end
 
     -- Salto al líder (requiere estar en grupo Y que el salto sea posible)
-    if JugadorEnGrupo()
+    if not enCombate
+        and JugadorEnGrupo()
         and EZO and type(EZO.CanJumpToLeader) == "function"
         and type(EZO.JumpToLeader) == "function" then
         local ok, puede = LlamadaSegura(EZO.CanJumpToLeader)
@@ -133,7 +135,7 @@ function A.BuildEntries()
 
     -- Mantenimiento: reparar equipo (solo si hay piezas por debajo del umbral)
     -- El umbral se lee una sola vez y se pasa al texto del menú
-    do
+    if not enCombate then
         local umbralRep = (EZO.sv and EZO.sv.general and tonumber(EZO.sv.general.repairThreshold)) or 40
         if type(EZO.CanRepairEquipped) == "function"
             and EZO.CanRepairEquipped()
@@ -145,7 +147,7 @@ function A.BuildEntries()
     end
 
     -- Mantenimiento: recargar armas (solo si hay armas por debajo del umbral)
-    do
+    if not enCombate then
         local umbralRec = (EZO.sv and EZO.sv.general and tonumber(EZO.sv.general.rechargeThreshold)) or 50
         if type(EZO.CanRechargeWeapons) == "function"
             and EZO.CanRechargeWeapons()
@@ -167,9 +169,11 @@ function A.BuildEntries()
         function() return Trigger("OPEN_SETTINGS") end,
         "settings")
 
-    AgregarEntrada(entradas,
-        GetString(EZO_MENU_ADDON_SETTINGS),
-        function() return Trigger("OPEN_ADDON_SETTINGS") end)
+    if not enCombate then
+        AgregarEntrada(entradas,
+            GetString(EZO_MENU_ADDON_SETTINGS),
+            function() return Trigger("OPEN_ADDON_SETTINGS") end)
+    end
 
     -- Cerrar menú (siempre al final)
     AgregarEntrada(entradas,

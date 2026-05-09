@@ -51,8 +51,6 @@ local ALLY_SWITCH_INITIAL_DELAY_MS = 1500
 local ALLY_SWITCH_RETRY_DELAY_MS = 500
 local ALLY_SWITCH_MAX_RETRIES = 6
 local allySwitchPending = false
-local companionSuspendidoCollectibleId = 0
-local companionRestauracionPendiente = false
 local OVERLAY_TOP_PADDING = 4
 local OVERLAY_ROW_GAP_SMALL = 4
 local OVERLAY_ROW_GAP_NORMAL = 6
@@ -1856,61 +1854,6 @@ local function ProgramarCambioEntreAliados(claveDestino, sigueActivoFn, ocultarA
     return true
 end
 
-local function GuardarCompanionSuspendidoSiProcede()
-    local companionId = ObtenerCompanionActivoCollectibleId and ObtenerCompanionActivoCollectibleId() or 0
-    companionId = tonumber(companionId) or 0
-    if companionId > 0 then
-        companionSuspendidoCollectibleId = companionId
-    end
-end
-
-local function LimpiarCompanionSuspendido()
-    companionSuspendidoCollectibleId = 0
-    companionRestauracionPendiente = false
-end
-
-local function MarcarRestauracionCompanionSuspendido()
-    if (tonumber(companionSuspendidoCollectibleId) or 0) ~= 0 then
-        companionRestauracionPendiente = false
-    end
-end
-
-local function ProgramarRestauracionCompanionSuspendido()
-    local companionId = tonumber(companionSuspendidoCollectibleId) or 0
-    if companionId == 0 or companionRestauracionPendiente then
-        return false
-    end
-    companionRestauracionPendiente = true
-
-    local function IntentarRestaurar(intentos)
-        if ObtenerAssistantActivoId() ~= 0 then
-            if intentos > 0 and type(zo_callLater) == "function" then
-                zo_callLater(function()
-                    IntentarRestaurar(intentos - 1)
-                end, ALLY_SWITCH_RETRY_DELAY_MS)
-            else
-                companionRestauracionPendiente = false
-            end
-            return
-        end
-
-        if ObtenerCompanionActivoCollectibleId() == 0 then
-            ProgramarInvocacionCollectiblePorId(companionId, 100)
-        end
-        companionSuspendidoCollectibleId = 0
-        companionRestauracionPendiente = false
-    end
-
-    if type(zo_callLater) == "function" then
-        zo_callLater(function()
-            IntentarRestaurar(ALLY_SWITCH_MAX_RETRIES)
-        end, ALLY_SWITCH_INITIAL_DELAY_MS)
-    else
-        IntentarRestaurar(0)
-    end
-    return true
-end
-
 local function AplicarEstadoVisualIconoAliado(ctrl, activo, collectibleId)
     if not ctrl then return end
 
@@ -1970,7 +1913,6 @@ local function InvocarAliadoDesdeHistorial(tipo, collectibleId)
         return InvocarCollectiblePorId(collectibleId)
     end
     if tipo == "companion" then
-        LimpiarCompanionSuspendido()
         if ObtenerAssistantActivoId() ~= 0 then
             return ProgramarCambioEntreAliados(
                 config.rememberedKey,
@@ -1982,9 +1924,6 @@ local function InvocarAliadoDesdeHistorial(tipo, collectibleId)
         return InvocarCollectiblePorId(collectibleId)
     end
     if tipo == "assistant" then
-        if ObtenerCompanionActivoCollectibleId() ~= 0 then
-            LimpiarCompanionSuspendido()
-        end
         return InvocarCollectiblePorId(collectibleId)
     end
     return false
@@ -2127,7 +2066,6 @@ OcultarAsistenteActivo = function()
     end
     UseCollectible(assistId)
     -- ESO restaura el companion suspendido por el assistant; no forzar ese flujo desde el addon.
-    LimpiarCompanionSuspendido()
     return true
 end
 
@@ -2144,7 +2082,6 @@ InvocarMonturaRecordada = function()
 end
 
 InvocarCompanionRecordado = function()
-    LimpiarCompanionSuspendido()
     if ObtenerAssistantActivoId() ~= 0 then
         return ProgramarCambioEntreAliados(
             "lastCompanionCollectibleId",
@@ -2156,9 +2093,6 @@ InvocarCompanionRecordado = function()
 end
 
 InvocarAsistenteRecordada = function()
-    if ObtenerCompanionActivoCollectibleId() ~= 0 then
-        LimpiarCompanionSuspendido()
-    end
     return InvocarCollectibleRecordado("lastAssistantCollectibleId")
 end
 
@@ -2183,14 +2117,6 @@ RefrescarDot = function()
 
     local assistId = ObtenerAssistantActivoId()
     RefrescarEstadoIconoAliado(overlayAssistantDot, assistId, "lastAssistantCollectibleId", "recentAssistantCollectibles")
-
-    if assistId == 0
-        and companionCollectibleId == 0
-        and (tonumber(companionSuspendidoCollectibleId) or 0) ~= 0
-        and not allySwitchPending
-    then
-        ProgramarRestauracionCompanionSuspendido()
-    end
 
     RefrescarWidgetsLateralesEstado()
 end

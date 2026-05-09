@@ -40,7 +40,7 @@ local function EstaJugadorEnCombate()
     return ok and enCombate == true
 end
 
-local function DebeBloquearMenuLateralEnCombate()
+local function DebeBloquearUtilidadesEnCombate()
     return EsModoGamepadPreferido() and EstaJugadorEnCombate()
 end
 
@@ -58,9 +58,6 @@ function EZO.ActivateVisibleDialogSelection()
 end
 
 function EZO.ToggleCommandPanel()
-    if DebeBloquearMenuLateralEnCombate() then
-        return false
-    end
     local manager = ObtenerManager()
     if not (manager and type(manager.Toggle) == "function") then
         AvisarNoDisponible(EZO_MSG_CMD_PANEL_MISSING)
@@ -70,7 +67,7 @@ function EZO.ToggleCommandPanel()
 end
 
 function EZO.ToggleUtilityPanel()
-    if DebeBloquearMenuLateralEnCombate() then
+    if DebeBloquearUtilidadesEnCombate() then
         return false
     end
     local manager = ObtenerManager()
