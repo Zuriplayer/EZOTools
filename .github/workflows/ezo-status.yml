@@ -1,0 +1,18 @@
+name: EZO addon status
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-status:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish addon status to Discord
+        shell: pwsh
+        env:
+          EZO_CODEX_STATUS: ${{ secrets.EZO_CODEX_STATUS }}
+          CODEX_LOG: ${{ secrets.CODEX_LOG }}
+        run: .\scripts\ezo\publish-status.ps1 -PublishCodexLog
