@@ -15,6 +15,9 @@ local ALLY_CONFIG = {
         rememberedKey = "lastMountCollectibleId",
         historyKey = "recentMountCollectibles",
         fallbackNameKey = "EZO_DOT_MOUNT_FALLBACK_NAME",
+        activeTooltipKey = "EZO_DOT_MOUNT_ACTIVE_TOOLTIP",
+        inactiveTooltipKey = "EZO_DOT_MOUNT_INACTIVE_TOOLTIP",
+        emptyTooltipKey = "EZO_DOT_MOUNT_EMPTY_TOOLTIP",
         historyEmptyKey = "EZO_DOT_MOUNT_HISTORY_EMPTY",
         emptyActionKey = "EZO_UTILITY_EMPTY_OPEN_MOUNT_COLLECTIONS",
         collectibleCategoryType = COLLECTIBLE_CATEGORY_TYPE_MOUNT,
@@ -26,6 +29,9 @@ local ALLY_CONFIG = {
         rememberedKey = "lastPetCollectibleId",
         historyKey = "recentPetCollectibles",
         fallbackNameKey = "EZO_DOT_PET_FALLBACK_NAME",
+        activeTooltipKey = "EZO_DOT_PET_ACTIVE_TOOLTIP",
+        inactiveTooltipKey = "EZO_DOT_PET_INACTIVE_TOOLTIP",
+        emptyTooltipKey = "EZO_DOT_PET_EMPTY_TOOLTIP",
         historyEmptyKey = "EZO_DOT_PET_HISTORY_EMPTY",
         emptyActionKey = "EZO_UTILITY_EMPTY_OPEN_PET_COLLECTIONS",
         collectibleCategoryType = COLLECTIBLE_CATEGORY_TYPE_VANITY_PET,
@@ -37,6 +43,9 @@ local ALLY_CONFIG = {
         rememberedKey = "lastCompanionCollectibleId",
         historyKey = "recentCompanionCollectibles",
         fallbackNameKey = "EZO_DOT_COMPANION_FALLBACK_NAME",
+        activeTooltipKey = "EZO_DOT_COMPANION_ACTIVE_TOOLTIP",
+        inactiveTooltipKey = "EZO_DOT_COMPANION_INACTIVE_TOOLTIP",
+        emptyTooltipKey = "EZO_DOT_COMPANION_EMPTY_TOOLTIP",
         historyEmptyKey = "EZO_DOT_COMPANION_HISTORY_EMPTY",
         emptyActionKey = "EZO_UTILITY_EMPTY_OPEN_COMPANION_COLLECTIONS",
         collectibleCategoryType = COLLECTIBLE_CATEGORY_TYPE_COMPANION,
@@ -47,6 +56,9 @@ local ALLY_CONFIG = {
         rememberedKey = "lastAssistantCollectibleId",
         historyKey = "recentAssistantCollectibles",
         fallbackNameKey = "EZO_DOT_ASSISTANT_FALLBACK_NAME",
+        activeTooltipKey = "EZO_DOT_ASSISTANT_ACTIVE_TOOLTIP",
+        inactiveTooltipKey = "EZO_DOT_ASSISTANT_INACTIVE_TOOLTIP",
+        emptyTooltipKey = "EZO_DOT_ASSISTANT_EMPTY_TOOLTIP",
         historyEmptyKey = "EZO_DOT_ASSISTANT_HISTORY_EMPTY",
         emptyActionKey = "EZO_UTILITY_EMPTY_OPEN_ASSISTANT_COLLECTIONS",
         collectibleCategoryType = COLLECTIBLE_CATEGORY_TYPE_ASSISTANT,
@@ -208,6 +220,25 @@ end
 function MOD.GetEmptyActionLabel(kind)
     local config = MOD.GetConfig(kind)
     return GetStringByName(config and config.emptyActionKey)
+end
+
+function MOD.BuildIconTooltip(kind, active)
+    local config = MOD.GetConfig(kind)
+    if not config then return nil end
+
+    active = active == true
+    local collectibleId = active and MOD.GetActiveId(kind) or MOD.GetRemembered(kind)
+    if not active and collectibleId == 0 then
+        return GetStringByName(config.emptyTooltipKey)
+    end
+
+    local name = ResolveCollectibleName(collectibleId, MOD.GetFallbackName(kind))
+    local tooltipKey = active and config.activeTooltipKey or config.inactiveTooltipKey
+    local tooltip = GetStringByName(tooltipKey)
+    if tooltip == "" then
+        return name
+    end
+    return zo_strformat(tooltip, name)
 end
 
 function MOD.GetActiveId(kind)
