@@ -48,10 +48,6 @@ local ALLY_ICON_INACTIVE_ALPHA = 0.45
 local ALLY_ICON_BASE_SIZE = 30
 local ALLY_ICON_SCALE_WEIGHT_DOWN = 0.22
 local ALLY_ICON_SCALE_WEIGHT_UP = 0.60
-local ALLY_SWITCH_INITIAL_DELAY_MS = 1500
-local ALLY_SWITCH_RETRY_DELAY_MS = 500
-local ALLY_SWITCH_MAX_RETRIES = 6
-local allySwitchPending = false
 local OVERLAY_TOP_PADDING = 4
 local OVERLAY_ROW_GAP_SMALL = 4
 local OVERLAY_ROW_GAP_NORMAL = 6
@@ -59,7 +55,6 @@ local OVERLAY_BOTTOM_PADDING = 18
 local FOOD_PULSE_REFRESH_MS = 120
 local ALLY_TOOLTIP_REFRESH_MS = 80
 
-local TieneAsistenteActivo
 local OcultarMascotaActiva
 local OcultarCompanionActivo
 local OcultarAsistenteActivo
@@ -1592,156 +1587,23 @@ local function TieneBuffComida()
 end
 
 ObtenerMascotaActivaId = function()
-    if type(GetActiveCollectibleByType) ~= "function" then
-        return 0
-    end
-    return GetActiveCollectibleByType(
-        COLLECTIBLE_CATEGORY_TYPE_VANITY_PET,
-        GAMEPLAY_ACTOR_CATEGORY_PLAYER) or 0
+    return ALLIES and type(ALLIES.GetActiveId) == "function" and ALLIES.GetActiveId("pet") or 0
 end
 
 ObtenerMonturaActivaId = function()
-    if type(GetActiveCollectibleByType) ~= "function" then
-        return 0
-    end
-
-    local mountId = GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_MOUNT) or 0
-    if mountId == 0 and GAMEPLAY_ACTOR_CATEGORY_PLAYER then
-        local ok, value = pcall(GetActiveCollectibleByType, COLLECTIBLE_CATEGORY_TYPE_MOUNT, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
-        if ok then
-            mountId = tonumber(value) or 0
-        end
-    end
-    return mountId
+    return ALLIES and type(ALLIES.GetActiveId) == "function" and ALLIES.GetActiveId("mount") or 0
 end
 
 ObtenerAssistantActivoId = function()
-    if type(GetActiveCollectibleByType) ~= "function" then
-        return 0
-    end
-    return GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_ASSISTANT) or 0
+    return ALLIES and type(ALLIES.GetActiveId) == "function" and ALLIES.GetActiveId("assistant") or 0
 end
 
 ObtenerCompanionActivoCollectibleId = function()
-    if not (HasActiveCompanion and HasActiveCompanion()) then
-        return 0
-    end
-    if type(GetActiveCompanionDefId) ~= "function"
-        or type(GetCompanionCollectibleId) ~= "function" then
-        return 0
-    end
-    local companionId = GetActiveCompanionDefId()
-    if not companionId or companionId == 0 then
-        return 0
-    end
-    return GetCompanionCollectibleId(companionId) or 0
-end
-
-local function InvocarCollectibleRecordado(tipo)
-    if type(UseCollectible) ~= "function" then
-        return false
-    end
-    local collectibleId = ALLIES and type(ALLIES.GetRemembered) == "function" and ALLIES.GetRemembered(tipo) or 0
-    if collectibleId == 0 then
-        return false
-    end
-    UseCollectible(collectibleId)
-    return true
+    return ALLIES and type(ALLIES.GetActiveId) == "function" and ALLIES.GetActiveId("companion") or 0
 end
 
 EstaMontado = function()
-    return type(IsMounted) == "function" and IsMounted() == true
-end
-
-local function InvocarCollectiblePorId(collectibleId)
-    if type(UseCollectible) ~= "function" then
-        return false
-    end
-    collectibleId = tonumber(collectibleId) or 0
-    if collectibleId == 0 then
-        return false
-    end
-    UseCollectible(collectibleId)
-    return true
-end
-
-local function ProgramarInvocacionCollectible(tipo, retrasoMs)
-    if type(UseCollectible) ~= "function" then
-        return false
-    end
-    local collectibleId = ALLIES and type(ALLIES.GetRemembered) == "function" and ALLIES.GetRemembered(tipo) or 0
-    if collectibleId == 0 then
-        return false
-    end
-    local delay = math.max(0, tonumber(retrasoMs) or 0)
-    if delay > 0 and type(zo_callLater) == "function" then
-        zo_callLater(function()
-            UseCollectible(collectibleId)
-        end, delay)
-    else
-        UseCollectible(collectibleId)
-    end
-    return true
-end
-
-local function ProgramarInvocacionCollectiblePorId(collectibleId, retrasoMs)
-    if type(UseCollectible) ~= "function" then
-        return false
-    end
-    collectibleId = tonumber(collectibleId) or 0
-    if collectibleId == 0 then
-        return false
-    end
-    local delay = math.max(0, tonumber(retrasoMs) or 0)
-    if delay > 0 and type(zo_callLater) == "function" then
-        zo_callLater(function()
-            UseCollectible(collectibleId)
-        end, delay)
-    else
-        UseCollectible(collectibleId)
-    end
-    return true
-end
-
-local function ProgramarCambioEntreAliados(tipoDestino, sigueActivoFn, ocultarActivoFn, collectibleIdDestino)
-    if allySwitchPending then
-        return false
-    end
-    if type(ocultarActivoFn) ~= "function" or type(sigueActivoFn) ~= "function" then
-        return false
-    end
-    if not ocultarActivoFn() then
-        return false
-    end
-    allySwitchPending = true
-
-    local function IntentarInvocarRestante(intentos)
-        if sigueActivoFn() then
-            if intentos > 0 and type(zo_callLater) == "function" then
-                zo_callLater(function()
-                    IntentarInvocarRestante(intentos - 1)
-                end, ALLY_SWITCH_RETRY_DELAY_MS)
-            else
-                allySwitchPending = false
-            end
-            return
-        end
-        if collectibleIdDestino and collectibleIdDestino ~= 0 then
-            ProgramarInvocacionCollectiblePorId(collectibleIdDestino, 100)
-        else
-            ProgramarInvocacionCollectible(tipoDestino, 100)
-        end
-        allySwitchPending = false
-    end
-
-    if type(zo_callLater) == "function" then
-        zo_callLater(function()
-            IntentarInvocarRestante(ALLY_SWITCH_MAX_RETRIES)
-        end, ALLY_SWITCH_INITIAL_DELAY_MS)
-    else
-        IntentarInvocarRestante(0)
-    end
-    return true
+    return ALLIES and type(ALLIES.IsMounted) == "function" and ALLIES.IsMounted() or false
 end
 
 local function AplicarEstadoVisualIconoAliado(ctrl, activo, collectibleId)
@@ -1786,44 +1648,7 @@ local function RefrescarEstadoIconoAliado(ctrl, activeId, tipo)
 end
 
 local function InvocarAliadoDesdeHistorial(tipo, collectibleId)
-    local config = ObtenerConfiguracionAliado(tipo)
-    if not config then
-        return false
-    end
-
-    collectibleId = tonumber(collectibleId) or 0
-    if collectibleId == 0 then
-        return false
-    end
-
-    if ALLIES and type(ALLIES.SetRemembered) == "function" then
-        ALLIES.SetRemembered(tipo, collectibleId)
-    end
-    if ALLIES and type(ALLIES.AddToHistory) == "function" then
-        ALLIES.AddToHistory(tipo, collectibleId)
-    end
-
-    if tipo == "mount" then
-        return InvocarCollectiblePorId(collectibleId)
-    end
-    if tipo == "pet" then
-        return InvocarCollectiblePorId(collectibleId)
-    end
-    if tipo == "companion" then
-        if ObtenerAssistantActivoId() ~= 0 then
-            return ProgramarCambioEntreAliados(
-                config.rememberedKey,
-                function() return ObtenerAssistantActivoId() ~= 0 end,
-                OcultarAsistenteActivo,
-                collectibleId
-            )
-        end
-        return InvocarCollectiblePorId(collectibleId)
-    end
-    if tipo == "assistant" then
-        return InvocarCollectiblePorId(collectibleId)
-    end
-    return false
+    return ALLIES and type(ALLIES.InvokeFromHistory) == "function" and ALLIES.InvokeFromHistory(tipo, collectibleId) or false
 end
 
 AbrirMenuHistorialAliado = function(anchor, tipo)
@@ -1914,83 +1739,31 @@ ObtenerTooltipIconoAliado = function(tipo, activo)
 end
 
 OcultarMascotaActiva = function()
-    if type(GetActiveCollectibleByType) ~= "function" or type(UseCollectible) ~= "function" then
-        return false
-    end
-    local petId = ObtenerMascotaActivaId()
-    if not petId or petId == 0 then
-        return false
-    end
-    UseCollectible(petId)
-    return true
-end
-
-TieneAsistenteActivo = function()
-    local assistId = ObtenerAssistantActivoId()
-    return assistId ~= nil and assistId ~= 0
-end
-
--- Devuelve si hay un compañero activo.
-local function TieneCompanionActivo()
-    return HasActiveCompanion and HasActiveCompanion() or false
+    return ALLIES and type(ALLIES.HideActive) == "function" and ALLIES.HideActive("pet") or false
 end
 
 OcultarCompanionActivo = function()
-    if HasActiveCompanion and HasActiveCompanion() then
-        if type(UseCollectible) == "function" then
-            local collectibleId = ObtenerCompanionActivoCollectibleId()
-            if collectibleId ~= 0 then
-                UseCollectible(collectibleId)
-                return true
-            end
-        end
-        if type(DismissCompanion) == "function" then
-            DismissCompanion()
-            return true
-        end
-        return false
-    end
-    return false
+    return ALLIES and type(ALLIES.HideActive) == "function" and ALLIES.HideActive("companion") or false
 end
 
 OcultarAsistenteActivo = function()
-    if type(GetActiveCollectibleByType) ~= "function" or type(UseCollectible) ~= "function" then
-        return false
-    end
-    local assistId = ObtenerAssistantActivoId()
-    if not assistId or assistId == 0 then
-        return false
-    end
-    UseCollectible(assistId)
-    -- ESO restaura el companion suspendido por el assistant; no forzar ese flujo desde el addon.
-    return true
+    return ALLIES and type(ALLIES.HideActive) == "function" and ALLIES.HideActive("assistant") or false
 end
 
 InvocarMascotaRecordada = function()
-    return InvocarCollectibleRecordado("pet")
+    return ALLIES and type(ALLIES.InvokeRemembered) == "function" and ALLIES.InvokeRemembered("pet") or false
 end
 
 InvocarMonturaRecordada = function()
-    local activeMountId = ObtenerMonturaActivaId()
-    if activeMountId ~= 0 then
-        return InvocarCollectiblePorId(activeMountId)
-    end
-    return InvocarCollectibleRecordado("mount")
+    return ALLIES and type(ALLIES.InvokeRemembered) == "function" and ALLIES.InvokeRemembered("mount") or false
 end
 
 InvocarCompanionRecordado = function()
-    if ObtenerAssistantActivoId() ~= 0 then
-        return ProgramarCambioEntreAliados(
-            "companion",
-            function() return ObtenerAssistantActivoId() ~= 0 end,
-            OcultarAsistenteActivo
-        )
-    end
-    return InvocarCollectibleRecordado("companion")
+    return ALLIES and type(ALLIES.InvokeRemembered) == "function" and ALLIES.InvokeRemembered("companion") or false
 end
 
 InvocarAsistenteRecordada = function()
-    return InvocarCollectibleRecordado("assistant")
+    return ALLIES and type(ALLIES.InvokeRemembered) == "function" and ALLIES.InvokeRemembered("assistant") or false
 end
 
 RefrescarDot = function()
