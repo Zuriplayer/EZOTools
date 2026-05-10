@@ -8,6 +8,7 @@ EZOTools_Overlay = EZOTools_Overlay or {}
 local MOD = EZOTools_Overlay
 local EZO = EZOTools
 local WIDGETS = EZOTools_OverlayWidgets
+local ALLIES = EZOTools_QuickUtilityAllies
 local FOOD = EZOTools_QuickUtilityFood
 
 -- Controles de la ventana (se crean en EnsureControls la primera vez)
@@ -449,6 +450,10 @@ local function ObtenerTextoStringId(nombreId)
     return GetString(stringId)
 end
 
+local function ObtenerAliadoRecordado(tipo)
+    return ALLIES and type(ALLIES.GetRemembered) == "function" and ALLIES.GetRemembered(tipo) or 0
+end
+
 local function EsModoGamepadPreferido()
     if type(IsInGamepadPreferredMode) == "function" then
         return IsInGamepadPreferredMode() == true
@@ -659,11 +664,6 @@ local function AbrirColeccionAliado(tipo)
     end)
 end
 
-local function ObtenerOverlaySVParaClave(clave)
-    local overlaySV = EZO and EZO.sv and EZO.sv.overlay or nil
-    return overlaySV
-end
-
 local function AnadirEntradaMenuReciente(label, onSelect, tooltipText, enabled, onEnter, onExit)
     if type(label) ~= "string" or label == "" then
         return false
@@ -794,53 +794,8 @@ local function AbrirMenuHistorialComida(anchor)
     AbrirMenuRecientes(anchor, entries, "")
 end
 
-local ALLY_ICON_MENU_CONFIG = {
-    mount = {
-        rememberedKey = "lastMountCollectibleId",
-        historyKey = "recentMountCollectibles",
-        fallbackNameKey = "EZO_DOT_MOUNT_FALLBACK_NAME",
-        historyEmptyKey = "EZO_DOT_MOUNT_HISTORY_EMPTY",
-        emptyActionKey = "EZO_UTILITY_EMPTY_OPEN_MOUNT_COLLECTIONS",
-        collectibleCategoryType = COLLECTIBLE_CATEGORY_TYPE_MOUNT,
-        openCategoryRoot = true,
-        historyLimit = 10,
-        showRecentHoverPreview = true,
-    },
-    pet = {
-        rememberedKey = "lastPetCollectibleId",
-        historyKey = "recentPetCollectibles",
-        fallbackNameKey = "EZO_DOT_PET_FALLBACK_NAME",
-        historyEmptyKey = "EZO_DOT_PET_HISTORY_EMPTY",
-        emptyActionKey = "EZO_UTILITY_EMPTY_OPEN_PET_COLLECTIONS",
-        collectibleCategoryType = COLLECTIBLE_CATEGORY_TYPE_VANITY_PET,
-        openCategoryRoot = true,
-        historyLimit = 10,
-        showRecentHoverPreview = true,
-    },
-    companion = {
-        rememberedKey = "lastCompanionCollectibleId",
-        historyKey = "recentCompanionCollectibles",
-        fallbackNameKey = "EZO_DOT_COMPANION_FALLBACK_NAME",
-        historyEmptyKey = "EZO_DOT_COMPANION_HISTORY_EMPTY",
-        emptyActionKey = "EZO_UTILITY_EMPTY_OPEN_COMPANION_COLLECTIONS",
-        collectibleCategoryType = COLLECTIBLE_CATEGORY_TYPE_COMPANION,
-        historyLimit = 5,
-        showRecentHoverPreview = true,
-    },
-    assistant = {
-        rememberedKey = "lastAssistantCollectibleId",
-        historyKey = "recentAssistantCollectibles",
-        fallbackNameKey = "EZO_DOT_ASSISTANT_FALLBACK_NAME",
-        historyEmptyKey = "EZO_DOT_ASSISTANT_HISTORY_EMPTY",
-        emptyActionKey = "EZO_UTILITY_EMPTY_OPEN_ASSISTANT_COLLECTIONS",
-        collectibleCategoryType = COLLECTIBLE_CATEGORY_TYPE_ASSISTANT,
-        historyLimit = 5,
-        showRecentHoverPreview = true,
-    },
-}
-
 function ObtenerConfiguracionAliado(tipo)
-    return ALLY_ICON_MENU_CONFIG[tipo]
+    return ALLIES and type(ALLIES.GetConfig) == "function" and ALLIES.GetConfig(tipo) or nil
 end
 
 local function EjecutarAccionWidget(side, index, data, button)
@@ -1682,76 +1637,11 @@ ObtenerCompanionActivoCollectibleId = function()
     return GetCompanionCollectibleId(companionId) or 0
 end
 
-local function GuardarCollectibleRecordado(clave, collectibleId)
-    local overlaySV = ObtenerOverlaySVParaClave(clave)
-    if not overlaySV then return end
-    collectibleId = tonumber(collectibleId) or 0
-    if collectibleId > 0 then
-        overlaySV[clave] = collectibleId
-    end
-end
-
-local function GuardarCollectibleEnHistorial(clave, collectibleId)
-    local overlaySV = ObtenerOverlaySVParaClave(clave)
-    if not overlaySV then return end
-    collectibleId = tonumber(collectibleId) or 0
-    if collectibleId <= 0 then
-        return
-    end
-
-    local history = overlaySV[clave]
-    if type(history) ~= "table" then
-        history = {}
-        overlaySV[clave] = history
-    end
-    local config = nil
-    for _, allyConfig in pairs(ALLY_ICON_MENU_CONFIG) do
-        if allyConfig.historyKey == clave then
-            config = allyConfig
-            break
-        end
-    end
-    local maxItems = (config and tonumber(config.historyLimit)) or 5
-
-    local newHistory = { collectibleId }
-    for _, entryId in ipairs(history) do
-        local value = tonumber(entryId) or 0
-        if value > 0 and value ~= collectibleId then
-            newHistory[#newHistory + 1] = value
-        end
-        if #newHistory >= maxItems then
-            break
-        end
-    end
-
-    overlaySV[clave] = newHistory
-end
-
-local function ObtenerHistorialCollectibles(clave)
-    local overlaySV = ObtenerOverlaySVParaClave(clave)
-    if not overlaySV then
-        return {}
-    end
-    local history = overlaySV[clave]
-    if type(history) ~= "table" then
-        return {}
-    end
-    return history
-end
-
-local function ObtenerCollectibleRecordado(clave)
-    local overlaySV = ObtenerOverlaySVParaClave(clave)
-    if not overlaySV then return 0 end
-    local collectibleId = tonumber(overlaySV[clave]) or 0
-    if collectibleId < 0 then return 0 end
-    return collectibleId
-end
-
-local function InvocarCollectibleRecordado(clave)
+local function InvocarCollectibleRecordado(tipo)
     if type(UseCollectible) ~= "function" then
         return false
     end
-    local collectibleId = ObtenerCollectibleRecordado(clave)
+    local collectibleId = ALLIES and type(ALLIES.GetRemembered) == "function" and ALLIES.GetRemembered(tipo) or 0
     if collectibleId == 0 then
         return false
     end
@@ -1775,11 +1665,11 @@ local function InvocarCollectiblePorId(collectibleId)
     return true
 end
 
-local function ProgramarInvocacionCollectible(clave, retrasoMs)
+local function ProgramarInvocacionCollectible(tipo, retrasoMs)
     if type(UseCollectible) ~= "function" then
         return false
     end
-    local collectibleId = ObtenerCollectibleRecordado(clave)
+    local collectibleId = ALLIES and type(ALLIES.GetRemembered) == "function" and ALLIES.GetRemembered(tipo) or 0
     if collectibleId == 0 then
         return false
     end
@@ -1813,7 +1703,7 @@ local function ProgramarInvocacionCollectiblePorId(collectibleId, retrasoMs)
     return true
 end
 
-local function ProgramarCambioEntreAliados(claveDestino, sigueActivoFn, ocultarActivoFn, collectibleIdDestino)
+local function ProgramarCambioEntreAliados(tipoDestino, sigueActivoFn, ocultarActivoFn, collectibleIdDestino)
     if allySwitchPending then
         return false
     end
@@ -1839,7 +1729,7 @@ local function ProgramarCambioEntreAliados(claveDestino, sigueActivoFn, ocultarA
         if collectibleIdDestino and collectibleIdDestino ~= 0 then
             ProgramarInvocacionCollectiblePorId(collectibleIdDestino, 100)
         else
-            ProgramarInvocacionCollectible(claveDestino, 100)
+            ProgramarInvocacionCollectible(tipoDestino, 100)
         end
         allySwitchPending = false
     end
@@ -1872,14 +1762,17 @@ local function AplicarEstadoVisualIconoAliado(ctrl, activo, collectibleId)
     ctrl:SetAlpha(alpha)
 end
 
-local function RefrescarEstadoIconoAliado(ctrl, activeId, rememberedKey, historyKey)
+local function RefrescarEstadoIconoAliado(ctrl, activeId, tipo)
     if activeId ~= 0 then
-        GuardarCollectibleRecordado(rememberedKey, activeId)
-        if type(historyKey) == "string" and historyKey ~= "" then
-            GuardarCollectibleEnHistorial(historyKey, activeId)
+        if ALLIES and type(ALLIES.SetRemembered) == "function" then
+            ALLIES.SetRemembered(tipo, activeId)
+        end
+        if ALLIES and type(ALLIES.AddToHistory) == "function" then
+            ALLIES.AddToHistory(tipo, activeId)
         end
     end
-    local collectibleId = (activeId ~= 0) and activeId or ObtenerCollectibleRecordado(rememberedKey)
+    local rememberedId = ALLIES and type(ALLIES.GetRemembered) == "function" and ALLIES.GetRemembered(tipo) or 0
+    local collectibleId = (activeId ~= 0) and activeId or rememberedId
     if not ctrl then
         return
     end
@@ -1903,8 +1796,12 @@ local function InvocarAliadoDesdeHistorial(tipo, collectibleId)
         return false
     end
 
-    GuardarCollectibleRecordado(config.rememberedKey, collectibleId)
-    GuardarCollectibleEnHistorial(config.historyKey, collectibleId)
+    if ALLIES and type(ALLIES.SetRemembered) == "function" then
+        ALLIES.SetRemembered(tipo, collectibleId)
+    end
+    if ALLIES and type(ALLIES.AddToHistory) == "function" then
+        ALLIES.AddToHistory(tipo, collectibleId)
+    end
 
     if tipo == "mount" then
         return InvocarCollectiblePorId(collectibleId)
@@ -1972,16 +1869,16 @@ ObtenerTooltipIconoAliado = function(tipo, activo)
     local fallbackName = nil
 
     if tipo == "mount" then
-        collectibleId = activo and ObtenerMonturaActivaId() or ObtenerCollectibleRecordado("lastMountCollectibleId")
+        collectibleId = activo and ObtenerMonturaActivaId() or ObtenerAliadoRecordado("mount")
         fallbackName = ObtenerTextoStringId("EZO_DOT_MOUNT_FALLBACK_NAME")
     elseif tipo == "pet" then
-        collectibleId = activo and ObtenerMascotaActivaId() or ObtenerCollectibleRecordado("lastPetCollectibleId")
+        collectibleId = activo and ObtenerMascotaActivaId() or ObtenerAliadoRecordado("pet")
         fallbackName = ObtenerTextoStringId("EZO_DOT_PET_FALLBACK_NAME")
     elseif tipo == "companion" then
-        collectibleId = activo and ObtenerCompanionActivoCollectibleId() or ObtenerCollectibleRecordado("lastCompanionCollectibleId")
+        collectibleId = activo and ObtenerCompanionActivoCollectibleId() or ObtenerAliadoRecordado("companion")
         fallbackName = ObtenerTextoStringId("EZO_DOT_COMPANION_FALLBACK_NAME")
     elseif tipo == "assistant" then
-        collectibleId = activo and ObtenerAssistantActivoId() or ObtenerCollectibleRecordado("lastAssistantCollectibleId")
+        collectibleId = activo and ObtenerAssistantActivoId() or ObtenerAliadoRecordado("assistant")
         fallbackName = ObtenerTextoStringId("EZO_DOT_ASSISTANT_FALLBACK_NAME")
     end
 
@@ -2070,7 +1967,7 @@ OcultarAsistenteActivo = function()
 end
 
 InvocarMascotaRecordada = function()
-    return InvocarCollectibleRecordado("lastPetCollectibleId")
+    return InvocarCollectibleRecordado("pet")
 end
 
 InvocarMonturaRecordada = function()
@@ -2078,22 +1975,22 @@ InvocarMonturaRecordada = function()
     if activeMountId ~= 0 then
         return InvocarCollectiblePorId(activeMountId)
     end
-    return InvocarCollectibleRecordado("lastMountCollectibleId")
+    return InvocarCollectibleRecordado("mount")
 end
 
 InvocarCompanionRecordado = function()
     if ObtenerAssistantActivoId() ~= 0 then
         return ProgramarCambioEntreAliados(
-            "lastCompanionCollectibleId",
+            "companion",
             function() return ObtenerAssistantActivoId() ~= 0 end,
             OcultarAsistenteActivo
         )
     end
-    return InvocarCollectibleRecordado("lastCompanionCollectibleId")
+    return InvocarCollectibleRecordado("companion")
 end
 
 InvocarAsistenteRecordada = function()
-    return InvocarCollectibleRecordado("lastAssistantCollectibleId")
+    return InvocarCollectibleRecordado("assistant")
 end
 
 RefrescarDot = function()
@@ -2103,20 +2000,24 @@ RefrescarDot = function()
 
     local mountCollectibleId = ObtenerMonturaActivaId()
     if mountCollectibleId ~= 0 then
-        GuardarCollectibleRecordado("lastMountCollectibleId", mountCollectibleId)
-        GuardarCollectibleEnHistorial("recentMountCollectibles", mountCollectibleId)
+        if ALLIES and type(ALLIES.SetRemembered) == "function" then
+            ALLIES.SetRemembered("mount", mountCollectibleId)
+        end
+        if ALLIES and type(ALLIES.AddToHistory) == "function" then
+            ALLIES.AddToHistory("mount", mountCollectibleId)
+        end
     end
     local visibleMountId = EstaMontado() and mountCollectibleId or 0
-    RefrescarEstadoIconoAliado(overlayMountDot, visibleMountId, "lastMountCollectibleId", "recentMountCollectibles")
+    RefrescarEstadoIconoAliado(overlayMountDot, visibleMountId, "mount")
 
     local petId = ObtenerMascotaActivaId()
-    RefrescarEstadoIconoAliado(overlayPetDot, petId, "lastPetCollectibleId", "recentPetCollectibles")
+    RefrescarEstadoIconoAliado(overlayPetDot, petId, "pet")
 
     local companionCollectibleId = ObtenerCompanionActivoCollectibleId()
-    RefrescarEstadoIconoAliado(overlayCompanionDot, companionCollectibleId, "lastCompanionCollectibleId", "recentCompanionCollectibles")
+    RefrescarEstadoIconoAliado(overlayCompanionDot, companionCollectibleId, "companion")
 
     local assistId = ObtenerAssistantActivoId()
-    RefrescarEstadoIconoAliado(overlayAssistantDot, assistId, "lastAssistantCollectibleId", "recentAssistantCollectibles")
+    RefrescarEstadoIconoAliado(overlayAssistantDot, assistId, "assistant")
 
     RefrescarWidgetsLateralesEstado()
 end
@@ -2240,22 +2141,6 @@ end
 function MOD.BuildQuickUtilityRecentEntries(clave, usarAccionVacia)
     local entries = {}
 
-    local function AgregarEntrada(texto, callback, previewData)
-        if type(texto) ~= "string" or texto == "" or type(callback) ~= "function" then
-            return
-        end
-        local data = {
-            text = texto,
-            callback = callback,
-        }
-        if type(previewData) == "table" then
-            for k, v in pairs(previewData) do
-                data[k] = v
-            end
-        end
-        entries[#entries + 1] = data
-    end
-
     if clave == "food" then
         if FOOD and type(FOOD.BuildRecentEntries) == "function" then
             local ok, foodEntries = pcall(FOOD.BuildRecentEntries)
@@ -2271,34 +2156,29 @@ function MOD.BuildQuickUtilityRecentEntries(clave, usarAccionVacia)
         return entries
     end
 
-    for _, collectibleId in ipairs(ObtenerHistorialCollectibles(config.historyKey)) do
-        local finalId = tonumber(collectibleId) or 0
-        if finalId > 0 then
-            local label = tostring(ObtenerNombreCollectible(finalId, ObtenerTextoStringId(config.fallbackNameKey)) or "")
-            if label ~= "" then
-                AgregarEntrada(label, function()
+    if ALLIES and type(ALLIES.BuildRecentEntries) == "function" then
+        local ok, allyEntries = pcall(
+            ALLIES.BuildRecentEntries,
+            clave,
+            usarAccionVacia == true,
+            function(finalId)
+                return function()
                     return InvocarAliadoDesdeHistorial(clave, finalId)
-                end, {
-                    previewKind = "collectible",
-                    previewCollectibleId = finalId,
-                    previewFallbackName = ObtenerTextoStringId(config.fallbackNameKey),
-                })
+                end
+            end,
+            function()
+                return AbrirColeccionAliado(clave)
+            end
+        )
+        if ok and type(allyEntries) == "table" then
+            for _, entry in ipairs(allyEntries) do
+                if type(entry) == "table" and entry.previewCollectibleId then
+                    entry.previewKind = "collectible"
+                    entry.previewFallbackName = type(ALLIES.GetFallbackName) == "function" and ALLIES.GetFallbackName(clave) or ""
+                end
+                entries[#entries + 1] = entry
             end
         end
-    end
-
-    if usarAccionVacia == true then
-        AgregarEntrada(ObtenerTextoStringId(config.emptyActionKey), function()
-            return AbrirColeccionAliado(clave)
-        end, {
-            emptyAction = true,
-        })
-    elseif #entries == 0 then
-        entries[#entries + 1] = {
-            text = ObtenerTextoStringId(config.historyEmptyKey),
-            empty = true,
-            callback = function() end,
-        }
     end
 
     return entries
@@ -2313,7 +2193,7 @@ function MOD.GetQuickUtilityHistoryEmptyLabel(clave)
     end
     local config = ObtenerConfiguracionAliado(clave)
     if config then
-        return ObtenerTextoStringId(config.historyEmptyKey)
+        return ALLIES and type(ALLIES.GetHistoryEmptyLabel) == "function" and ALLIES.GetHistoryEmptyLabel(clave) or ""
     end
     return ""
 end
