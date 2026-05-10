@@ -1,10 +1,14 @@
 -- Proveedor comun para aliados/coleccionables de HOLD Y y los iconos del overlay.
--- Mantiene configuracion e historiales fuera de overlay.lua; la ejecucion visual
--- sigue delegada en el overlay para no alterar el flujo estable de UseCollectible.
+-- Mantiene configuracion, historiales y ejecucion fuera de overlay.lua.
 EZOTools_QuickUtilityAllies = EZOTools_QuickUtilityAllies or {}
 
 local MOD = EZOTools_QuickUtilityAllies
 local EZO = EZOTools
+
+local ALLY_SWITCH_INITIAL_DELAY_MS = 1500
+local ALLY_SWITCH_RETRY_DELAY_MS = 500
+local ALLY_SWITCH_MAX_RETRIES = 6
+local switchPending = false
 
 local ALLY_CONFIG = {
     mount = {
@@ -75,6 +79,68 @@ local function ResolveCollectibleName(collectibleId, fallback)
     return tostring(fallback or "")
 end
 
+local function UseCollectibleById(collectibleId, delayMs)
+    if type(UseCollectible) ~= "function" then
+        return false
+    end
+    collectibleId = tonumber(collectibleId) or 0
+    if collectibleId <= 0 then
+        return false
+    end
+
+    local delay = math.max(0, tonumber(delayMs) or 0)
+    if delay > 0 and type(zo_callLater) == "function" then
+        zo_callLater(function()
+            UseCollectible(collectibleId)
+        end, delay)
+    else
+        UseCollectible(collectibleId)
+    end
+    return true
+end
+
+local function ScheduleSwitch(targetKind, stillActiveFn, hideActiveFn, targetCollectibleId)
+    if switchPending then
+        return false
+    end
+    if type(stillActiveFn) ~= "function" or type(hideActiveFn) ~= "function" then
+        return false
+    end
+    if not hideActiveFn() then
+        return false
+    end
+    switchPending = true
+
+    local function TryInvokeRemaining(attempts)
+        if stillActiveFn() then
+            if attempts > 0 and type(zo_callLater) == "function" then
+                zo_callLater(function()
+                    TryInvokeRemaining(attempts - 1)
+                end, ALLY_SWITCH_RETRY_DELAY_MS)
+            else
+                switchPending = false
+            end
+            return
+        end
+
+        if targetCollectibleId and targetCollectibleId ~= 0 then
+            UseCollectibleById(targetCollectibleId, 100)
+        else
+            MOD.UseRemembered(targetKind, 100)
+        end
+        switchPending = false
+    end
+
+    if type(zo_callLater) == "function" then
+        zo_callLater(function()
+            TryInvokeRemaining(ALLY_SWITCH_MAX_RETRIES)
+        end, ALLY_SWITCH_INITIAL_DELAY_MS)
+    else
+        TryInvokeRemaining(0)
+    end
+    return true
+end
+
 function MOD.GetConfig(kind)
     return ALLY_CONFIG[tostring(kind or "")]
 end
@@ -142,6 +208,142 @@ end
 function MOD.GetEmptyActionLabel(kind)
     local config = MOD.GetConfig(kind)
     return GetStringByName(config and config.emptyActionKey)
+end
+
+function MOD.GetActiveId(kind)
+    kind = tostring(kind or "")
+
+    if kind == "pet" then
+        if type(GetActiveCollectibleByType) ~= "function" then return 0 end
+        return GetActiveCollectibleByType(
+            COLLECTIBLE_CATEGORY_TYPE_VANITY_PET,
+            GAMEPLAY_ACTOR_CATEGORY_PLAYER) or 0
+    end
+
+    if kind == "mount" then
+        if type(GetActiveCollectibleByType) ~= "function" then return 0 end
+        local mountId = GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_MOUNT) or 0
+        if mountId == 0 and GAMEPLAY_ACTOR_CATEGORY_PLAYER then
+            local ok, value = pcall(GetActiveCollectibleByType, COLLECTIBLE_CATEGORY_TYPE_MOUNT, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+            if ok then
+                mountId = tonumber(value) or 0
+            end
+        end
+        return mountId
+    end
+
+    if kind == "assistant" then
+        if type(GetActiveCollectibleByType) ~= "function" then return 0 end
+        return GetActiveCollectibleByType(COLLECTIBLE_CATEGORY_TYPE_ASSISTANT) or 0
+    end
+
+    if kind == "companion" then
+        if not (HasActiveCompanion and HasActiveCompanion()) then return 0 end
+        if type(GetActiveCompanionDefId) ~= "function"
+            or type(GetCompanionCollectibleId) ~= "function" then
+            return 0
+        end
+        local companionId = GetActiveCompanionDefId()
+        if not companionId or companionId == 0 then return 0 end
+        return GetCompanionCollectibleId(companionId) or 0
+    end
+
+    return 0
+end
+
+function MOD.IsMounted()
+    return type(IsMounted) == "function" and IsMounted() == true
+end
+
+function MOD.IsActive(kind)
+    kind = tostring(kind or "")
+    if kind == "mount" then
+        return MOD.IsMounted() and MOD.GetActiveId("mount") ~= 0
+    end
+    return MOD.GetActiveId(kind) ~= 0
+end
+
+function MOD.UseById(collectibleId, delayMs)
+    return UseCollectibleById(collectibleId, delayMs)
+end
+
+function MOD.UseRemembered(kind, delayMs)
+    return UseCollectibleById(MOD.GetRemembered(kind), delayMs)
+end
+
+function MOD.HideActive(kind)
+    kind = tostring(kind or "")
+
+    if kind == "pet" or kind == "assistant" then
+        return UseCollectibleById(MOD.GetActiveId(kind))
+    end
+
+    if kind == "companion" then
+        if HasActiveCompanion and HasActiveCompanion() then
+            local collectibleId = MOD.GetActiveId("companion")
+            if collectibleId ~= 0 and UseCollectibleById(collectibleId) then
+                return true
+            end
+            if type(DismissCompanion) == "function" then
+                DismissCompanion()
+                return true
+            end
+        end
+        return false
+    end
+
+    return false
+end
+
+function MOD.InvokeRemembered(kind)
+    kind = tostring(kind or "")
+
+    if kind == "mount" then
+        local activeMountId = MOD.GetActiveId("mount")
+        if activeMountId ~= 0 then
+            return UseCollectibleById(activeMountId)
+        end
+        return MOD.UseRemembered("mount")
+    end
+
+    if kind == "companion" then
+        if MOD.GetActiveId("assistant") ~= 0 then
+            return ScheduleSwitch(
+                "companion",
+                function() return MOD.GetActiveId("assistant") ~= 0 end,
+                function() return MOD.HideActive("assistant") end
+            )
+        end
+        return MOD.UseRemembered("companion")
+    end
+
+    if kind == "pet" or kind == "assistant" then
+        return MOD.UseRemembered(kind)
+    end
+
+    return false
+end
+
+function MOD.InvokeFromHistory(kind, collectibleId)
+    kind = tostring(kind or "")
+    collectibleId = tonumber(collectibleId) or 0
+    if not MOD.GetConfig(kind) or collectibleId <= 0 then
+        return false
+    end
+
+    MOD.SetRemembered(kind, collectibleId)
+    MOD.AddToHistory(kind, collectibleId)
+
+    if kind == "companion" and MOD.GetActiveId("assistant") ~= 0 then
+        return ScheduleSwitch(
+            "companion",
+            function() return MOD.GetActiveId("assistant") ~= 0 end,
+            function() return MOD.HideActive("assistant") end,
+            collectibleId
+        )
+    end
+
+    return UseCollectibleById(collectibleId)
 end
 
 function MOD.BuildRecentEntries(kind, includeEmptyAction, callbackFactory, emptyCallback)
