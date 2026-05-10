@@ -445,10 +445,6 @@ local function ObtenerTextoStringId(nombreId)
     return GetString(stringId)
 end
 
-local function ObtenerAliadoRecordado(tipo)
-    return ALLIES and type(ALLIES.GetRemembered) == "function" and ALLIES.GetRemembered(tipo) or 0
-end
-
 local function EsModoGamepadPreferido()
     if type(IsInGamepadPreferredMode) == "function" then
         return IsInGamepadPreferredMode() == true
@@ -1690,52 +1686,7 @@ AbrirMenuHistorialAliado = function(anchor, tipo)
 end
 
 ObtenerTooltipIconoAliado = function(tipo, activo)
-    local collectibleId = 0
-    local fallbackName = nil
-
-    if tipo == "mount" then
-        collectibleId = activo and ObtenerMonturaActivaId() or ObtenerAliadoRecordado("mount")
-        fallbackName = ObtenerTextoStringId("EZO_DOT_MOUNT_FALLBACK_NAME")
-    elseif tipo == "pet" then
-        collectibleId = activo and ObtenerMascotaActivaId() or ObtenerAliadoRecordado("pet")
-        fallbackName = ObtenerTextoStringId("EZO_DOT_PET_FALLBACK_NAME")
-    elseif tipo == "companion" then
-        collectibleId = activo and ObtenerCompanionActivoCollectibleId() or ObtenerAliadoRecordado("companion")
-        fallbackName = ObtenerTextoStringId("EZO_DOT_COMPANION_FALLBACK_NAME")
-    elseif tipo == "assistant" then
-        collectibleId = activo and ObtenerAssistantActivoId() or ObtenerAliadoRecordado("assistant")
-        fallbackName = ObtenerTextoStringId("EZO_DOT_ASSISTANT_FALLBACK_NAME")
-    end
-
-    if not activo and collectibleId == 0 then
-        if tipo == "mount" then
-            return GetString(EZO_DOT_MOUNT_EMPTY_TOOLTIP)
-        end
-        if tipo == "pet" then
-            return GetString(EZO_DOT_PET_EMPTY_TOOLTIP)
-        end
-        if tipo == "companion" then
-            return GetString(EZO_DOT_COMPANION_EMPTY_TOOLTIP)
-        end
-        if tipo == "assistant" then
-            return GetString(EZO_DOT_ASSISTANT_EMPTY_TOOLTIP)
-        end
-    end
-
-    local nombre = ObtenerNombreCollectible(collectibleId, fallbackName)
-    if tipo == "mount" then
-        return zo_strformat(GetString(activo and EZO_DOT_MOUNT_ACTIVE_TOOLTIP or EZO_DOT_MOUNT_INACTIVE_TOOLTIP), nombre)
-    end
-    if tipo == "pet" then
-        return zo_strformat(GetString(activo and EZO_DOT_PET_ACTIVE_TOOLTIP or EZO_DOT_PET_INACTIVE_TOOLTIP), nombre)
-    end
-    if tipo == "companion" then
-        return zo_strformat(GetString(activo and EZO_DOT_COMPANION_ACTIVE_TOOLTIP or EZO_DOT_COMPANION_INACTIVE_TOOLTIP), nombre)
-    end
-    if tipo == "assistant" then
-        return zo_strformat(GetString(activo and EZO_DOT_ASSISTANT_ACTIVE_TOOLTIP or EZO_DOT_ASSISTANT_INACTIVE_TOOLTIP), nombre)
-    end
-    return nil
+    return ALLIES and type(ALLIES.BuildIconTooltip) == "function" and ALLIES.BuildIconTooltip(tipo, activo) or nil
 end
 
 OcultarMascotaActiva = function()
