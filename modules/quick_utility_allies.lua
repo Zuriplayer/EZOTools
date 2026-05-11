@@ -241,6 +241,20 @@ function MOD.BuildIconTooltip(kind, active)
     return zo_strformat(tooltip, name)
 end
 
+function MOD.OpenCollection(kind)
+    local config = MOD.GetConfig(kind)
+    local categoryType = config and config.collectibleCategoryType or nil
+    local collections = EZO and EZO.QuickUtilityCollections or _G.EZOTools_QuickUtilityCollections
+    if not collections then
+        return false
+    end
+    local options = { keyboardToggleSceneGroup = true }
+    if config and config.openCategoryRoot == true then
+        return collections.OpenRootByCategoryType(categoryType, options)
+    end
+    return collections.OpenFirstByCategoryType(categoryType, options)
+end
+
 function MOD.GetActiveId(kind)
     kind = tostring(kind or "")
 

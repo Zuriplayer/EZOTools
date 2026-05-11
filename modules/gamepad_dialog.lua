@@ -16,6 +16,30 @@ local function ConstruirSubtituloDialogo()
     return zo_strformat(GetString(EZO_MENU_DIALOG_SUBTITLE), autor, version)
 end
 
+local function EsModoGamepadPreferido()
+    if type(IsInGamepadPreferredMode) == "function" then
+        return IsInGamepadPreferredMode() == true
+    end
+    if type(IsInGamepadMode) == "function" then
+        return IsInGamepadMode() == true
+    end
+    return false
+end
+
+local function AbrirChatGamepadExperimental()
+    EZOTools_CerrarDialogoGamepad(NOMBRE_DIALOGO)
+    local function abrirChat()
+        if GAMEPAD_CHAT_SYSTEM and type(GAMEPAD_CHAT_SYSTEM.StartTextEntry) == "function" then
+            GAMEPAD_CHAT_SYSTEM:StartTextEntry("")
+        end
+    end
+    if zo_callLater then
+        zo_callLater(function() pcall(abrirChat) end, 200)
+    else
+        pcall(abrirChat)
+    end
+end
+
 local function RecopilarAcciones()
     local acciones = {}
     if _G.EZOTools_Actions and type(_G.EZOTools_Actions.BuildEntries) == "function" then
@@ -29,6 +53,18 @@ local function RecopilarAcciones()
                     acciones[#acciones + 1] = { name = e.text, callback = e.callback }
                 end
             end
+        end
+    end
+
+    if EsModoGamepadPreferido() and GAMEPAD_CHAT_SYSTEM and type(GAMEPAD_CHAT_SYSTEM.StartTextEntry) == "function" then
+        local chatEntry = {
+            name = GetString(EZO_MENU_OPEN_GAMEPAD_CHAT_EXPERIMENTAL),
+            callback = AbrirChatGamepadExperimental,
+        }
+        if #acciones > 0 then
+            table.insert(acciones, #acciones, chatEntry)
+        else
+            acciones[#acciones + 1] = chatEntry
         end
     end
 
