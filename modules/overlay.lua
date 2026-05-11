@@ -8,6 +8,7 @@ EZOTools_Overlay = EZOTools_Overlay or {}
 local MOD = EZOTools_Overlay
 local EZO = EZOTools
 local WIDGETS = EZOTools_OverlayWidgets
+local QUICK = EZOTools_QuickUtility
 local ALLIES = EZOTools_QuickUtilityAllies
 local FOOD = EZOTools_QuickUtilityFood
 
@@ -445,38 +446,6 @@ local function ObtenerTextoStringId(nombreId)
     return GetString(stringId)
 end
 
-local function CerrarDialogosUtilidadRapida()
-    local recentDialog = EZO and EZO.GamepadUtilityRecentDialog
-    if recentDialog and type(recentDialog.Close) == "function" then
-        pcall(function() recentDialog.Close() end)
-    end
-    local utilityDialog = EZO and EZO.GamepadUtilityDialog
-    if utilityDialog and type(utilityDialog.Close) == "function" then
-        pcall(function() utilityDialog.Close() end)
-    end
-end
-
-local function EjecutarTrasCerrarUtilidades(fn)
-    if type(fn) ~= "function" then return false end
-    CerrarDialogosUtilidadRapida()
-    if type(zo_callLater) == "function" then
-        zo_callLater(function() pcall(fn) end, 120)
-    else
-        pcall(fn)
-    end
-    return true
-end
-
-local ObtenerConfiguracionAliado
-
-local function AbrirColeccionAliado(tipo)
-    return EjecutarTrasCerrarUtilidades(function()
-        if ALLIES and type(ALLIES.OpenCollection) == "function" then
-            ALLIES.OpenCollection(tipo)
-        end
-    end)
-end
-
 local function AnadirEntradaMenuReciente(label, onSelect, tooltipText, enabled, onEnter, onExit)
     if type(label) ~= "string" or label == "" then
         return false
@@ -581,7 +550,8 @@ end
 
 local function AbrirMenuHistorialComida(anchor)
     local entries = {}
-    for _, entry in ipairs(MOD.BuildQuickUtilityRecentEntries("food")) do
+    local recentEntries = QUICK and type(QUICK.BuildRecentEntries) == "function" and QUICK.BuildRecentEntries("food") or {}
+    for _, entry in ipairs(recentEntries) do
         local itemLinkTooltip = tostring(entry.previewItemLink or "")
         entries[#entries + 1] = {
             label = tostring(entry.text or ""),
@@ -605,10 +575,6 @@ local function AbrirMenuHistorialComida(anchor)
     end
 
     AbrirMenuRecientes(anchor, entries, "")
-end
-
-function ObtenerConfiguracionAliado(tipo)
-    return ALLIES and type(ALLIES.GetConfig) == "function" and ALLIES.GetConfig(tipo) or nil
 end
 
 local function EjecutarAccionWidget(side, index, data, button)
@@ -1465,18 +1431,15 @@ local function RefrescarEstadoIconoAliado(ctrl, activeId, tipo)
     end
 end
 
-local function InvocarAliadoDesdeHistorial(tipo, collectibleId)
-    return ALLIES and type(ALLIES.InvokeFromHistory) == "function" and ALLIES.InvokeFromHistory(tipo, collectibleId) or false
-end
-
 AbrirMenuHistorialAliado = function(anchor, tipo)
-    local config = ObtenerConfiguracionAliado(tipo)
+    local config = ALLIES and type(ALLIES.GetConfig) == "function" and ALLIES.GetConfig(tipo) or nil
     if not config then
         return
     end
 
     local entries = {}
-    for _, entry in ipairs(MOD.BuildQuickUtilityRecentEntries(tipo)) do
+    local recentEntries = QUICK and type(QUICK.BuildRecentEntries) == "function" and QUICK.BuildRecentEntries(tipo) or {}
+    for _, entry in ipairs(recentEntries) do
         local onEnter = nil
         local onExit = nil
         if config.showRecentHoverPreview and entry.empty ~= true then
@@ -1618,130 +1581,6 @@ end
 -- API pública: permite refrescar el dot desde fuera del módulo (EZOTools.lua)
 function MOD.RefreshDot()
     RefrescarDot()
-end
-
-function MOD.ExecuteQuickUtilityAction(clave)
-    clave = tostring(clave or "")
-    local function EjecutarAccionAliado(estaActivoFn, ocultarFn, invocarFn, msgOcultarId, msgInvocarId)
-        local activo = type(estaActivoFn) == "function" and estaActivoFn() == true
-        if EZO and type(EZO.Print) == "function" then
-            EZO.Print(GetString(activo and msgOcultarId or msgInvocarId))
-        end
-
-        local ok = false
-        if activo then
-            ok = type(ocultarFn) == "function" and ocultarFn() or false
-        else
-            ok = type(invocarFn) == "function" and invocarFn() or false
-        end
-        if ok then
-            ProgramarRefrescoDots()
-        end
-        return ok
-    end
-
-    if clave == "assistant" then
-        return EjecutarAccionAliado(
-            function() return ObtenerAssistantActivoId() ~= 0 end,
-            OcultarAsistenteActivo,
-            InvocarAsistenteRecordada,
-            EZO_MSG_HIDE_ASSISTANT,
-            EZO_MSG_SUMMON_ASSISTANT
-        )
-    end
-
-    if clave == "companion" then
-        return EjecutarAccionAliado(
-            function() return ObtenerCompanionActivoCollectibleId() ~= 0 end,
-            OcultarCompanionActivo,
-            InvocarCompanionRecordado,
-            EZO_MSG_HIDE_COMPANION,
-            EZO_MSG_SUMMON_COMPANION
-        )
-    end
-
-    if clave == "food" then
-        if FOOD and type(FOOD.ReuseRecordedFood) == "function" then
-            return FOOD.ReuseRecordedFood()
-        end
-        return false
-    end
-
-    if clave == "pet" then
-        return EjecutarAccionAliado(
-            function() return ObtenerMascotaActivaId() ~= 0 end,
-            OcultarMascotaActiva,
-            InvocarMascotaRecordada,
-            EZO_MSG_HIDE_PET,
-            EZO_MSG_SUMMON_PET
-        )
-    end
-
-    if clave == "mount" then
-        return InvocarMonturaRecordada()
-    end
-
-    return false
-end
-
-function MOD.BuildQuickUtilityRecentEntries(clave, usarAccionVacia)
-    local entries = {}
-
-    if clave == "food" then
-        if FOOD and type(FOOD.BuildRecentEntries) == "function" then
-            local ok, foodEntries = pcall(FOOD.BuildRecentEntries)
-            if ok and type(foodEntries) == "table" then
-                return foodEntries
-            end
-        end
-        return entries
-    end
-
-    local config = ObtenerConfiguracionAliado(clave)
-    if not config then
-        return entries
-    end
-
-    if ALLIES and type(ALLIES.BuildRecentEntries) == "function" then
-        local ok, allyEntries = pcall(
-            ALLIES.BuildRecentEntries,
-            clave,
-            usarAccionVacia == true,
-            function(finalId)
-                return function()
-                    return InvocarAliadoDesdeHistorial(clave, finalId)
-                end
-            end,
-            function()
-                return AbrirColeccionAliado(clave)
-            end
-        )
-        if ok and type(allyEntries) == "table" then
-            for _, entry in ipairs(allyEntries) do
-                if type(entry) == "table" and entry.previewCollectibleId then
-                    entry.previewKind = "collectible"
-                    entry.previewFallbackName = type(ALLIES.GetFallbackName) == "function" and ALLIES.GetFallbackName(clave) or ""
-                end
-                entries[#entries + 1] = entry
-            end
-        end
-    end
-
-    return entries
-end
-
-function MOD.GetQuickUtilityHistoryEmptyLabel(clave)
-    if clave == "food" then
-        if FOOD and type(FOOD.GetHistoryEmptyLabel) == "function" then
-            return FOOD.GetHistoryEmptyLabel()
-        end
-        return ""
-    end
-    local config = ObtenerConfiguracionAliado(clave)
-    if config then
-        return ALLIES and type(ALLIES.GetHistoryEmptyLabel) == "function" and ALLIES.GetHistoryEmptyLabel(clave) or ""
-    end
-    return ""
 end
 
 function MOD.ShowQuickUtilityPreview(control, entryData)
