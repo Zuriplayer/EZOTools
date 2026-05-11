@@ -122,6 +122,7 @@ EZO_STRINGS_EN = {
     EZO_MENU_REPAIR               = "Repair equipped (<= <<1>>%)",
     EZO_MENU_RECHARGE             = "Recharge weapons (<= <<1>>%)",
     EZO_MENU_RELOAD               = "Reload UI",
+    EZO_MENU_OPEN_GAMEPAD_CHAT_EXPERIMENTAL = "Open chat (experimental)",
     EZO_MENU_DEBUG_VIEWER         = "Open technical viewer",
     EZO_MENU_EXIT                 = "Exit",
 
