@@ -3,6 +3,10 @@ name: EZO beta build
 on:
   workflow_dispatch:
     inputs:
+      confirm_publish:
+        description: "Type PUBLISH to send to Discord. Any other value runs a dry run only."
+        required: true
+        default: "DRY_RUN"
       note:
         description: Optional note for Discord
         required: false
@@ -32,11 +36,17 @@ jobs:
           EZO_CODEX_BETA_BUILDS: ${{ secrets.EZO_CODEX_BETA_BUILDS }}
           CODEX_LOG: ${{ secrets.CODEX_LOG }}
           EZO_BETA_NOTE: ${{ inputs.note }}
-        run: .\scripts\ezo\publish-beta.ps1 -Force -Note $env:EZO_BETA_NOTE
+          EZO_CONFIRM_PUBLISH: ${{ inputs.confirm_publish }}
+        run: |
+          $publish = "$env:EZO_CONFIRM_PUBLISH" -eq "PUBLISH"
+          .\scripts\ezo\publish-beta.ps1 -Force -Note $env:EZO_BETA_NOTE -DryRun:(!$publish)
 
       - name: Publish automation log to Discord
         shell: pwsh
         env:
           CODEX_LOG: ${{ secrets.CODEX_LOG }}
           EZO_BETA_NOTE: ${{ inputs.note }}
-        run: .\scripts\ezo\publish-codex-log.ps1 -Action "Beta build published" -Note $env:EZO_BETA_NOTE
+          EZO_CONFIRM_PUBLISH: ${{ inputs.confirm_publish }}
+        run: |
+          $publish = "$env:EZO_CONFIRM_PUBLISH" -eq "PUBLISH"
+          .\scripts\ezo\publish-codex-log.ps1 -Action "Beta build published" -Note $env:EZO_BETA_NOTE -DryRun:(!$publish)
