@@ -119,15 +119,10 @@ local function AbrirLibroColecciones()
     if EsModoGamepadPreferido() then
         return MostrarEscena("gamepadCollectionsBook")
     end
-    if MAIN_MENU_KEYBOARD and type(MAIN_MENU_KEYBOARD.ToggleSceneGroup) == "function" then
-        MAIN_MENU_KEYBOARD:ToggleSceneGroup("collectionsSceneGroup", "collectionsBook")
-        return true
-    end
     return MostrarEscenaMenuKeyboard("collectionsBook")
 end
 
 local function AbrirColeccionPorCollectible(collectibleId)
-    AbrirLibroColecciones()
     local finalId = tonumber(collectibleId) or 0
     if finalId > 0 and COLLECTIONS_BOOK_SINGLETON and type(COLLECTIONS_BOOK_SINGLETON.BrowseToCollectible) == "function" then
         COLLECTIONS_BOOK_SINGLETON:BrowseToCollectible(finalId)
@@ -161,10 +156,6 @@ local function SeleccionarCategoriaRaizColeccionesKeyboard(categoryData)
         return false
     end
 
-    if MAIN_MENU_KEYBOARD and type(MAIN_MENU_KEYBOARD.ToggleSceneGroup) == "function" then
-        MAIN_MENU_KEYBOARD:ToggleSceneGroup("collectionsSceneGroup", "collectionsBook")
-        return true
-    end
     return MostrarEscenaMenuKeyboard("collectionsBook")
 end
 
@@ -483,7 +474,7 @@ end
 function MOD.ExecuteAction(key)
     if tostring(key or "") == "houses" then
         return EjecutarTrasCerrarUtilidades(function()
-            AbrirColeccionPorCategoriaRaiz(COLLECTIBLE_CATEGORY_TYPE_HOUSE)
+            AbrirColeccionPorCollectible(ObtenerPrimerCollectibleDeCategoria(COLLECTIBLE_CATEGORY_TYPE_HOUSE))
         end)
     end
     return false
