@@ -313,8 +313,8 @@ function MOD.ExecuteAction(key)
     if tostring(key or "") == "houses" then
         return EjecutarTrasCerrarUtilidades(function()
             local collections = EZO and EZO.QuickUtilityCollections or _G.EZOTools_QuickUtilityCollections
-            if collections and type(collections.OpenFirstByCategoryType) == "function" then
-                collections.OpenFirstByCategoryType(COLLECTIBLE_CATEGORY_TYPE_HOUSE)
+            if collections and type(collections.OpenRootByCategoryType) == "function" then
+                collections.OpenRootByCategoryType(COLLECTIBLE_CATEGORY_TYPE_HOUSE)
             end
         end)
     end
