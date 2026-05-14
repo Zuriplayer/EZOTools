@@ -240,6 +240,9 @@ function EZO:Initialize()
 
     -- Inicializar submódulos en orden
     if EZOTools_Menu      and EZOTools_Menu.Init      then EZOTools_Menu.Init()      end
+    if EZOTools_QuickUtilityHouses and EZOTools_QuickUtilityHouses.Init then
+        EZOTools_QuickUtilityHouses.Init()
+    end
     if EZOTools_Overlay   and EZOTools_Overlay.Init   then EZOTools_Overlay.Init()   end
     if EZOTools_Keybinds  and EZOTools_Keybinds.Init  then EZOTools_Keybinds.Init()  end
     if EZOTools_KeyboardEnterOverride and EZOTools_KeyboardEnterOverride.Init then
