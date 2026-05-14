@@ -11,6 +11,7 @@ local WIDGETS = EZOTools_OverlayWidgets
 local QUICK = EZOTools_QuickUtility
 local ALLIES = EZOTools_QuickUtilityAllies
 local FOOD = EZOTools_QuickUtilityFood
+local PREVIEW = EZOTools_QuickUtilityPreview
 
 -- Controles de la ventana (se crean en EnsureControls la primera vez)
 local overlayWin, overlayTex, overlayLabel, overlayGuildLabel, overlayMaintDot, overlayChargeDot, overlayFoodDot, overlayMountDot, overlayPetDot, overlayCompanionDot, overlayAssistantDot
@@ -1572,30 +1573,13 @@ function MOD.RefreshDot()
 end
 
 function MOD.ShowQuickUtilityPreview(control, entryData)
-    if not control or type(entryData) ~= "table" then
+    if not (PREVIEW and type(PREVIEW.Show) == "function") then
         return false
     end
-
-    local previewKind = tostring(entryData.previewKind or "")
-    if previewKind == "item" then
-        local itemLink = tostring(entryData.previewItemLink or "")
-        if itemLink ~= "" then
-            MostrarTooltipItemSobreControl(control, itemLink)
-            return true
-        end
-        return false
-    end
-
-    if previewKind == "collectible" then
-        local collectibleId = tonumber(entryData.previewCollectibleId) or 0
-        if collectibleId > 0 then
-            MostrarTooltipCollectibleSobreControl(control, collectibleId, tostring(entryData.previewFallbackName or ""))
-            return true
-        end
-        return false
-    end
-
-    return false
+    return PREVIEW.Show(control, entryData, {
+        ShowItem = MostrarTooltipItemSobreControl,
+        ShowCollectible = MostrarTooltipCollectibleSobreControl,
+    })
 end
 
 function MOD.HideQuickUtilityPreview()
