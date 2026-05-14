@@ -63,3 +63,38 @@ function MOD.Open(anchor, entries, emptyLabel)
         ShowMenu(anchor)
     end
 end
+
+function MOD.OpenFood(anchor, quickUtility, handlers)
+    if not (quickUtility and type(quickUtility.BuildRecentEntries) == "function") then
+        MOD.Open(anchor, {}, "")
+        return
+    end
+
+    handlers = type(handlers) == "table" and handlers or {}
+    local entries = {}
+    local recentEntries = quickUtility.BuildRecentEntries("food") or {}
+    for _, entry in ipairs(recentEntries) do
+        local itemLinkTooltip = tostring(entry.previewItemLink or "")
+        entries[#entries + 1] = {
+            label = tostring(entry.text or ""),
+            enabled = entry.empty ~= true,
+            onEnter = function(control)
+                if itemLinkTooltip ~= "" and type(handlers.ShowItem) == "function" then
+                    handlers.ShowItem(control, itemLinkTooltip)
+                end
+            end,
+            onExit = function()
+                if type(handlers.ClearItem) == "function" then
+                    handlers.ClearItem()
+                end
+            end,
+            onSelect = function()
+                if type(entry.callback) == "function" then
+                    entry.callback()
+                end
+            end,
+        }
+    end
+
+    MOD.Open(anchor, entries, "")
+end
