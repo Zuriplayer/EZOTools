@@ -1563,9 +1563,6 @@ function MOD.Refresh()
     RefrescarTexturaLogoCentral()
     RefrescarEtiquetaGuild()
     AplicarEscalaVisual()
-    if EZOTools_QuickUtilityHouses and type(EZOTools_QuickUtilityHouses.RecordCurrentHouse) == "function" then
-        EZOTools_QuickUtilityHouses.RecordCurrentHouse()
-    end
     RefrescarDot()
     ActualizarVisibilidad()
 end

@@ -7,6 +7,7 @@ local EZO = EZOTools
 
 local OWN_HOUSE_HISTORY_LIMIT = 10
 local OTHER_HOUSE_HISTORY_LIMIT = 20
+local initialized = false
 
 local function ObtenerOverlaySV()
     return EZO and EZO.sv and EZO.sv.overlay or nil
@@ -416,4 +417,28 @@ function MOD.GetHistoryEmptyLabel(key)
         return GetString(EZO_UTILITY_OTHER_HOUSES_HISTORY_EMPTY)
     end
     return nil
+end
+
+function MOD.Init()
+    if initialized then
+        return
+    end
+    initialized = true
+
+    MOD.RecordCurrentHouse()
+
+    if EVENT_MANAGER and EVENT_PLAYER_ACTIVATED then
+        EVENT_MANAGER:RegisterForEvent(
+            "EZOTools_QuickUtilityHouses_PlayerActivated",
+            EVENT_PLAYER_ACTIVATED,
+            function()
+                MOD.RecordCurrentHouse()
+                if type(zo_callLater) == "function" then
+                    zo_callLater(function()
+                        MOD.RecordCurrentHouse()
+                    end, 1000)
+                end
+            end
+        )
+    end
 end
