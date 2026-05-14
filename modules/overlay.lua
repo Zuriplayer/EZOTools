@@ -12,6 +12,7 @@ local QUICK = EZOTools_QuickUtility
 local ALLIES = EZOTools_QuickUtilityAllies
 local FOOD = EZOTools_QuickUtilityFood
 local PREVIEW = EZOTools_QuickUtilityPreview
+local RECENT_MENU = EZOTools_QuickUtilityRecentMenu
 
 -- Controles de la ventana (se crean en EnsureControls la primera vez)
 local overlayWin, overlayTex, overlayLabel, overlayGuildLabel, overlayMaintDot, overlayChargeDot, overlayFoodDot, overlayMountDot, overlayPetDot, overlayCompanionDot, overlayAssistantDot
@@ -436,28 +437,6 @@ local function ObtenerDescripcionCollectible(collectibleId)
     return nil
 end
 
-local function AnadirEntradaMenuReciente(label, onSelect, tooltipText, enabled, onEnter, onExit)
-    if type(label) ~= "string" or label == "" then
-        return false
-    end
-    label = NormalizarTextoTooltip(label)
-
-    local index = nil
-    if type(AddCustomMenuItem) == "function" then
-        index = AddCustomMenuItem(label, onSelect, MENU_ADD_OPTION_LABEL, nil, nil, nil, nil, nil, nil, onEnter, onExit, enabled ~= false)
-    elseif type(AddMenuItem) == "function" then
-        index = AddMenuItem(label, onSelect)
-    else
-        return false
-    end
-
-    if type(index) == "number" and type(AddCustomMenuTooltip) == "function" and type(tooltipText) == "string" and tooltipText ~= "" then
-        AddCustomMenuTooltip(NormalizarTextoTooltip(tooltipText), index)
-    end
-
-    return true
-end
-
 local function InicializarTooltipEstandarSobreControl(tooltip, ctrl)
     if not (ctrl and tooltip and type(InitializeTooltip) == "function") then
         return false
@@ -509,32 +488,8 @@ local function MostrarTooltipCollectibleSobreControl(ctrl, collectibleId, fallba
 end
 
 local function AbrirMenuRecientes(anchor, entries, emptyLabel)
-    if ClearMenu then
-        ClearMenu()
-    end
-
-    local entriesAdded = 0
-    if type(entries) == "table" then
-        for _, entry in ipairs(entries) do
-            if type(entry) == "table" and AnadirEntradaMenuReciente(
-                tostring(entry.label or ""),
-                entry.onSelect,
-                entry.tooltipText,
-                entry.enabled,
-                entry.onEnter,
-                entry.onExit
-            ) then
-                entriesAdded = entriesAdded + 1
-            end
-        end
-    end
-
-    if entriesAdded == 0 then
-        AnadirEntradaMenuReciente(tostring(emptyLabel or ""), function() return true end, nil, false)
-    end
-
-    if ShowMenu then
-        ShowMenu(anchor)
+    if RECENT_MENU and type(RECENT_MENU.Open) == "function" then
+        RECENT_MENU.Open(anchor, entries, emptyLabel)
     end
 end
 
