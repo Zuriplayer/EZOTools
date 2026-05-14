@@ -51,12 +51,12 @@ local function EsCategoriaCasas(key)
     return key == "houses" or key == "otherHouses"
 end
 
-local function ObtenerConfiguracionAliado(key)
+local function EsCategoriaAliado(key)
     local provider = ObtenerAllyProvider()
-    if provider and type(provider.GetConfig) == "function" then
-        return provider.GetConfig(key)
+    if provider and type(provider.IsSupportedKind) == "function" then
+        return provider.IsSupportedKind(key)
     end
-    return nil
+    return false
 end
 
 local function ProgramarRefrescoOverlayDots()
@@ -204,8 +204,7 @@ function MOD.BuildRecentEntries(key, useEmptyAction)
     end
 
     local provider = ObtenerAllyProvider()
-    local config = ObtenerConfiguracionAliado(key)
-    if provider and config and type(provider.BuildRecentEntries) == "function" then
+    if provider and EsCategoriaAliado(key) and type(provider.BuildRecentEntries) == "function" then
         local ok, entries = pcall(
             provider.BuildRecentEntries,
             key,
@@ -258,7 +257,7 @@ function MOD.GetHistoryEmptyLabel(key)
     end
 
     local provider = ObtenerAllyProvider()
-    if ObtenerConfiguracionAliado(key) and provider and type(provider.GetHistoryEmptyLabel) == "function" then
+    if EsCategoriaAliado(key) and provider and type(provider.GetHistoryEmptyLabel) == "function" then
         local ok, text = pcall(provider.GetHistoryEmptyLabel, key)
         if ok and type(text) == "string" then
             return text

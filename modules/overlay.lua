@@ -435,17 +435,6 @@ local function ObtenerDescripcionCollectible(collectibleId)
     return nil
 end
 
-local function ObtenerTextoStringId(nombreId)
-    if type(nombreId) ~= "string" or nombreId == "" then
-        return ""
-    end
-    local stringId = _G[nombreId]
-    if stringId == nil then
-        return ""
-    end
-    return GetString(stringId)
-end
-
 local function AnadirEntradaMenuReciente(label, onSelect, tooltipText, enabled, onEnter, onExit)
     if type(label) ~= "string" or label == "" then
         return false
@@ -1432,20 +1421,22 @@ local function RefrescarEstadoIconoAliado(ctrl, activeId, tipo)
 end
 
 AbrirMenuHistorialAliado = function(anchor, tipo)
-    local config = ALLIES and type(ALLIES.GetConfig) == "function" and ALLIES.GetConfig(tipo) or nil
-    if not config then
+    if not (ALLIES and type(ALLIES.IsSupportedKind) == "function" and ALLIES.IsSupportedKind(tipo)) then
         return
     end
 
     local entries = {}
     local recentEntries = QUICK and type(QUICK.BuildRecentEntries) == "function" and QUICK.BuildRecentEntries(tipo) or {}
+    local showRecentHoverPreview = type(ALLIES.ShouldShowRecentHoverPreview) == "function"
+        and ALLIES.ShouldShowRecentHoverPreview(tipo)
+    local fallbackName = type(ALLIES.GetFallbackName) == "function" and ALLIES.GetFallbackName(tipo) or ""
     for _, entry in ipairs(recentEntries) do
         local onEnter = nil
         local onExit = nil
-        if config.showRecentHoverPreview and entry.empty ~= true then
+        if showRecentHoverPreview and entry.empty ~= true then
             local finalId = tonumber(entry.previewCollectibleId) or 0
             onEnter = function(control)
-                        MostrarTooltipCollectibleSobreControl(control, finalId, ObtenerTextoStringId(config.fallbackNameKey))
+                MostrarTooltipCollectibleSobreControl(control, finalId, fallbackName)
             end
             onExit = function()
                 if type(ClearTooltip) == "function" and ItemTooltip then

@@ -157,6 +157,15 @@ function MOD.GetConfig(kind)
     return ALLY_CONFIG[tostring(kind or "")]
 end
 
+function MOD.IsSupportedKind(kind)
+    return type(MOD.GetConfig(kind)) == "table"
+end
+
+function MOD.ShouldShowRecentHoverPreview(kind)
+    local config = MOD.GetConfig(kind)
+    return config and config.showRecentHoverPreview == true
+end
+
 function MOD.GetRemembered(kind)
     local config = MOD.GetConfig(kind)
     local overlaySV = OverlaySV()
