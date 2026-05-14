@@ -180,12 +180,12 @@ function MOD.BuildEntries()
     return entries
 end
 
-function MOD.BuildRecentEntries(key, useEmptyAction)
+function MOD.BuildRecentEntries(key, useEmptyAction, options)
     key = tostring(key or "")
     if key == "food" then
         local provider = ObtenerFoodProvider()
         if provider and type(provider.BuildRecentEntries) == "function" then
-            local ok, entries = pcall(provider.BuildRecentEntries)
+            local ok, entries = pcall(provider.BuildRecentEntries, options)
             if ok and type(entries) == "table" then
                 return entries
             end

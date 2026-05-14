@@ -37,7 +37,11 @@ end
 
 local function RecopilarEntradasRecientes()
     if QuickUtility and type(QuickUtility.BuildRecentEntries) == "function" then
-        return QuickUtility.BuildRecentEntries(Dialog._currentKey, true)
+        local options = nil
+        if tostring(Dialog._currentKey or "") == "food" then
+            options = { skipLegendaryConfirm = true }
+        end
+        return QuickUtility.BuildRecentEntries(Dialog._currentKey, true, options)
     end
     return {}
 end

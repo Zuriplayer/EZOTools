@@ -745,7 +745,11 @@ local function PedirConfirmacionComidaLegendaria(itemName, effectDescription, re
     return false
 end
 
-function MOD.ReuseRecordedFood()
+local function DebeConfirmarComidaLegendaria(options)
+    return not (type(options) == "table" and options.skipLegendaryConfirm == true)
+end
+
+function MOD.ReuseRecordedFood(options)
     local foodInfoAntes = MOD.GetBuffInfo()
     local bagId, slotIndex, itemName, itemLink, quality, effectDescription = MOD.FindRecordedFood()
     local debugActivo = EZO and type(EZO.IsDebugModeEnabled) == "function" and EZO.IsDebugModeEnabled()
@@ -757,7 +761,7 @@ function MOD.ReuseRecordedFood()
     end
 
     local qualityLegendary = (type(ITEM_QUALITY_LEGENDARY) == "number") and ITEM_QUALITY_LEGENDARY or nil
-    if qualityLegendary and quality == qualityLegendary then
+    if qualityLegendary and quality == qualityLegendary and DebeConfirmarComidaLegendaria(options) then
         local remainingSeconds = type(foodInfoAntes) == "table" and tonumber(foodInfoAntes.remainingSeconds) or nil
         return PedirConfirmacionComidaLegendaria(itemName, effectDescription, remainingSeconds, function()
             if debugActivo and EZO and type(EZO.Print) == "function" then
@@ -783,7 +787,7 @@ function MOD.ReuseRecordedFood()
     return ok
 end
 
-function MOD.ConsumeHistoryFood(itemLink, itemName)
+function MOD.ConsumeHistoryFood(itemLink, itemName, options)
     local foodInfoAntes = MOD.GetBuffInfo()
     local bagId, slotIndex, resolvedName, resolvedLink, quality, effectDescription = MOD.FindFoodByReference(itemLink, itemName)
     local debugActivo = EZO and type(EZO.IsDebugModeEnabled) == "function" and EZO.IsDebugModeEnabled()
@@ -796,7 +800,7 @@ function MOD.ConsumeHistoryFood(itemLink, itemName)
 
     local finalName = tostring(resolvedName or itemName or "")
     local qualityLegendary = (type(ITEM_QUALITY_LEGENDARY) == "number") and ITEM_QUALITY_LEGENDARY or nil
-    if qualityLegendary and quality == qualityLegendary then
+    if qualityLegendary and quality == qualityLegendary and DebeConfirmarComidaLegendaria(options) then
         return PedirConfirmacionComidaLegendaria(finalName, effectDescription, nil, function()
             if debugActivo and EZO and type(EZO.Print) == "function" then
                 EZO.Print(zo_strformat(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT), finalName))
@@ -821,7 +825,7 @@ function MOD.ConsumeHistoryFood(itemLink, itemName)
     return ok
 end
 
-function MOD.BuildRecentEntries()
+function MOD.BuildRecentEntries(options)
     local entries = {}
     local overlaySV = ObtenerFoodSV()
     local history = overlaySV and overlaySV.recentFoodItems or nil
@@ -836,7 +840,7 @@ function MOD.BuildRecentEntries()
                     entries[#entries + 1] = {
                         text = label,
                         callback = function()
-                            return MOD.ConsumeHistoryFood(itemLink, itemName)
+                            return MOD.ConsumeHistoryFood(itemLink, itemName, options)
                         end,
                         previewKind = "item",
                         previewItemLink = itemLink,
