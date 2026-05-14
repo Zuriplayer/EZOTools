@@ -494,32 +494,17 @@ local function AbrirMenuRecientes(anchor, entries, emptyLabel)
 end
 
 local function AbrirMenuHistorialComida(anchor)
-    local entries = {}
-    local recentEntries = QUICK and type(QUICK.BuildRecentEntries) == "function" and QUICK.BuildRecentEntries("food") or {}
-    for _, entry in ipairs(recentEntries) do
-        local itemLinkTooltip = tostring(entry.previewItemLink or "")
-        entries[#entries + 1] = {
-            label = tostring(entry.text or ""),
-            enabled = entry.empty ~= true,
-            onEnter = function(control)
-                if itemLinkTooltip ~= "" then
-                    MostrarTooltipItemSobreControl(control, itemLinkTooltip)
-                end
-            end,
-            onExit = function()
-                if type(ClearTooltip) == "function" and ItemTooltip then
-                    ClearTooltip(ItemTooltip)
-                end
-            end,
-            onSelect = function()
-                if type(entry.callback) == "function" then
-                    entry.callback()
-                end
-            end,
-        }
+    if not (RECENT_MENU and type(RECENT_MENU.OpenFood) == "function") then
+        return
     end
-
-    AbrirMenuRecientes(anchor, entries, "")
+    RECENT_MENU.OpenFood(anchor, QUICK, {
+        ShowItem = MostrarTooltipItemSobreControl,
+        ClearItem = function()
+            if type(ClearTooltip) == "function" and ItemTooltip then
+                ClearTooltip(ItemTooltip)
+            end
+        end,
+    })
 end
 
 local function EjecutarAccionWidget(side, index, data, button)
