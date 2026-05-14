@@ -43,7 +43,11 @@ EZO_STRINGS_ES = {
     -- -------------------------------------------------------------------------
     EZO_OPTION_GENERAL                  = "General",
     EZO_OPTION_LANGUAGE                 = "Idioma",
-    EZO_OPTION_LANGUAGE_TOOLTIP         = "Cambia los textos del addon al momento. Los nombres de keybind en la pantalla de controles pueden requerir /reloadui.",
+    EZO_OPTION_LANGUAGE_AUTO            = "Automático (idioma del juego)",
+    EZO_OPTION_LANGUAGE_EN              = "Inglés (forzado)",
+    EZO_OPTION_LANGUAGE_ES              = "Español (forzado)",
+    EZO_OPTION_LANGUAGE_TOOLTIP         = "Automático sigue el idioma del cliente ESO. Los idiomas forzados solo afectan a textos de EZOTools.",
+    EZO_OPTION_LANGUAGE_FORCED_WARNING  = "EN: Forced language affects EZOTools only; game names/windows may keep ESO's language.\nES: El idioma forzado solo afecta a EZOTools; nombres/ventanas pueden seguir el idioma de ESO.",
 
     -- -------------------------------------------------------------------------
     -- Panel LAM: sección Overlay

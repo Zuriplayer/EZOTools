@@ -54,7 +54,19 @@ local function ObtenerIdiomaPorDefectoCliente()
 end
 
 function EZO.GetDefaultLanguage()
+    return "auto"
+end
+
+function EZO.GetClientLanguage()
     return ObtenerIdiomaPorDefectoCliente()
+end
+
+function EZO.ResolveLanguage(languageMode)
+    languageMode = zo_strlower(tostring(languageMode or "auto"))
+    if languageMode == "en" or languageMode == "es" then
+        return languageMode, languageMode
+    end
+    return "auto", ObtenerIdiomaPorDefectoCliente()
 end
 
 local function MergeUniqueNumberHistory(target, source, key, maxItems)
@@ -108,14 +120,13 @@ end
 
 function EZO:Initialize()
     local world = GetWorldName()
-    local defaultLanguage = ObtenerIdiomaPorDefectoCliente()
     local manualFriendHouseProfileKey = EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual"
     EZO.runtime = EZO.runtime or {}
 
     -- Valores por defecto de las variables guardadas (por cuenta y mundo)
     local defaults = {
         general = {
-            language          = defaultLanguage,
+            language          = "auto",
             debugMode         = false,
             repairThreshold   = 25,
             rechargeThreshold = 25,
@@ -187,7 +198,7 @@ function EZO:Initialize()
 
     -- Aplicar idioma guardado
     if EZO_Lang and EZO_Lang.Apply then
-        EZO_Lang.Apply(self.sv.general.language or "en")
+        EZO_Lang.Apply(self.sv.general.language or "auto")
     end
 
     -- Si el texto del overlay sigue siendo el placeholder de fábrica, usar el nombre de cuenta.
@@ -314,7 +325,10 @@ local function _mostrarAyudaDetallada()
 end
 
 local function _comandoVersion()
-    local lang = (EZO_Lang and EZO_Lang.current) or (EZOTools.sv and EZOTools.sv.general and EZOTools.sv.general.language) or "?"
+    local lang = (EZO_Lang and EZO_Lang.current) or "?"
+    if EZO_Lang and EZO_Lang.mode and EZO_Lang.mode ~= EZO_Lang.current then
+        lang = tostring(EZO_Lang.mode) .. " (" .. tostring(EZO_Lang.current or "?") .. ")"
+    end
     local lam = (_G.LibAddonMenu2 and "yes") or "no"
     local overlay = (EZOTools_Overlay and EZOTools_Overlay.Refresh and "yes") or "no"
     local gamepad = (EZOTools.GamepadDialog and EZOTools.GamepadDialog.Open and "yes") or "no"
