@@ -46,7 +46,7 @@ EZO_STRINGS_EN = {
     EZO_OPTION_LANGUAGE                 = "Language",
     EZO_OPTION_LANGUAGE_AUTO            = "Automatic",
     EZO_OPTION_LANGUAGE_TOOLTIP         = "Automatic follows the ESO client language. Forcing a different language can mix addon text with ESO system names.",
-    EZO_MSG_LANGUAGE_FORCED_WARNING     = "Language forced: addon text may not match ESO system names.|nIdioma forzado: los textos del addon pueden no coincidir con nombres del sistema ESO.",
+    EZO_MSG_LANGUAGE_FORCED_WARNING     = "Forced language: ESO names may use the game language.",
 
     -- -------------------------------------------------------------------------
     -- LAM panel: Overlay section
