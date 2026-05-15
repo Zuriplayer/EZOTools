@@ -4,6 +4,7 @@
 EZOTools = EZOTools or {}
 local EZO = EZOTools
 local ADDON_NAME = "EZOTools"
+local LANGUAGE_AUTO = "auto"
 EZO.runtime = EZO.runtime or {}
 EZO.runtime.debugMode = EZO.runtime.debugMode == true
 
@@ -54,7 +55,24 @@ local function ObtenerIdiomaPorDefectoCliente()
 end
 
 function EZO.GetDefaultLanguage()
+    return LANGUAGE_AUTO
+end
+
+function EZO.GetClientLanguage()
     return ObtenerIdiomaPorDefectoCliente()
+end
+
+function EZO.GetEffectiveLanguage(language)
+    language = tostring(language or LANGUAGE_AUTO)
+    if language == "es" or language == "en" then
+        return language
+    end
+    return ObtenerIdiomaPorDefectoCliente()
+end
+
+function EZO.IsForcedLanguage(language)
+    language = tostring(language or LANGUAGE_AUTO)
+    return language == "es" or language == "en"
 end
 
 local function MergeUniqueNumberHistory(target, source, key, maxItems)
@@ -108,14 +126,13 @@ end
 
 function EZO:Initialize()
     local world = GetWorldName()
-    local defaultLanguage = ObtenerIdiomaPorDefectoCliente()
     local manualFriendHouseProfileKey = EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual"
     EZO.runtime = EZO.runtime or {}
 
     -- Valores por defecto de las variables guardadas (por cuenta y mundo)
     local defaults = {
         general = {
-            language          = defaultLanguage,
+            language          = LANGUAGE_AUTO,
             debugMode         = false,
             repairThreshold   = 25,
             rechargeThreshold = 25,
@@ -187,7 +204,7 @@ function EZO:Initialize()
 
     -- Aplicar idioma guardado
     if EZO_Lang and EZO_Lang.Apply then
-        EZO_Lang.Apply(self.sv.general.language or "en")
+        EZO_Lang.Apply(self.sv.general.language or LANGUAGE_AUTO)
     end
 
     -- Si el texto del overlay sigue siendo el placeholder de fábrica, usar el nombre de cuenta.
