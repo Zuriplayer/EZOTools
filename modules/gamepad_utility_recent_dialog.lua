@@ -89,13 +89,6 @@ end
 
 local function ConstruirBotones()
     local buttons = {}
-    local core = EZO and EZO.SideMenuCore
-    if core and type(core.AddListTriggerNavigation) == "function" then
-        core.AddListTriggerNavigation(buttons, function()
-            local dialog = BuscarDialogoGamepad(NOMBRE_DIALOGO)
-            return dialog and dialog.entryList or nil
-        end)
-    end
 
     buttons[#buttons + 1] = {
         keybind = "DIALOG_PRIMARY",
@@ -189,9 +182,29 @@ local function AsegurarRegistrado()
             end
         end,
 
+        OnShownCallback = function(dialog)
+            local core = EZO and EZO.SideMenuCore
+            if core and type(core.AttachListTriggerKeybinds) == "function" then
+                core.AttachListTriggerKeybinds(Dialog, function()
+                    return dialog and dialog.entryList or nil
+                end)
+            end
+        end,
+
+        onHidingCallback = function()
+            local core = EZO and EZO.SideMenuCore
+            if core and type(core.DetachListTriggerKeybinds) == "function" then
+                core.DetachListTriggerKeybinds(Dialog)
+            end
+        end,
+
         buttons = ConstruirBotones(),
 
         finishedCallback = function()
+            local core = EZO and EZO.SideMenuCore
+            if core and type(core.DetachListTriggerKeybinds) == "function" then
+                core.DetachListTriggerKeybinds(Dialog)
+            end
             DetenerActualizacionPreview()
             Dialog._activeDialog = nil
         end,

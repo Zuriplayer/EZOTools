@@ -109,6 +109,13 @@ function Core.AddListTriggerNavigation(descriptor, listaOrDialogo, headerCompara
         return
     end
 
+    if type(_G.ZO_Gamepad_AddListTriggerKeybindDescriptors) == "function" then
+        ZO_Gamepad_AddListTriggerKeybindDescriptors(descriptor, function()
+            return ResolverLista(listaOrDialogo)
+        end, headerComparator)
+        return
+    end
+
     descriptor[#descriptor + 1] = {
         name = "EZOToolsSideMenuPrevious",
         keybind = "UI_SHORTCUT_LEFT_TRIGGER",
@@ -125,6 +132,81 @@ function Core.AddListTriggerNavigation(descriptor, listaOrDialogo, headerCompara
             SaltarLista(listaOrDialogo, true, headerComparator)
         end,
     }
+end
+
+local function ObtenerCapaAtajosUI()
+    if _G.SI_KEYBINDINGS_LAYER_USER_INTERFACE_SHORTCUTS
+        and type(_G.GetString) == "function" then
+        local ok, layerName = pcall(function()
+            return GetString(SI_KEYBINDINGS_LAYER_USER_INTERFACE_SHORTCUTS)
+        end)
+        if ok and type(layerName) == "string" and layerName ~= "" then
+            return layerName
+        end
+    end
+    return nil
+end
+
+function Core.DetachListTriggerKeybinds(owner)
+    if type(owner) ~= "table" then
+        return
+    end
+
+    if owner._listTriggerKeybinds and _G.KEYBIND_STRIP
+        and type(KEYBIND_STRIP.RemoveKeybindButtonGroup) == "function" then
+        pcall(function()
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(owner._listTriggerKeybinds)
+        end)
+    end
+    owner._listTriggerKeybinds = nil
+
+    if owner._listTriggerActionLayer and type(_G.RemoveActionLayerByName) == "function" then
+        local layerName = owner._listTriggerActionLayer
+        pcall(function()
+            RemoveActionLayerByName(layerName)
+        end)
+    end
+    owner._listTriggerActionLayer = nil
+end
+
+function Core.AttachListTriggerKeybinds(owner, listaOrDialogo, headerComparator)
+    if type(owner) ~= "table" or not _G.KEYBIND_STRIP
+        or type(KEYBIND_STRIP.AddKeybindButtonGroup) ~= "function" then
+        return
+    end
+
+    if not ResolverLista(listaOrDialogo) then
+        return
+    end
+
+    Core.DetachListTriggerKeybinds(owner)
+
+    local descriptor = {}
+    Core.AddListTriggerNavigation(descriptor, function()
+        return ResolverLista(listaOrDialogo)
+    end, headerComparator)
+    if #descriptor <= 0 then
+        return
+    end
+
+    local layerName = ObtenerCapaAtajosUI()
+    if layerName and type(_G.PushActionLayerByName) == "function" then
+        local ok = pcall(function()
+            PushActionLayerByName(layerName)
+        end)
+        if ok then
+            owner._listTriggerActionLayer = layerName
+        end
+    end
+
+    local ok = pcall(function()
+        KEYBIND_STRIP:AddKeybindButtonGroup(descriptor)
+    end)
+    if ok then
+        owner._listTriggerKeybinds = descriptor
+    else
+        Core.DetachListTriggerKeybinds(owner)
+    end
 end
 
 local function ResolverTexto(valor)
@@ -175,10 +257,6 @@ function Core.CreateDialog(config)
 
     local function ConstruirBotones()
         local buttons = {}
-        Core.AddListTriggerNavigation(buttons, function()
-            local zoDialog = BuscarDialogo()
-            return zoDialog and zoDialog.entryList or nil
-        end, config.listTriggerHeaderComparator)
 
         buttons[#buttons + 1] = {
             keybind = "DIALOG_PRIMARY",
@@ -270,9 +348,26 @@ function Core.CreateDialog(config)
                 end
             end,
 
+            OnShownCallback = function(zoDialog)
+                Core.AttachListTriggerKeybinds(dialog, function()
+                    return zoDialog and zoDialog.entryList or nil
+                end, config.listTriggerHeaderComparator)
+                if type(config.onShown) == "function" then
+                    config.onShown(zoDialog, dialog)
+                end
+            end,
+
+            onHidingCallback = function(zoDialog)
+                Core.DetachListTriggerKeybinds(dialog)
+                if type(config.onHiding) == "function" then
+                    config.onHiding(zoDialog, dialog)
+                end
+            end,
+
             buttons = ConstruirBotones(),
 
             finishedCallback = function(zoDialog)
+                Core.DetachListTriggerKeybinds(dialog)
                 if config.trackActiveDialog then
                     dialog._activeDialog = nil
                 end
