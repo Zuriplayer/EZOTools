@@ -78,15 +78,21 @@ local function RegistrarSeccionesBase()
             {
                 type          = "dropdown",
                 name          = GetString(EZO_OPTION_LANGUAGE),
-                choices       = { "English", "Español" },
-                choicesValues = { "en", "es" },
-                getFunc       = function() return EZO.sv.general.language end,
+                choices       = { GetString(EZO_OPTION_LANGUAGE_AUTO), "English", "Español" },
+                choicesValues = { "auto", "en", "es" },
+                getFunc       = function() return EZO.sv.general.language or "auto" end,
                 setFunc       = function(v)
+                    v = tostring(v or "auto")
                     EZO.sv.general.language = v
                     if EZO_Lang and EZO_Lang.Apply then EZO_Lang.Apply(v) end
+                    local warningStringId = _G.EZO_MSG_LANGUAGE_FORCED_WARNING
+                    if EZO.IsForcedLanguage and EZO.IsForcedLanguage(v)
+                        and EZO.Print and warningStringId ~= nil then
+                        EZO.Print(GetString(warningStringId))
+                    end
                     RefrescarOverlay()
                 end,
-                default = (EZO.GetDefaultLanguage and EZO.GetDefaultLanguage()) or "en",
+                default = (EZO.GetDefaultLanguage and EZO.GetDefaultLanguage()) or "auto",
                 width   = "half",
                 tooltip = GetString(EZO_OPTION_LANGUAGE_TOOLTIP),
             },

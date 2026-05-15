@@ -37,7 +37,11 @@ end
 
 local function RecopilarEntradasRecientes()
     if QuickUtility and type(QuickUtility.BuildRecentEntries) == "function" then
-        return QuickUtility.BuildRecentEntries(Dialog._currentKey, true)
+        local options = nil
+        if tostring(Dialog._currentKey or "") == "food" then
+            options = { skipLegendaryConfirm = true }
+        end
+        return QuickUtility.BuildRecentEntries(Dialog._currentKey, true, options)
     end
     return {}
 end
@@ -81,6 +85,38 @@ local function DetenerActualizacionPreview()
     Dialog._lastPreviewData = nil
     Dialog._lastPreviewControl = nil
     OcultarPreviewActual()
+end
+
+local function ConstruirBotones()
+    local buttons = {}
+    local core = EZO and EZO.SideMenuCore
+    if core and type(core.AddListTriggerNavigation) == "function" then
+        core.AddListTriggerNavigation(buttons, function()
+            local dialog = BuscarDialogoGamepad(NOMBRE_DIALOGO)
+            return dialog and dialog.entryList or nil
+        end)
+    end
+
+    buttons[#buttons + 1] = {
+        keybind = "DIALOG_PRIMARY",
+        text = SI_GAMEPAD_SELECT_OPTION,
+        callback = function(dialog)
+            local data = dialog.entryList and dialog.entryList.GetTargetData
+                and dialog.entryList:GetTargetData() or nil
+            local cb = ExtraerCallback(data)
+            if cb then cb() end
+        end,
+    }
+    buttons[#buttons + 1] = {
+        keybind = "DIALOG_NEGATIVE",
+        text = SI_DIALOG_EXIT,
+        callback = function()
+            DetenerActualizacionPreview()
+            CerrarDialogoActual()
+            ReabrirDialogoUtilidades()
+        end,
+    }
+    return buttons
 end
 
 local function AsegurarRegistrado()
@@ -153,27 +189,7 @@ local function AsegurarRegistrado()
             end
         end,
 
-        buttons = {
-            {
-                keybind = "DIALOG_PRIMARY",
-                text = SI_GAMEPAD_SELECT_OPTION,
-                callback = function(dialog)
-                    local data = dialog.entryList and dialog.entryList.GetTargetData
-                        and dialog.entryList:GetTargetData() or nil
-                    local cb = ExtraerCallback(data)
-                    if cb then cb() end
-                end,
-            },
-            {
-                keybind = "DIALOG_NEGATIVE",
-                text = SI_DIALOG_EXIT,
-                callback = function()
-                    DetenerActualizacionPreview()
-                    CerrarDialogoActual()
-                    ReabrirDialogoUtilidades()
-                end,
-            },
-        },
+        buttons = ConstruirBotones(),
 
         finishedCallback = function()
             DetenerActualizacionPreview()

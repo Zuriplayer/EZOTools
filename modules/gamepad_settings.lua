@@ -130,6 +130,40 @@ local function ConstruirEntradasAjustes()
     return entradas
 end
 
+local function ConstruirBotones()
+    local buttons = {}
+    local core = EZO and EZO.SideMenuCore
+    if core and type(core.AddListTriggerNavigation) == "function" then
+        core.AddListTriggerNavigation(buttons, function()
+            local dialog = nil
+            if type(ZO_Dialogs_FindDialog) == "function" then
+                dialog = ZO_Dialogs_FindDialog(NOMBRE_DIALOGO)
+            end
+            return dialog and dialog.entryList or nil
+        end)
+    end
+
+    buttons[#buttons + 1] = {
+        keybind  = "DIALOG_PRIMARY",
+        text     = SI_GAMEPAD_SELECT_OPTION,
+        callback = function(dialog)
+            local cb = nil
+            if dialog and dialog.entryList
+                and type(dialog.entryList.GetTargetData) == "function" then
+                cb = ExtraerCallback(dialog.entryList:GetTargetData())
+            end
+            if cb then cb() end
+            return false
+        end,
+    }
+    buttons[#buttons + 1] = {
+        keybind  = "DIALOG_NEGATIVE",
+        text     = SI_DIALOG_EXIT,
+        callback = function() Dialog.Close() end,
+    }
+    return buttons
+end
+
 -- Registra el diálogo en ZO_Dialogs si aún no está registrado
 local function AsegurarRegistrado()
     if Dialog._registered then return end
@@ -172,26 +206,7 @@ local function AsegurarRegistrado()
             ZO_GenericParametricListGamepadDialogTemplate_RebuildEntryList(dialog)
         end,
 
-        buttons = {
-            {   -- Seleccionar (A / ✕): ciclará el valor del umbral
-                keybind  = "DIALOG_PRIMARY",
-                text     = SI_GAMEPAD_SELECT_OPTION,
-                callback = function(dialog)
-                    local cb = nil
-                    if dialog and dialog.entryList
-                        and type(dialog.entryList.GetTargetData) == "function" then
-                        cb = ExtraerCallback(dialog.entryList:GetTargetData())
-                    end
-                    if cb then cb() end
-                    return false  -- no cerrar el diálogo al pulsar SELECT
-                end,
-            },
-            {   -- Volver / cerrar (B / ◯)
-                keybind  = "DIALOG_NEGATIVE",
-                text     = SI_DIALOG_EXIT,
-                callback = function(dialog) Dialog.Close() end,
-            },
-        },
+        buttons = ConstruirBotones(),
 
         finishedCallback = function(dialog)
             Dialog._activeDialog = nil
