@@ -65,6 +65,21 @@ local function RefrescarOverlay()
     end
 end
 
+local ultimoAvisoIdiomaForzadoMs = 0
+
+local function AvisarIdiomaForzado()
+    local nowMs = type(GetGameTimeMilliseconds) == "function" and GetGameTimeMilliseconds() or 0
+    if nowMs > 0 and (nowMs - ultimoAvisoIdiomaForzadoMs) < 1000 then
+        return
+    end
+    ultimoAvisoIdiomaForzadoMs = nowMs
+
+    local warningStringId = _G.EZO_MSG_LANGUAGE_FORCED_WARNING
+    if EZOTools and type(EZOTools.Print) == "function" and warningStringId ~= nil then
+        EZOTools.Print(GetString(warningStringId))
+    end
+end
+
 local function RegistrarSeccionesBase()
     if REG._baseSectionsRegistered then
         return
@@ -85,10 +100,8 @@ local function RegistrarSeccionesBase()
                     v = tostring(v or "auto")
                     EZO.sv.general.language = v
                     if EZO_Lang and EZO_Lang.Apply then EZO_Lang.Apply(v) end
-                    local warningStringId = _G.EZO_MSG_LANGUAGE_FORCED_WARNING
-                    if EZO.IsForcedLanguage and EZO.IsForcedLanguage(v)
-                        and EZO.Print and warningStringId ~= nil then
-                        EZO.Print(GetString(warningStringId))
+                    if EZO.IsForcedLanguage and EZO.IsForcedLanguage(v) then
+                        AvisarIdiomaForzado()
                     end
                     RefrescarOverlay()
                 end,
