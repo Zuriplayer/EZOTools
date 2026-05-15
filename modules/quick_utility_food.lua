@@ -623,6 +623,16 @@ local function ConsumirComidaRecordada()
     return ConsumirComidaEnSlot(bagId, slotIndex, itemName, itemLink)
 end
 
+local function EmitirDebugComida(message)
+    if not (EZO and type(EZO.IsDebugModeEnabled) == "function" and EZO.IsDebugModeEnabled()) then
+        return false
+    end
+    if type(EZO.DebugPrint) == "function" then
+        return EZO.DebugPrint(tostring(message or ""))
+    end
+    return false
+end
+
 local function VerificarConsumoComidaDebug(foodInfoAntes)
     if not (EZO and type(EZO.IsDebugModeEnabled) == "function" and EZO.IsDebugModeEnabled()) then
         return
@@ -651,8 +661,8 @@ local function VerificarConsumoComidaDebug(foodInfoAntes)
             end
         end
 
-        if not consumido and EZO and type(EZO.Print) == "function" then
-            EZO.Print(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_FAILED))
+        if not consumido then
+            EmitirDebugComida(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_FAILED))
         end
     end, 1500)
 end
@@ -752,11 +762,8 @@ end
 function MOD.ReuseRecordedFood(options)
     local foodInfoAntes = MOD.GetBuffInfo()
     local bagId, slotIndex, itemName, itemLink, quality, effectDescription = MOD.FindRecordedFood()
-    local debugActivo = EZO and type(EZO.IsDebugModeEnabled) == "function" and EZO.IsDebugModeEnabled()
     if not bagId or slotIndex == nil then
-        if debugActivo and EZO and type(EZO.Print) == "function" then
-            EZO.Print(GetString(EZO_MSG_DEBUG_FOOD_NO_RECORDED))
-        end
+        EmitirDebugComida(GetString(EZO_MSG_DEBUG_FOOD_NO_RECORDED))
         return false
     end
 
@@ -764,25 +771,21 @@ function MOD.ReuseRecordedFood(options)
     if qualityLegendary and quality == qualityLegendary and DebeConfirmarComidaLegendaria(options) then
         local remainingSeconds = type(foodInfoAntes) == "table" and tonumber(foodInfoAntes.remainingSeconds) or nil
         return PedirConfirmacionComidaLegendaria(itemName, effectDescription, remainingSeconds, function()
-            if debugActivo and EZO and type(EZO.Print) == "function" then
-                EZO.Print(zo_strformat(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT), tostring(itemName or "")))
-            end
+            EmitirDebugComida(zo_strformat(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT), tostring(itemName or "")))
             if ConsumirComidaRecordada() then
                 VerificarConsumoComidaDebug(foodInfoAntes)
-            elseif debugActivo and EZO and type(EZO.Print) == "function" then
-                EZO.Print(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_FAILED))
+            else
+                EmitirDebugComida(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_FAILED))
             end
         end)
     end
 
-    if debugActivo and EZO and type(EZO.Print) == "function" then
-        EZO.Print(zo_strformat(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT), tostring(itemName or "")))
-    end
+    EmitirDebugComida(zo_strformat(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT), tostring(itemName or "")))
     local ok = ConsumirComidaRecordada()
     if ok then
         VerificarConsumoComidaDebug(foodInfoAntes)
-    elseif debugActivo and EZO and type(EZO.Print) == "function" then
-        EZO.Print(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_FAILED))
+    else
+        EmitirDebugComida(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_FAILED))
     end
     return ok
 end
@@ -790,11 +793,8 @@ end
 function MOD.ConsumeHistoryFood(itemLink, itemName, options)
     local foodInfoAntes = MOD.GetBuffInfo()
     local bagId, slotIndex, resolvedName, resolvedLink, quality, effectDescription = MOD.FindFoodByReference(itemLink, itemName)
-    local debugActivo = EZO and type(EZO.IsDebugModeEnabled) == "function" and EZO.IsDebugModeEnabled()
     if not bagId or slotIndex == nil then
-        if debugActivo and EZO and type(EZO.Print) == "function" then
-            EZO.Print(GetString(EZO_MSG_DEBUG_FOOD_NO_RECORDED))
-        end
+        EmitirDebugComida(GetString(EZO_MSG_DEBUG_FOOD_NO_RECORDED))
         return false
     end
 
@@ -802,25 +802,21 @@ function MOD.ConsumeHistoryFood(itemLink, itemName, options)
     local qualityLegendary = (type(ITEM_QUALITY_LEGENDARY) == "number") and ITEM_QUALITY_LEGENDARY or nil
     if qualityLegendary and quality == qualityLegendary and DebeConfirmarComidaLegendaria(options) then
         return PedirConfirmacionComidaLegendaria(finalName, effectDescription, nil, function()
-            if debugActivo and EZO and type(EZO.Print) == "function" then
-                EZO.Print(zo_strformat(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT), finalName))
-            end
+            EmitirDebugComida(zo_strformat(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT), finalName))
             if ConsumirComidaEnSlot(bagId, slotIndex, finalName, resolvedLink) then
                 VerificarConsumoComidaDebug(foodInfoAntes)
-            elseif debugActivo and EZO and type(EZO.Print) == "function" then
-                EZO.Print(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_FAILED))
+            else
+                EmitirDebugComida(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_FAILED))
             end
         end)
     end
 
-    if debugActivo and EZO and type(EZO.Print) == "function" then
-        EZO.Print(zo_strformat(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT), finalName))
-    end
+    EmitirDebugComida(zo_strformat(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_ATTEMPT), finalName))
     local ok = ConsumirComidaEnSlot(bagId, slotIndex, finalName, resolvedLink)
     if ok then
         VerificarConsumoComidaDebug(foodInfoAntes)
-    elseif debugActivo and EZO and type(EZO.Print) == "function" then
-        EZO.Print(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_FAILED))
+    else
+        EmitirDebugComida(GetString(EZO_MSG_DEBUG_FOOD_CONSUME_FAILED))
     end
     return ok
 end
