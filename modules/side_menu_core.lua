@@ -27,6 +27,15 @@ local function ResolverTexto(valor)
     return tostring(valor or "Item")
 end
 
+local function CrearTextoDialogo(valor, permitirDinamico)
+    if permitirDinamico == true and type(valor) == "function" then
+        return function()
+            return ResolverTexto(valor)
+        end
+    end
+    return ResolverTexto(valor)
+end
+
 local function CopiarDatosEntrada(origen, destino)
     if type(origen) ~= "table" or type(destino) ~= "table" then
         return
@@ -103,8 +112,8 @@ function Core.CreateDialog(config)
 
         ZO_Dialogs_RegisterCustomDialog(nombreDialogo, {
             gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
-            title = { text = ResolverTexto(config.titleText or "") },
-            mainText = { text = ResolverTexto(config.mainText or "") },
+            title = { text = CrearTextoDialogo(config.titleText or "", config.dynamicText) },
+            mainText = { text = CrearTextoDialogo(config.mainText or "", config.dynamicText) },
             blockDialogReleaseOnPress = config.blockDialogReleaseOnPress == true,
             parametricList = {},
 
@@ -147,8 +156,13 @@ function Core.CreateDialog(config)
                 ZO_GenericParametricListGamepadDialogTemplate_RebuildEntryList(zoDialog)
 
                 if zoDialog.entryList and zoDialog.entryList.GetNumItems
-                    and zoDialog.entryList:GetNumItems() == 0 then
-                    local ed = ZO_GamepadEntryData:New(ResolverTexto(config.emptyText or config.titleText or "Item"))
+                    and zoDialog.entryList:GetNumItems() == 0
+                    and config.allowEmptyEntry ~= false then
+                    local emptyText = ResolverTexto(config.emptyText or config.titleText or "Item")
+                    if emptyText == "" and config.allowBlankEmptyEntry ~= true then
+                        return
+                    end
+                    local ed = ZO_GamepadEntryData:New(emptyText)
                     ed.callback = function() end
                     ed.setup = setupEntry
                     table.insert(list, {
