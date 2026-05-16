@@ -132,16 +132,6 @@ end
 
 local function ConstruirBotones()
     local buttons = {}
-    local core = EZO and EZO.SideMenuCore
-    if core and type(core.AddListTriggerNavigation) == "function" then
-        core.AddListTriggerNavigation(buttons, function()
-            local dialog = nil
-            if type(ZO_Dialogs_FindDialog) == "function" then
-                dialog = ZO_Dialogs_FindDialog(NOMBRE_DIALOGO)
-            end
-            return dialog and dialog.entryList or nil
-        end)
-    end
 
     buttons[#buttons + 1] = {
         keybind  = "DIALOG_PRIMARY",
@@ -206,9 +196,29 @@ local function AsegurarRegistrado()
             ZO_GenericParametricListGamepadDialogTemplate_RebuildEntryList(dialog)
         end,
 
+        OnShownCallback = function(dialog)
+            local core = EZO and EZO.SideMenuCore
+            if core and type(core.AttachListTriggerNavigation) == "function" then
+                core.AttachListTriggerNavigation(Dialog, function()
+                    return dialog and dialog.entryList or nil
+                end)
+            end
+        end,
+
+        onHidingCallback = function()
+            local core = EZO and EZO.SideMenuCore
+            if core and type(core.DetachListTriggerNavigation) == "function" then
+                core.DetachListTriggerNavigation(Dialog)
+            end
+        end,
+
         buttons = ConstruirBotones(),
 
         finishedCallback = function(dialog)
+            local core = EZO and EZO.SideMenuCore
+            if core and type(core.DetachListTriggerNavigation) == "function" then
+                core.DetachListTriggerNavigation(Dialog)
+            end
             Dialog._activeDialog = nil
         end,
     })

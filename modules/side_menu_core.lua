@@ -127,6 +127,113 @@ function Core.AddListTriggerNavigation(descriptor, listaOrDialogo, headerCompara
     }
 end
 
+local triggerUpdateSerial = 0
+local TRIGGER_UPDATE_MS = 40
+local TRIGGER_THRESHOLD = 0.75
+
+local function LeerMagnitudGatillo(izquierdo)
+    if _G.DIRECTIONAL_INPUT then
+        local metodo = izquierdo and DIRECTIONAL_INPUT.GetLeftTriggerMagnitude
+            or DIRECTIONAL_INPUT.GetRightTriggerMagnitude
+        if type(metodo) == "function" then
+            local ok, magnitud = pcall(function()
+                return metodo(DIRECTIONAL_INPUT)
+            end)
+            if ok then
+                return tonumber(magnitud) or 0
+            end
+        end
+    end
+
+    local fallback = izquierdo and _G.GetGamepadLeftTriggerMagnitude
+        or _G.GetGamepadRightTriggerMagnitude
+    if type(fallback) == "function" then
+        local ok, magnitud = pcall(fallback)
+        if ok then
+            return tonumber(magnitud) or 0
+        end
+    end
+    return 0
+end
+
+local function MoverListaExtremo(listaOrDialogo, haciaFinal)
+    local lista = ResolverLista(listaOrDialogo)
+    if not EstaListaNavegable(lista) then
+        return false
+    end
+
+    local movementTypes = _G.ZO_PARAMETRIC_MOVEMENT_TYPES or {}
+    local jumpType = haciaFinal and movementTypes.JUMP_NEXT or movementTypes.JUMP_PREVIOUS
+    local methodName = haciaFinal and "SetLastIndexSelected" or "SetFirstIndexSelected"
+    local method = lista[methodName]
+    if type(method) ~= "function" then
+        return false
+    end
+
+    local ok = pcall(function()
+        method(lista, jumpType)
+    end)
+    return ok == true
+end
+
+function Core.DetachListTriggerNavigation(owner)
+    if type(owner) ~= "table" then
+        return
+    end
+
+    if owner._listTriggerUpdateName and _G.EVENT_MANAGER
+        and type(EVENT_MANAGER.UnregisterForUpdate) == "function" then
+        local updateName = owner._listTriggerUpdateName
+        pcall(function()
+            EVENT_MANAGER:UnregisterForUpdate(updateName)
+        end)
+    end
+    owner._listTriggerUpdateName = nil
+    owner._listTriggerLeftDown = false
+    owner._listTriggerRightDown = false
+end
+
+function Core.AttachListTriggerNavigation(owner, listaOrDialogo)
+    if type(owner) ~= "table" or not _G.EVENT_MANAGER
+        or type(EVENT_MANAGER.RegisterForUpdate) ~= "function" then
+        return
+    end
+
+    if not ResolverLista(listaOrDialogo) then
+        return
+    end
+
+    Core.DetachListTriggerNavigation(owner)
+
+    triggerUpdateSerial = triggerUpdateSerial + 1
+    owner._listTriggerUpdateName = "EZOTools_SideMenuTriggers_" .. tostring(triggerUpdateSerial)
+    owner._listTriggerLeftDown = false
+    owner._listTriggerRightDown = false
+
+    EVENT_MANAGER:RegisterForUpdate(owner._listTriggerUpdateName, TRIGGER_UPDATE_MS, function()
+        local lista = ResolverLista(listaOrDialogo)
+        if not EstaListaNavegable(lista) then
+            return
+        end
+
+        local leftDown = LeerMagnitudGatillo(true) >= TRIGGER_THRESHOLD
+        local rightDown = LeerMagnitudGatillo(false) >= TRIGGER_THRESHOLD
+
+        if leftDown and not owner._listTriggerLeftDown then
+            MoverListaExtremo(lista, false)
+        end
+        if rightDown and not owner._listTriggerRightDown then
+            MoverListaExtremo(lista, true)
+        end
+
+        owner._listTriggerLeftDown = leftDown
+        owner._listTriggerRightDown = rightDown
+    end)
+end
+
+Core.AttachListTriggerKeybinds = Core.AttachListTriggerNavigation
+Core.DetachListTriggerKeybinds = Core.DetachListTriggerNavigation
+
 local function ResolverTexto(valor)
     if type(valor) == "function" then
         local ok, texto = pcall(valor)
@@ -175,10 +282,6 @@ function Core.CreateDialog(config)
 
     local function ConstruirBotones()
         local buttons = {}
-        Core.AddListTriggerNavigation(buttons, function()
-            local zoDialog = BuscarDialogo()
-            return zoDialog and zoDialog.entryList or nil
-        end, config.listTriggerHeaderComparator)
 
         buttons[#buttons + 1] = {
             keybind = "DIALOG_PRIMARY",
@@ -270,9 +373,26 @@ function Core.CreateDialog(config)
                 end
             end,
 
+            OnShownCallback = function(zoDialog)
+                Core.AttachListTriggerNavigation(dialog, function()
+                    return zoDialog and zoDialog.entryList or nil
+                end)
+                if type(config.onShown) == "function" then
+                    config.onShown(zoDialog, dialog)
+                end
+            end,
+
+            onHidingCallback = function(zoDialog)
+                Core.DetachListTriggerNavigation(dialog)
+                if type(config.onHiding) == "function" then
+                    config.onHiding(zoDialog, dialog)
+                end
+            end,
+
             buttons = ConstruirBotones(),
 
             finishedCallback = function(zoDialog)
+                Core.DetachListTriggerNavigation(dialog)
                 if config.trackActiveDialog then
                     dialog._activeDialog = nil
                 end
