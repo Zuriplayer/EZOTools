@@ -109,13 +109,6 @@ function Core.AddListTriggerNavigation(descriptor, listaOrDialogo, headerCompara
         return
     end
 
-    if type(_G.ZO_Gamepad_AddListTriggerKeybindDescriptors) == "function" then
-        ZO_Gamepad_AddListTriggerKeybindDescriptors(descriptor, function()
-            return ResolverLista(listaOrDialogo)
-        end, headerComparator)
-        return
-    end
-
     descriptor[#descriptor + 1] = {
         name = "EZOToolsSideMenuPrevious",
         keybind = "UI_SHORTCUT_LEFT_TRIGGER",
@@ -134,44 +127,75 @@ function Core.AddListTriggerNavigation(descriptor, listaOrDialogo, headerCompara
     }
 end
 
-local function ObtenerCapaAtajosUI()
-    if _G.SI_KEYBINDINGS_LAYER_USER_INTERFACE_SHORTCUTS
-        and type(_G.GetString) == "function" then
-        local ok, layerName = pcall(function()
-            return GetString(SI_KEYBINDINGS_LAYER_USER_INTERFACE_SHORTCUTS)
-        end)
-        if ok and type(layerName) == "string" and layerName ~= "" then
-            return layerName
+local triggerUpdateSerial = 0
+local TRIGGER_UPDATE_MS = 40
+local TRIGGER_THRESHOLD = 0.75
+
+local function LeerMagnitudGatillo(izquierdo)
+    if _G.DIRECTIONAL_INPUT then
+        local metodo = izquierdo and DIRECTIONAL_INPUT.GetLeftTriggerMagnitude
+            or DIRECTIONAL_INPUT.GetRightTriggerMagnitude
+        if type(metodo) == "function" then
+            local ok, magnitud = pcall(function()
+                return metodo(DIRECTIONAL_INPUT)
+            end)
+            if ok then
+                return tonumber(magnitud) or 0
+            end
         end
     end
-    return nil
+
+    local fallback = izquierdo and _G.GetGamepadLeftTriggerMagnitude
+        or _G.GetGamepadRightTriggerMagnitude
+    if type(fallback) == "function" then
+        local ok, magnitud = pcall(fallback)
+        if ok then
+            return tonumber(magnitud) or 0
+        end
+    end
+    return 0
 end
 
-function Core.DetachListTriggerKeybinds(owner)
+local function MoverListaExtremo(listaOrDialogo, haciaFinal)
+    local lista = ResolverLista(listaOrDialogo)
+    if not EstaListaNavegable(lista) then
+        return false
+    end
+
+    local movementTypes = _G.ZO_PARAMETRIC_MOVEMENT_TYPES or {}
+    local jumpType = haciaFinal and movementTypes.JUMP_NEXT or movementTypes.JUMP_PREVIOUS
+    local methodName = haciaFinal and "SetLastIndexSelected" or "SetFirstIndexSelected"
+    local method = lista[methodName]
+    if type(method) ~= "function" then
+        return false
+    end
+
+    local ok = pcall(function()
+        method(lista, jumpType)
+    end)
+    return ok == true
+end
+
+function Core.DetachListTriggerNavigation(owner)
     if type(owner) ~= "table" then
         return
     end
 
-    if owner._listTriggerKeybinds and _G.KEYBIND_STRIP
-        and type(KEYBIND_STRIP.RemoveKeybindButtonGroup) == "function" then
+    if owner._listTriggerUpdateName and _G.EVENT_MANAGER
+        and type(EVENT_MANAGER.UnregisterForUpdate) == "function" then
+        local updateName = owner._listTriggerUpdateName
         pcall(function()
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(owner._listTriggerKeybinds)
+            EVENT_MANAGER:UnregisterForUpdate(updateName)
         end)
     end
-    owner._listTriggerKeybinds = nil
-
-    if owner._listTriggerActionLayer and type(_G.RemoveActionLayerByName) == "function" then
-        local layerName = owner._listTriggerActionLayer
-        pcall(function()
-            RemoveActionLayerByName(layerName)
-        end)
-    end
-    owner._listTriggerActionLayer = nil
+    owner._listTriggerUpdateName = nil
+    owner._listTriggerLeftDown = false
+    owner._listTriggerRightDown = false
 end
 
-function Core.AttachListTriggerKeybinds(owner, listaOrDialogo, headerComparator)
-    if type(owner) ~= "table" or not _G.KEYBIND_STRIP
-        or type(KEYBIND_STRIP.AddKeybindButtonGroup) ~= "function" then
+function Core.AttachListTriggerNavigation(owner, listaOrDialogo)
+    if type(owner) ~= "table" or not _G.EVENT_MANAGER
+        or type(EVENT_MANAGER.RegisterForUpdate) ~= "function" then
         return
     end
 
@@ -179,35 +203,36 @@ function Core.AttachListTriggerKeybinds(owner, listaOrDialogo, headerComparator)
         return
     end
 
-    Core.DetachListTriggerKeybinds(owner)
+    Core.DetachListTriggerNavigation(owner)
 
-    local descriptor = {}
-    Core.AddListTriggerNavigation(descriptor, function()
-        return ResolverLista(listaOrDialogo)
-    end, headerComparator)
-    if #descriptor <= 0 then
-        return
-    end
+    triggerUpdateSerial = triggerUpdateSerial + 1
+    owner._listTriggerUpdateName = "EZOTools_SideMenuTriggers_" .. tostring(triggerUpdateSerial)
+    owner._listTriggerLeftDown = false
+    owner._listTriggerRightDown = false
 
-    local layerName = ObtenerCapaAtajosUI()
-    if layerName and type(_G.PushActionLayerByName) == "function" then
-        local ok = pcall(function()
-            PushActionLayerByName(layerName)
-        end)
-        if ok then
-            owner._listTriggerActionLayer = layerName
+    EVENT_MANAGER:RegisterForUpdate(owner._listTriggerUpdateName, TRIGGER_UPDATE_MS, function()
+        local lista = ResolverLista(listaOrDialogo)
+        if not EstaListaNavegable(lista) then
+            return
         end
-    end
 
-    local ok = pcall(function()
-        KEYBIND_STRIP:AddKeybindButtonGroup(descriptor)
+        local leftDown = LeerMagnitudGatillo(true) >= TRIGGER_THRESHOLD
+        local rightDown = LeerMagnitudGatillo(false) >= TRIGGER_THRESHOLD
+
+        if leftDown and not owner._listTriggerLeftDown then
+            MoverListaExtremo(lista, false)
+        end
+        if rightDown and not owner._listTriggerRightDown then
+            MoverListaExtremo(lista, true)
+        end
+
+        owner._listTriggerLeftDown = leftDown
+        owner._listTriggerRightDown = rightDown
     end)
-    if ok then
-        owner._listTriggerKeybinds = descriptor
-    else
-        Core.DetachListTriggerKeybinds(owner)
-    end
 end
+
+Core.AttachListTriggerKeybinds = Core.AttachListTriggerNavigation
+Core.DetachListTriggerKeybinds = Core.DetachListTriggerNavigation
 
 local function ResolverTexto(valor)
     if type(valor) == "function" then
@@ -349,16 +374,16 @@ function Core.CreateDialog(config)
             end,
 
             OnShownCallback = function(zoDialog)
-                Core.AttachListTriggerKeybinds(dialog, function()
+                Core.AttachListTriggerNavigation(dialog, function()
                     return zoDialog and zoDialog.entryList or nil
-                end, config.listTriggerHeaderComparator)
+                end)
                 if type(config.onShown) == "function" then
                     config.onShown(zoDialog, dialog)
                 end
             end,
 
             onHidingCallback = function(zoDialog)
-                Core.DetachListTriggerKeybinds(dialog)
+                Core.DetachListTriggerNavigation(dialog)
                 if type(config.onHiding) == "function" then
                     config.onHiding(zoDialog, dialog)
                 end
@@ -367,7 +392,7 @@ function Core.CreateDialog(config)
             buttons = ConstruirBotones(),
 
             finishedCallback = function(zoDialog)
-                Core.DetachListTriggerKeybinds(dialog)
+                Core.DetachListTriggerNavigation(dialog)
                 if config.trackActiveDialog then
                     dialog._activeDialog = nil
                 end

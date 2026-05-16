@@ -184,8 +184,8 @@ local function AsegurarRegistrado()
 
         OnShownCallback = function(dialog)
             local core = EZO and EZO.SideMenuCore
-            if core and type(core.AttachListTriggerKeybinds) == "function" then
-                core.AttachListTriggerKeybinds(Dialog, function()
+            if core and type(core.AttachListTriggerNavigation) == "function" then
+                core.AttachListTriggerNavigation(Dialog, function()
                     return dialog and dialog.entryList or nil
                 end)
             end
@@ -193,8 +193,8 @@ local function AsegurarRegistrado()
 
         onHidingCallback = function()
             local core = EZO and EZO.SideMenuCore
-            if core and type(core.DetachListTriggerKeybinds) == "function" then
-                core.DetachListTriggerKeybinds(Dialog)
+            if core and type(core.DetachListTriggerNavigation) == "function" then
+                core.DetachListTriggerNavigation(Dialog)
             end
         end,
 
@@ -202,8 +202,8 @@ local function AsegurarRegistrado()
 
         finishedCallback = function()
             local core = EZO and EZO.SideMenuCore
-            if core and type(core.DetachListTriggerKeybinds) == "function" then
-                core.DetachListTriggerKeybinds(Dialog)
+            if core and type(core.DetachListTriggerNavigation) == "function" then
+                core.DetachListTriggerNavigation(Dialog)
             end
             DetenerActualizacionPreview()
             Dialog._activeDialog = nil
