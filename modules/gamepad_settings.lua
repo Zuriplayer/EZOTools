@@ -5,6 +5,7 @@
 local EZO = _G.EZOTools or {}
 _G.EZOTools = EZO
 
+local Core = EZO.SideMenuCore
 EZO.GamepadSettingsDialog = EZO.GamepadSettingsDialog or {}
 local Dialog = EZO.GamepadSettingsDialog
 
@@ -37,45 +38,6 @@ local function CiclarUmbral(actual, paso, minV, maxV)
     local siguiente = actual + paso
     if siguiente > maxV then siguiente = minV end
     return siguiente
-end
-
--- Comprueba si el diálogo de ajustes está visible mediante el control interno
-local function EsDialogoVisible()
-    local dlg = nil
-    if type(ZO_Dialogs_FindDialog) == "function" then
-        dlg = ZO_Dialogs_FindDialog(NOMBRE_DIALOGO)
-    end
-    local control = (dlg and dlg.control)
-        or (dlg and dlg.dialog and dlg.dialog.control)
-        or (dlg and dlg.dialog)
-    if control and type(control.IsHidden) == "function" then
-        return not control:IsHidden()
-    end
-    return false
-end
-
--- Extrae el callback de un dato de entrada (mismo patrón que gamepad_dialog.lua)
--- ExtraerCallback disponible como EZOTools_ExtraerCallback (shared_utils.lua)
-local ExtraerCallback = EZOTools_ExtraerCallback
-local CerrarDialogoGamepad = EZOTools_CerrarDialogoGamepad
-local ActivarSeleccionDialogoGamepad = EZOTools_ActivarSeleccionDialogoGamepad
-
--- API pública: devuelve true si el diálogo está visible
-function Dialog.IsShowing()
-    local dlg = Dialog._activeDialog
-    if dlg then
-        local control = dlg.control or (dlg.dialog and dlg.dialog.control) or dlg.dialog
-        if control and type(control.IsHidden) == "function" then
-            return not control:IsHidden()
-        end
-        return true
-    end
-    return EsDialogoVisible()
-end
-
--- API pública: activa la entrada actualmente seleccionada
-function Dialog.ActivateSelected()
-    return ActivarSeleccionDialogoGamepad(Dialog._activeDialog)
 end
 
 -- Añade una entrada a la lista de ajustes
@@ -130,107 +92,39 @@ local function ConstruirEntradasAjustes()
     return entradas
 end
 
-local function ConstruirBotones()
-    local buttons = {}
-
-    buttons[#buttons + 1] = {
-        keybind  = "DIALOG_PRIMARY",
-        text     = SI_GAMEPAD_SELECT_OPTION,
-        callback = function(dialog)
-            local cb = nil
-            if dialog and dialog.entryList
-                and type(dialog.entryList.GetTargetData) == "function" then
-                cb = ExtraerCallback(dialog.entryList:GetTargetData())
-            end
-            if cb then cb() end
-            return false
-        end,
-    }
-    buttons[#buttons + 1] = {
-        keybind  = "DIALOG_NEGATIVE",
-        text     = SI_DIALOG_EXIT,
-        callback = function() Dialog.Close() end,
-    }
-    return buttons
-end
-
--- Registra el diálogo en ZO_Dialogs si aún no está registrado
-local function AsegurarRegistrado()
-    if Dialog._registered then return end
-
-    ZO_Dialogs_RegisterCustomDialog(NOMBRE_DIALOGO, {
-        gamepadInfo    = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
-        title          = { text = "E|cB040FFZ|rOTools" },
-        mainText       = { text = ConstruirSubtituloDialogo() },
+if Core and type(Core.CreateDialog) == "function" then
+    Core.CreateDialog({
+        namespace = Dialog,
+        dialogName = NOMBRE_DIALOGO,
+        titleText = "E|cB040FFZ|rOTools",
+        mainText = ConstruirSubtituloDialogo,
+        buildEntries = ConstruirEntradasAjustes,
         blockDialogReleaseOnPress = true,
-        parametricList = {},
-
-        setup = function(dialog)
-            Dialog._activeDialog = dialog
-            local list = dialog.info.parametricList
-            ZO_ClearNumericallyIndexedTable(list)
-
-            local entradas = ConstruirEntradasAjustes()
+        trackActiveDialog = true,
+        beforeOpen = function()
+            AsegurarDefectos()
+        end,
+        onBeforeSetup = function()
             Dialog._entryDataByKey = {}
-
-            for _, e in ipairs(entradas) do
-                local ed = ZO_GamepadEntryData:New(e.text)
-                ed.callback   = e.callback
-                ed.settingKey = e.settingKey
-
-                if e.settingKey then
-                    Dialog._entryDataByKey[e.settingKey] = ed
-                end
-
-                -- Requerido por diálogos paramétricos gamepad
-                ed.setup = function(control, data, selected, reselectingDuringRebuild, enabled, active)
-                    ZO_GamepadMenuEntryTemplate_Setup(control, data.text, nil, nil, nil, selected)
-                end
-
-                table.insert(list, {
-                    template  = "ZO_GamepadMenuEntryTemplate",
-                    entryData = ed,
-                })
-            end
-
-            ZO_GenericParametricListGamepadDialogTemplate_RebuildEntryList(dialog)
         end,
-
-        OnShownCallback = function(dialog)
-            local core = EZO and EZO.SideMenuCore
-            if core and type(core.AttachListTriggerNavigation) == "function" then
-                core.AttachListTriggerNavigation(Dialog, function()
-                    return dialog and dialog.entryList or nil
-                end)
+        onEntryCreated = function(entry, entryData)
+            if type(entry) == "table" and entry.settingKey then
+                Dialog._entryDataByKey[entry.settingKey] = entryData
             end
         end,
-
-        onHidingCallback = function()
-            local core = EZO and EZO.SideMenuCore
-            if core and type(core.DetachListTriggerNavigation) == "function" then
-                core.DetachListTriggerNavigation(Dialog)
-            end
-        end,
-
-        buttons = ConstruirBotones(),
-
-        finishedCallback = function(dialog)
-            local core = EZO and EZO.SideMenuCore
-            if core and type(core.DetachListTriggerNavigation) == "function" then
-                core.DetachListTriggerNavigation(Dialog)
-            end
-            Dialog._activeDialog = nil
+        onNegative = function(_, _, closeCurrent)
+            closeCurrent()
         end,
     })
-
-    Dialog._registered = true
 end
+
+local AbrirDialogoGamepad = Dialog.Open
 
 -- API pública: abre el diálogo en modo gamepad
 function Dialog.OpenGamepad()
-    AsegurarDefectos()
-    AsegurarRegistrado()
-    ZO_Dialogs_ShowGamepadDialog(NOMBRE_DIALOGO)
+    if type(AbrirDialogoGamepad) == "function" then
+        AbrirDialogoGamepad()
+    end
     return false
 end
 
@@ -351,12 +245,6 @@ function Dialog.OpenMouse(anchor)
 
     Reconstruir()
     return true
-end
-
--- API pública: cierra el diálogo
-function Dialog.Close()
-    Dialog._activeDialog = nil
-    CerrarDialogoGamepad(NOMBRE_DIALOGO)
 end
 
 -- API pública: actualiza los textos de las entradas sin reconstruir la lista (preserva selección)

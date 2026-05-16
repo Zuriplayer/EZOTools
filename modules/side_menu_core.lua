@@ -105,6 +105,7 @@ function Core.CreateDialog(config)
             gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
             title = { text = ResolverTexto(config.titleText or "") },
             mainText = { text = ResolverTexto(config.mainText or "") },
+            blockDialogReleaseOnPress = config.blockDialogReleaseOnPress == true,
             parametricList = {},
 
             setup = function(zoDialog)
@@ -133,6 +134,9 @@ function Core.CreateDialog(config)
                         end
                         ed.callback = cb
                         ed.setup = setupEntry
+                        if type(config.onEntryCreated) == "function" then
+                            config.onEntryCreated(entry, ed, dialog)
+                        end
                         table.insert(list, {
                             template = "ZO_GamepadMenuEntryTemplate",
                             entryData = ed,
