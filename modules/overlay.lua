@@ -20,6 +20,7 @@ local overlaySideSlotsLeft, overlaySideSlotsRight = {}, {}
 local overlaySideWidgetsLeft, overlaySideWidgetsRight = {}, {}
 local overlaySideWidgetTexturesLeft, overlaySideWidgetTexturesRight = {}, {}
 local overlayWidgetTooltipWin, overlayWidgetTooltipBackdrop, overlayWidgetTooltipLabel
+local overlaySceneFragment
 local overlayAllyTooltipActive = false
 local overlaySideWidgetTooltipActive = false
 local overlayFoodPulseLastRefreshMs = 0
@@ -98,7 +99,28 @@ end
 
 -- Devuelve true si la escena actual es el HUD (en juego, sin menús)
 local function EsEscenaHUD()
+    if not (SCENE_MANAGER and type(SCENE_MANAGER.IsShowing) == "function") then
+        return false
+    end
     return SCENE_MANAGER:IsShowing("hud") or SCENE_MANAGER:IsShowing("hudui")
+end
+
+local function RegistrarFragmentoHUD(control, fragmentoActual)
+    if fragmentoActual or not control then
+        return fragmentoActual
+    end
+    if not (_G.ZO_SimpleSceneFragment and _G.HUD_SCENE and _G.HUD_UI_SCENE) then
+        return nil
+    end
+
+    local fragmento = ZO_SimpleSceneFragment:New(control)
+    HUD_SCENE:AddFragment(fragmento)
+    HUD_UI_SCENE:AddFragment(fragmento)
+    return fragmento
+end
+
+local function RegistrarFragmentosHUD()
+    overlaySceneFragment = RegistrarFragmentoHUD(overlayWin, overlaySceneFragment)
 end
 
 -- Devuelve la ventana del overlay (o GuiRoot si no existe) para anclar otros controles
@@ -264,11 +286,9 @@ end
 local function AsegurarTooltipWidget()
     if overlayWidgetTooltipWin then return end
 
-    overlayWidgetTooltipWin = WINDOW_MANAGER:CreateTopLevelWindow("EZOToolsOverlayWidgetTooltip")
+    overlayWidgetTooltipWin = WINDOW_MANAGER:CreateControl("EZOToolsOverlayWidgetTooltip", overlayWin or GuiRoot, CT_CONTROL)
     overlayWidgetTooltipWin:SetDimensions(TOOLTIP_ICON_WIDTH, TOOLTIP_ICON_HEIGHT)
     overlayWidgetTooltipWin:SetMouseEnabled(false)
-    overlayWidgetTooltipWin:SetMovable(false)
-    overlayWidgetTooltipWin:SetClampedToScreen(true)
     overlayWidgetTooltipWin:SetDrawLayer(DL_OVERLAY)
     overlayWidgetTooltipWin:SetDrawTier(DT_HIGH)
     overlayWidgetTooltipWin:SetHidden(true)
@@ -359,6 +379,10 @@ end
 MOD.NormalizeTooltipText = NormalizarTextoTooltip
 
 local function MostrarTooltipWidget(ctrl, side, index, data)
+    if not EsEscenaHUD() then
+        OcultarTooltipWidget()
+        return
+    end
     local texto = ObtenerTooltipWidget(side, index, data)
     if not texto or texto == "" then
         OcultarTooltipWidget()
@@ -377,6 +401,7 @@ local function MostrarTooltipWidget(ctrl, side, index, data)
     end
 
     AsegurarTooltipWidget()
+    RegistrarFragmentosHUD()
     AplicarTamanoFijoTooltipIconos()
     overlayWidgetTooltipLabel:SetText(NormalizarTextoTooltip(texto))
     overlayWidgetTooltipWin:ClearAnchors()
@@ -390,6 +415,10 @@ local function MostrarTooltipWidget(ctrl, side, index, data)
 end
 
 local function MostrarTooltipTextoSobreControl(ctrl, texto)
+    if not EsEscenaHUD() then
+        OcultarTooltipWidget()
+        return
+    end
     if not EstanActivosLosTooltipsContextuales() then
         OcultarTooltipWidget()
         return
@@ -408,6 +437,7 @@ local function MostrarTooltipTextoSobreControl(ctrl, texto)
     end
 
     AsegurarTooltipWidget()
+    RegistrarFragmentosHUD()
     AplicarTamanoFijoTooltipIconos()
     overlayWidgetTooltipLabel:SetText(NormalizarTextoTooltip(texto))
     overlayWidgetTooltipWin:ClearAnchors()
@@ -668,6 +698,19 @@ local function AplicarPreviewSlotsLaterales()
 end
 
 AplicarWidgetsLaterales = function()
+    if not EsEscenaHUD() then
+        for _, side in ipairs({ "left", "right" }) do
+            local widgets = ObtenerWidgetsLaterales(side)
+            local textures = ObtenerTexturasWidgetLaterales(side)
+            for i = 1, WIDGETS.GetSlotCount() do
+                if widgets[i] then widgets[i]:SetHidden(true) end
+                if textures[i] then textures[i]:SetHidden(true) end
+            end
+        end
+        OcultarTooltipWidget()
+        return
+    end
+
     WIDGETS.RebuildRegistry()
     for _, side in ipairs({ "left", "right" }) do
         local widgets = ObtenerWidgetsLaterales(side)
@@ -1002,6 +1045,7 @@ local function AsegurarControles()
     overlayWin:SetTopmost(false)
     overlayWin:SetDrawLayer(DL_BACKGROUND)
     overlayWin:SetDrawTier(DT_LOW)
+    RegistrarFragmentosHUD()
     AplicarPosicion()
     AplicarEstadoBloqueo()
 
@@ -1125,6 +1169,7 @@ local function AsegurarControles()
     end)
 
     AsegurarTooltipWidget()
+    RegistrarFragmentosHUD()
 
     local function ObtenerDefinicionesIconosAliados()
         return {
@@ -1266,9 +1311,10 @@ end
 
 -- Actualiza la visibilidad del overlay según las opciones activas
 local function ActualizarVisibilidad()
+    local enHUD = EsEscenaHUD()
     local oculto = (not EZO.sv.overlay.enabled)
         or (EZO.sv.overlay.hideInCombat and enCombate)
-    if EZO.sv.overlay.hideInMenus and not EsEscenaHUD() then
+    if not enHUD then
         oculto = true
     end
     overlayWin:SetHidden(oculto)
@@ -1438,6 +1484,15 @@ RefrescarDot = function()
     if overlayMaintDot then overlayMaintDot:SetHidden(true) end
     if overlayChargeDot then overlayChargeDot:SetHidden(true) end
     if overlayFoodDot then overlayFoodDot:SetHidden(true) end
+    if not EsEscenaHUD() then
+        if overlayMountDot then overlayMountDot:SetHidden(true) end
+        if overlayPetDot then overlayPetDot:SetHidden(true) end
+        if overlayCompanionDot then overlayCompanionDot:SetHidden(true) end
+        if overlayAssistantDot then overlayAssistantDot:SetHidden(true) end
+        AplicarWidgetsLaterales()
+        OcultarTooltipWidget()
+        return
+    end
 
     local mountCollectibleId = ObtenerMonturaActivaId()
     if mountCollectibleId ~= 0 then
@@ -1478,6 +1533,10 @@ end
 -- API pública: refresco completo del overlay (posición, apariencia, visibilidad)
 function MOD.Refresh()
     AsegurarControles()
+    if not EsEscenaHUD() then
+        ActualizarVisibilidad()
+        return
+    end
     AplicarPosicion()
     AplicarEstadoBloqueo()
     local a = 1
@@ -1513,6 +1572,10 @@ function MOD.RefreshDot()
 end
 
 function MOD.ShowQuickUtilityPreview(control, entryData)
+    if not EsEscenaHUD() then
+        MOD.HideQuickUtilityPreview()
+        return false
+    end
     if not (PREVIEW and type(PREVIEW.Show) == "function") then
         return false
     end
