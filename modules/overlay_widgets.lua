@@ -278,6 +278,15 @@ function MOD.ToggleLayoutPreview()
     return layoutPreviewEnabled
 end
 
+function MOD.SetLayoutPreviewEnabled(enabled)
+    layoutPreviewEnabled = enabled == true
+    return layoutPreviewEnabled
+end
+
+function MOD.DisableLayoutPreview()
+    return MOD.SetLayoutPreviewEnabled(false)
+end
+
 function MOD.IsLayoutPreviewEnabled()
     return layoutPreviewEnabled
 end

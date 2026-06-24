@@ -736,6 +736,25 @@ AplicarWidgetsLaterales = function()
     end
 end
 
+local function DesactivarLayoutPreview()
+    if not (WIDGETS
+        and type(WIDGETS.IsLayoutPreviewEnabled) == "function"
+        and type(WIDGETS.DisableLayoutPreview) == "function") then
+        return false
+    end
+    if not WIDGETS.IsLayoutPreviewEnabled() then
+        return false
+    end
+
+    WIDGETS.DisableLayoutPreview()
+    OcultarTooltipWidget()
+    if overlayWin then
+        AplicarPreviewSlotsLaterales()
+        AplicarWidgetsLaterales()
+    end
+    return true
+end
+
 local function AsegurarSlotsLaterales()
     local nombres = {
         left  = "EZOToolsSideSlotLeft",
@@ -1600,6 +1619,7 @@ end
 -- Inicialización: crea controles, registra eventos
 function MOD.Init()
     AsegurarControles()
+    DesactivarLayoutPreview()
     MOD.Refresh()
     if FOOD and type(FOOD.SyncBackpackCache) == "function" then
         FOOD.SyncBackpackCache()
@@ -1627,6 +1647,14 @@ function MOD.Init()
         AplicarEstadoBloqueo()
         ActualizarVisibilidad()
     end)
+
+    if _G.EVENT_PLAYER_DEACTIVATED then
+        EVENT_MANAGER:RegisterForEvent("EZOTools_Overlay_Deactivated",
+            EVENT_PLAYER_DEACTIVATED,
+            function()
+                DesactivarLayoutPreview()
+            end)
+    end
 
     -- Refresco inicial de guild al cargar datos
     -- Mascota vanity y companion: refresco reactivo
