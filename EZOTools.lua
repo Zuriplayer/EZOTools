@@ -141,10 +141,6 @@ function EZO:Initialize()
             soulGemAlertEnabled     = true,
             soulGemAlertThreshold   = 25,
         },
-        camera = {
-            thirdPersonDistanceEnabled = false,
-            thirdPersonDistance = 15,
-        },
         overlay = {
             enabled          = true,
             alpha            = 1.0,
@@ -260,7 +256,6 @@ function EZO:Initialize()
     end
 
     -- Inicializar submódulos en orden
-    if EZO.CameraSettings and EZO.CameraSettings.Init then EZO.CameraSettings.Init() end
     if EZOTools_Menu      and EZOTools_Menu.Init      then EZOTools_Menu.Init()      end
     if EZOTools_QuickUtilityHouses and EZOTools_QuickUtilityHouses.Init then
         EZOTools_QuickUtilityHouses.Init()

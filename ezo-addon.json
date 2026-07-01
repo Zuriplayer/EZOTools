@@ -3,14 +3,14 @@
   "addon": {
     "id": "ezotools",
     "name": "EZOTools",
-    "version": "1.2.21",
+    "version": "1.2.22",
     "status": "stable",
     "phase": "public-release",
     "visibility": "public",
     "manifest": "EZOTools.txt",
     "package": {
       "rootFolderName": "EZOTools",
-      "zipName": "EZOTools_v1.2.21.zip",
+      "zipName": "EZOTools_v1.2.22.zip",
       "outputPath": "dist",
       "include": [
         "*.txt",

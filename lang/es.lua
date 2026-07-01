@@ -71,18 +71,6 @@ EZO_STRINGS_ES = {
     EZO_OPTION_GUILD_HIDE_NO_GUILD_TOOLTIP = "Si está activado, el overlay oculta el texto 'Sin gremio' cuando no hay ningún gremio representado en el selector C.",
 
     -- -------------------------------------------------------------------------
-    -- Panel LAM: sección Cámara
-    -- -------------------------------------------------------------------------
-    EZO_OPTION_CAMERA = "Cámara",
-    EZO_OPTION_CAMERA_DISTANCE_NOTE = "Cambia el ajuste de distancia de cámara en tercera persona de ESO. El cliente del juego puede seguir limitando el máximo efectivo.",
-    EZO_OPTION_CAMERA_DISTANCE_ENABLE = "Forzar distancia en tercera persona",
-    EZO_OPTION_CAMERA_DISTANCE_ENABLE_TOOLTIP = "Aplica la distancia de cámara en tercera persona seleccionada al cargar el addon y al activarse el jugador.",
-    EZO_OPTION_CAMERA_DISTANCE = "Distancia en tercera persona",
-    EZO_OPTION_CAMERA_DISTANCE_TOOLTIP = "Distancia de cámara solicitada. Los valores por encima del límite interno de ESO pueden ser limitados por el juego.",
-    EZO_OPTION_CAMERA_DISTANCE_APPLIED = "Valor actual de ESO: <<1>>",
-    EZO_OPTION_CAMERA_DISTANCE_UNAVAILABLE = "El ajuste de distancia de cámara no está disponible en este cliente.",
-
-    -- -------------------------------------------------------------------------
     -- Panel LAM: sección Casas de amigos
     -- -------------------------------------------------------------------------
     EZO_OPTION_FRIENDS          = "Casas del gremio",
