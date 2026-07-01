@@ -25,6 +25,7 @@
         "bindings/**"
       ],
       "exclude": [
+        ".claude/**",
         ".codex/**",
         ".github/**",
         ".git/**",
