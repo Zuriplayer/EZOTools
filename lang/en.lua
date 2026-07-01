@@ -72,6 +72,18 @@ EZO_STRINGS_EN = {
     EZO_OPTION_GUILD_HIDE_NO_GUILD_TOOLTIP = "If enabled, the overlay hides the 'No guild' text when no guild is represented in the C selector.",
 
     -- -------------------------------------------------------------------------
+    -- LAM panel: Camera section
+    -- -------------------------------------------------------------------------
+    EZO_OPTION_CAMERA = "Camera",
+    EZO_OPTION_CAMERA_DISTANCE_NOTE = "This changes ESO's third-person camera distance setting. The game client may still clamp the effective maximum.",
+    EZO_OPTION_CAMERA_DISTANCE_ENABLE = "Override third-person distance",
+    EZO_OPTION_CAMERA_DISTANCE_ENABLE_TOOLTIP = "Applies the selected third-person camera distance when the addon loads and when the player is activated.",
+    EZO_OPTION_CAMERA_DISTANCE = "Third-person distance",
+    EZO_OPTION_CAMERA_DISTANCE_TOOLTIP = "Requested camera distance. Values above ESO's internal limit may be clamped by the game.",
+    EZO_OPTION_CAMERA_DISTANCE_APPLIED = "Current ESO value: <<1>>",
+    EZO_OPTION_CAMERA_DISTANCE_UNAVAILABLE = "Camera distance setting is not available in this client.",
+
+    -- -------------------------------------------------------------------------
     -- LAM panel: Friend Houses section
     -- -------------------------------------------------------------------------
     EZO_OPTION_FRIENDS          = "Guild Houses",
