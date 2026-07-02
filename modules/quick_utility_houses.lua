@@ -35,16 +35,8 @@ local function EjecutarTrasCerrarUtilidades(fn)
     return true
 end
 
-local function NormalizarTextoEtiqueta(texto)
-    texto = tostring(texto or "")
-    texto = texto:gsub("|H.-|h(.-)|h", "%1")
-    texto = texto:gsub("|c%x%x%x%x%x%x", "")
-    texto = texto:gsub("|r", "")
-    texto = texto:gsub("%^%a+", "")
-    texto = texto:gsub("\n", " ")
-    texto = texto:gsub("%s+", " ")
-    return zo_strtrim(texto)
-end
+-- Versión única en shared_utils.lua
+local NormalizarTextoEtiqueta = EZOTools_NormalizarTextoEtiqueta
 
 local function ObtenerNombreCasa(houseId)
     houseId = tonumber(houseId) or 0

@@ -9,15 +9,8 @@ if EZO then
     EZO.QuickUtilityCollections = MOD
 end
 
-local function EsModoGamepadPreferido()
-    if type(IsInGamepadPreferredMode) == "function" then
-        return IsInGamepadPreferredMode() == true
-    end
-    if type(IsInGamepadMode) == "function" then
-        return IsInGamepadMode() == true
-    end
-    return false
-end
+-- Versión única en shared_utils.lua
+local EsModoGamepadPreferido = EZOTools_EsModoGamepadPreferido
 
 local function ExisteEscena(sceneName)
     if type(sceneName) ~= "string" or sceneName == "" then

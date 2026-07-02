@@ -27,42 +27,10 @@ local function FormatearTiempoRestanteCorto(segundos)
     return zo_strformat(GetString(EZO_TIME_REMAINING_S), tostring(secs))
 end
 
-local function CalcularPulsoAlfa(periodoSeg, minAlpha, maxAlpha)
-    if type(GetFrameTimeSeconds) ~= "function" then
-        return maxAlpha
-    end
-    local periodo = math.max(0.1, tonumber(periodoSeg) or 1)
-    local minimo = tonumber(minAlpha) or 0.6
-    local maximo = tonumber(maxAlpha) or 1.0
-    local fase = (GetFrameTimeSeconds() % periodo) / periodo
-    local onda = (math.sin(fase * math.pi * 2 - math.pi / 2) + 1) * 0.5
-    return minimo + (maximo - minimo) * onda
-end
-
-local function NormalizarTextoTooltip(texto)
-    if type(texto) ~= "string" then
-        return texto
-    end
-    texto = texto:gsub("|n", "\n")
-    texto = texto:gsub("([%.%!%?])n([%u])", "%1\n%2")
-    return texto
-end
-
-local function NormalizarTextoEtiqueta(texto)
-    if type(texto) ~= "string" then
-        return ""
-    end
-    texto = NormalizarTextoTooltip(texto)
-    texto = texto:gsub("|H.-|h(.-)|h", "%1")
-    texto = texto:gsub("|c%x%x%x%x%x%x", "")
-    texto = texto:gsub("|r", "")
-    texto = texto:gsub("%^%a+", "")
-    texto = texto:gsub("%s+", " ")
-    if type(zo_strtrim) == "function" then
-        return zo_strtrim(texto)
-    end
-    return texto:gsub("^%s+", ""):gsub("%s+$", "")
-end
+-- Versiones únicas en shared_utils.lua
+local CalcularPulsoAlfa = EZOTools_CalcularPulsoAlfa
+local NormalizarTextoTooltip = EZOTools_NormalizarTextoTooltip
+local NormalizarTextoEtiqueta = EZOTools_NormalizarTextoEtiqueta
 
 local function ObtenerFoodSV()
     local overlaySV = EZO and EZO.csv and EZO.csv.overlay or nil

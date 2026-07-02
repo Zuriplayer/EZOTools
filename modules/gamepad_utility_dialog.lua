@@ -11,11 +11,8 @@ local Dialog = EZO.GamepadUtilityDialog
 local NOMBRE_DIALOGO = "EZO_GAMEPAD_UTILITY_DIALOG"
 local QuickUtility = _G.EZOTools_QuickUtility
 
-local function ConstruirSubtituloDialogo()
-    local autor = tostring((EZO and EZO.AUTHOR) or "@Zuriplayer")
-    local version = tostring((EZO and EZO.ADDON_VERSION) or "")
-    return zo_strformat(GetString(EZO_MENU_DIALOG_SUBTITLE), autor, version)
-end
+-- Versión única en shared_utils.lua
+local ConstruirSubtituloDialogo = EZOTools_ConstruirSubtituloDialogo
 
 local function RecopilarAcciones()
     if QuickUtility and type(QuickUtility.BuildEntries) == "function" then

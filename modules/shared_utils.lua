@@ -120,3 +120,82 @@ function EZOTools_ActivarSeleccionDialogoGamepad(dialogo)
     end
     return false
 end
+
+-- ============================================================
+-- Texto y formato compartidos
+-- Versiones únicas de helpers que antes estaban copiados en
+-- overlay, quick_utility_* y los diálogos gamepad.
+-- ============================================================
+
+-- Convierte los saltos de línea de ESO (|n) en saltos reales y repara
+-- puntos pegados a mayúscula ("...fin.Nueva" → salto de línea).
+function EZOTools_NormalizarTextoTooltip(texto)
+    if type(texto) ~= "string" then
+        return texto
+    end
+    texto = texto:gsub("|n", "\n")
+    texto = texto:gsub("([%.%!%?])n([%u])", "%1\n%2")
+    return texto
+end
+
+-- Limpia un texto para usarlo como etiqueta de una sola línea:
+-- quita enlaces de item, códigos de color y sufijos de género,
+-- y colapsa cualquier espacio o salto de línea en un espacio simple.
+function EZOTools_NormalizarTextoEtiqueta(texto)
+    if type(texto) ~= "string" then
+        return ""
+    end
+    texto = EZOTools_NormalizarTextoTooltip(texto)
+    texto = texto:gsub("|H.-|h(.-)|h", "%1")
+    texto = texto:gsub("|c%x%x%x%x%x%x", "")
+    texto = texto:gsub("|r", "")
+    texto = texto:gsub("%^%a+", "")
+    texto = texto:gsub("%s+", " ")
+    return zo_strtrim(texto)
+end
+
+-- Alfa senoidal para efectos de pulso (usado por el widget de comida).
+function EZOTools_CalcularPulsoAlfa(periodoSeg, minAlpha, maxAlpha)
+    if type(GetFrameTimeSeconds) ~= "function" then
+        return maxAlpha
+    end
+    local periodo = math.max(0.1, tonumber(periodoSeg) or 1)
+    local minimo = tonumber(minAlpha) or 0.6
+    local maximo = tonumber(maxAlpha) or 1.0
+    local fase = (GetFrameTimeSeconds() % periodo) / periodo
+    local onda = (math.sin(fase * math.pi * 2 - math.pi / 2) + 1) * 0.5
+    return minimo + (maximo - minimo) * onda
+end
+
+-- Lee un color RGBA de SavedVariables con fallback seguro.
+function EZOTools_ObtenerColorOverlay(configValue, fallback)
+    if type(configValue) == "table" then
+        local r = tonumber(configValue[1])
+        local g = tonumber(configValue[2])
+        local b = tonumber(configValue[3])
+        local a = tonumber(configValue[4])
+        if r and g and b then
+            return r, g, b, a or 1
+        end
+    end
+    return fallback[1], fallback[2], fallback[3], fallback[4]
+end
+
+-- Modo de entrada preferido actual (gamepad vs teclado/ratón).
+function EZOTools_EsModoGamepadPreferido()
+    if type(IsInGamepadPreferredMode) == "function" then
+        return IsInGamepadPreferredMode() == true
+    end
+    if type(IsInGamepadMode) == "function" then
+        return IsInGamepadMode() == true
+    end
+    return false
+end
+
+-- Subtítulo "@autor · versión" de los diálogos laterales.
+function EZOTools_ConstruirSubtituloDialogo()
+    local EZO = EZOTools
+    local autor = tostring((EZO and EZO.AUTHOR) or "@Zuriplayer")
+    local version = tostring((EZO and EZO.ADDON_VERSION) or "")
+    return zo_strformat(GetString(EZO_MENU_DIALOG_SUBTITLE), autor, version)
+end

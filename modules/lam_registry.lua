@@ -37,18 +37,8 @@ end
 local PLAYER_TEXT_SCALE_MIN = 0.6
 local PLAYER_TEXT_SCALE_MAX = 1.0
 
-local function ObtenerColorOverlay(configValue, fallback)
-    if type(configValue) == "table" then
-        local r = tonumber(configValue[1])
-        local g = tonumber(configValue[2])
-        local b = tonumber(configValue[3])
-        local a = tonumber(configValue[4])
-        if r and g and b then
-            return r, g, b, a or 1
-        end
-    end
-    return fallback[1], fallback[2], fallback[3], fallback[4]
-end
+-- Versión única en shared_utils.lua
+local ObtenerColorOverlay = EZOTools_ObtenerColorOverlay
 
 local function ObtenerTextoOverlay()
     local EZO = EZOTools

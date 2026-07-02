@@ -22,15 +22,8 @@ local function AvisarNoDisponible(stringId)
     end
 end
 
-local function EsModoGamepadPreferido()
-    if type(IsInGamepadPreferredMode) == "function" then
-        return IsInGamepadPreferredMode() == true
-    end
-    if type(IsInGamepadMode) == "function" then
-        return IsInGamepadMode() == true
-    end
-    return false
-end
+-- Versión única en shared_utils.lua
+local EsModoGamepadPreferido = EZOTools_EsModoGamepadPreferido
 
 local function EstaJugadorEnCombate()
     if type(IsUnitInCombat) ~= "function" then

@@ -3,14 +3,8 @@ EZOTools_QuickUtilityRecentMenu = EZOTools_QuickUtilityRecentMenu or {}
 
 local MOD = EZOTools_QuickUtilityRecentMenu
 
-local function NormalizarTextoTooltip(texto)
-    if type(texto) ~= "string" then
-        return texto
-    end
-    texto = texto:gsub("|n", "\n")
-    texto = texto:gsub("([%.%!%?])n([%u])", "%1\n%2")
-    return texto
-end
+-- Versión única en shared_utils.lua
+local NormalizarTextoTooltip = EZOTools_NormalizarTextoTooltip
 
 local function AddEntry(label, onSelect, tooltipText, enabled, onEnter, onExit)
     if type(label) ~= "string" or label == "" then

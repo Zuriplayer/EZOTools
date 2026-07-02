@@ -43,18 +43,9 @@ local function RecopilarEntradasRecientes()
     return {}
 end
 
+-- Versión única en shared_utils.lua
 local function NormalizarTextoEntradaLista(texto)
-    texto = tostring(texto or "")
-    if QuickUtility and type(QuickUtility.NormalizeTooltipText) == "function" then
-        texto = QuickUtility.NormalizeTooltipText(texto)
-    end
-    texto = texto:gsub("|H.-|h(.-)|h", "%1")
-    texto = texto:gsub("|c%x%x%x%x%x%x", "")
-    texto = texto:gsub("|r", "")
-    texto = texto:gsub("%^%a+", "")
-    texto = texto:gsub("\n", " ")
-    texto = texto:gsub("%s+", " ")
-    return zo_strtrim(texto)
+    return EZOTools_NormalizarTextoEtiqueta(tostring(texto or ""))
 end
 
 local function AplicarPreviewSeleccionado(control, data)

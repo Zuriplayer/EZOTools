@@ -79,18 +79,8 @@ local function CadenaFuente(px)
     return string.format("$(BOLD_FONT)|%d|soft-shadow-thin", px)
 end
 
-local function ObtenerColorOverlay(configValue, fallback)
-    if type(configValue) == "table" then
-        local r = tonumber(configValue[1])
-        local g = tonumber(configValue[2])
-        local b = tonumber(configValue[3])
-        local a = tonumber(configValue[4])
-        if r and g and b then
-            return r, g, b, a or 1
-        end
-    end
-    return fallback[1], fallback[2], fallback[3], fallback[4]
-end
+-- Versión única en shared_utils.lua
+local ObtenerColorOverlay = EZOTools_ObtenerColorOverlay
 
 local function EstanActivosLosTooltipsContextuales()
     return not (EZO and EZO.sv and EZO.sv.overlay and EZO.sv.overlay.contextualIconTooltips == false)
@@ -312,17 +302,8 @@ local function ConstruirTooltipPreviewWidget(side, index)
     return zo_strformat(GetString(EZO_SIDE_WIDGET_PREVIEW_TOOLTIP), ObtenerNombreLadoWidget(side), tostring(index))
 end
 
-local function CalcularPulsoAlfa(periodoSeg, minAlpha, maxAlpha)
-    if type(GetFrameTimeSeconds) ~= "function" then
-        return maxAlpha
-    end
-    local periodo = math.max(0.1, tonumber(periodoSeg) or 1)
-    local minimo = tonumber(minAlpha) or 0.6
-    local maximo = tonumber(maxAlpha) or 1.0
-    local fase = (GetFrameTimeSeconds() % periodo) / periodo
-    local onda = (math.sin(fase * math.pi * 2 - math.pi / 2) + 1) * 0.5
-    return minimo + (maximo - minimo) * onda
-end
+-- Versión única en shared_utils.lua
+local CalcularPulsoAlfa = EZOTools_CalcularPulsoAlfa
 
 local function NecesitaPulsoComida()
     return type(overlayFoodPulseState) == "table"
@@ -358,14 +339,8 @@ local function ObtenerTooltipWidget(side, index, data)
     return nil
 end
 
-local function NormalizarTextoTooltip(texto)
-    if type(texto) ~= "string" then
-        return texto
-    end
-    texto = texto:gsub("|n", "\n")
-    texto = texto:gsub("([%.%!%?])n([%u])", "%1\n%2")
-    return texto
-end
+-- Versión única en shared_utils.lua
+local NormalizarTextoTooltip = EZOTools_NormalizarTextoTooltip
 MOD.NormalizeTooltipText = NormalizarTextoTooltip
 
 local function MostrarTooltipWidget(ctrl, side, index, data)

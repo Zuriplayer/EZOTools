@@ -63,12 +63,7 @@ function X.RegisterCore()
             return false
         end
 
-        local esGamepad = false
-        if type(IsInGamepadPreferredMode) == "function" then
-            esGamepad = IsInGamepadPreferredMode() == true
-        elseif type(IsInGamepadMode) == "function" then
-            esGamepad = IsInGamepadMode() == true
-        end
+        local esGamepad = EZOTools_EsModoGamepadPreferido()
 
         if _G.SCENE_MANAGER and type(_G.SCENE_MANAGER.Show) == "function" then
             if esGamepad then
