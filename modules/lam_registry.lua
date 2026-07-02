@@ -151,13 +151,6 @@ local function RegistrarSeccionesBase()
             },
             {
                 type    = "checkbox",
-                name    = GetString(EZO_OPTION_OVERLAY_HIDE_MENUS),
-                getFunc = function() return EZO.sv.overlay.hideInMenus end,
-                setFunc = function(v) EZO.sv.overlay.hideInMenus = v; RefrescarOverlay() end,
-                default = false,
-            },
-            {
-                type    = "checkbox",
                 name    = GetString(EZO_OPTION_OVERLAY_CONTEXTUAL_TOOLTIPS),
                 tooltip = GetString(EZO_OPTION_OVERLAY_CONTEXTUAL_TOOLTIPS_TOOLTIP),
                 getFunc = function() return EZO.sv.overlay.contextualIconTooltips ~= false end,

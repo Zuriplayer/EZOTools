@@ -15,8 +15,7 @@ local PREVIEW = EZOTools_QuickUtilityPreview
 local RECENT_MENU = EZOTools_QuickUtilityRecentMenu
 
 -- Controles de la ventana (se crean en EnsureControls la primera vez)
-local overlayWin, overlayTex, overlayLabel, overlayGuildLabel, overlayMaintDot, overlayChargeDot, overlayFoodDot, overlayMountDot, overlayPetDot, overlayCompanionDot, overlayAssistantDot
-local overlaySideSlotsLeft, overlaySideSlotsRight = {}, {}
+local overlayWin, overlayTex, overlayLabel, overlayGuildLabel, overlayMountDot, overlayPetDot, overlayCompanionDot, overlayAssistantDot
 local overlaySideWidgetsLeft, overlaySideWidgetsRight = {}, {}
 local overlaySideWidgetTexturesLeft, overlaySideWidgetTexturesRight = {}, {}
 local overlayWidgetTooltipWin, overlayWidgetTooltipBackdrop, overlayWidgetTooltipLabel
@@ -245,10 +244,6 @@ local function ObtenerTextoOverlay()
         return GetDisplayName() or GetString(EZO_MSG_INIT)
     end
     return tostring(t)
-end
-
-local function ObtenerSlotsLaterales(side)
-    return (side == "left") and overlaySideSlotsLeft or overlaySideSlotsRight
 end
 
 local function ObtenerWidgetsLaterales(side)
@@ -680,18 +675,6 @@ local function RefrescarWidgetsLateralesEstado()
     AplicarWidgetsLaterales()
 end
 
-local function AplicarPreviewSlotsLaterales()
-    for _, side in ipairs({ "left", "right" }) do
-        local lista = ObtenerSlotsLaterales(side)
-        for i = 1, WIDGETS.GetSlotCount() do
-            local ctrl = lista[i]
-            if ctrl then
-                ctrl:SetHidden(true)
-            end
-        end
-    end
-end
-
 AplicarWidgetsLaterales = function()
     if not EsEscenaHUD() then
         for _, side in ipairs({ "left", "right" }) do
@@ -743,28 +726,9 @@ local function DesactivarLayoutPreview()
     WIDGETS.DisableLayoutPreview()
     OcultarTooltipWidget()
     if overlayWin then
-        AplicarPreviewSlotsLaterales()
         AplicarWidgetsLaterales()
     end
     return true
-end
-
-local function AsegurarSlotsLaterales()
-    local nombres = {
-        left  = "EZOToolsSideSlotLeft",
-        right = "EZOToolsSideSlotRight",
-    }
-    for side, prefijo in pairs(nombres) do
-        local lista = ObtenerSlotsLaterales(side)
-        for i = 1, WIDGETS.GetSlotCount() do
-            if not lista[i] then
-                local ctrl = WINDOW_MANAGER:CreateControl(prefijo .. i, overlayWin, CT_TEXTURE)
-                ctrl:SetDimensions(WIDGETS.GetSlotBase(), WIDGETS.GetSlotBase())
-                ctrl:SetHidden(true)
-                lista[i] = ctrl
-            end
-        end
-    end
 end
 
 local function AsegurarWidgetsLaterales()
@@ -823,8 +787,7 @@ local function AsegurarWidgetsLaterales()
     end
 end
 
-local function AplicarLayoutSlotsLaterales(texPx)
-    AsegurarSlotsLaterales()
+local function AplicarLayoutWidgetsLaterales(texPx)
     AsegurarWidgetsLaterales()
 
     local s          = tonumber(EZO.sv.overlay.scale) or 1
@@ -847,13 +810,6 @@ local function AplicarLayoutSlotsLaterales(texPx)
         maxExtent = math.max(maxExtent, xOffset + halfSlot)
 
         for _, lado in ipairs(lados) do
-            local lista = ObtenerSlotsLaterales(lado.side)
-            local ctrl = lista[idx]
-            if ctrl then
-                ctrl:SetDimensions(slotSize, slotSize)
-                ctrl:ClearAnchors()
-                ctrl:SetAnchor(CENTER, overlayTex, CENTER, lado.sign * xOffset, yOffset)
-            end
             local widgets = ObtenerWidgetsLaterales(lado.side)
             local host = widgets[idx]
             if host then
@@ -864,7 +820,6 @@ local function AplicarLayoutSlotsLaterales(texPx)
         end
     end
 
-    AplicarPreviewSlotsLaterales()
     AplicarWidgetsLaterales()
     return maxExtent, slotSize
 end
@@ -957,7 +912,7 @@ local function AplicarEscalaVisual()
     overlayLabel:ClearAnchors()
     overlayLabel:SetAnchor(TOP, overlayTex, BOTTOM, 0, math.floor(OVERLAY_ROW_GAP_NORMAL * s + 0.5))
 
-    local sideExtent, sideSlotSize = AplicarLayoutSlotsLaterales(texPx)
+    local sideExtent, sideSlotSize = AplicarLayoutWidgetsLaterales(texPx)
 
     -- Cuatro iconos centrados bajo overlayLabel (@ZuriPlayer), distribuidos uniformemente.
     -- Sep = distancia centro-a-centro entre iconos adyacentes.
@@ -1071,30 +1026,6 @@ local function AsegurarControles()
         end
         return ok
     end
-
-    -- Icono reparación armadura
-    -- inventory_tabicon_armor_up.dds: tab de armadura del inventario (verificado en wiki.esoui.com)
-    overlayMaintDot = CrearIcono("EZOTools_MaintDot", {
-        "/esoui/art/inventory/inventory_tabicon_armor_up.dds",
-        "/esoui/art/icons/achievements_indexicon_crafting_up.dds",
-    })
-
-    -- Icono comida/bebida
-    -- crafting/provisioning_indexicon_food: icono específico de provisioning comida
-    -- (verificado en AdvancedFilters y fuente oficial esoui/esoui)
-    overlayFoodDot = CrearIcono("EZOTools_FoodDot", {
-        "/esoui/art/crafting/provisioning_indexicon_food_up.dds",
-        "/esoui/art/crafting/provisioning_tabicon_food_up.dds",
-        "/esoui/art/inventory/inventory_tabIcon_Craftbag_provisioning_up.dds",
-    })
-
-    -- Icono recarga armas (soul gems)
-    -- crafting/enchantment_tabicon_potency_up.dds: icono de encantamiento/gemas
-    -- (verificado en AdvancedFilters, fuente oficial esoui/esoui)
-    overlayChargeDot = CrearIcono("EZOTools_ChargeDot", {
-        "/esoui/art/crafting/enchantment_tabicon_potency_up.dds",
-        "/esoui/art/inventory/inventory_tabicon_weapons_up.dds",
-    })
 
     -- Icono mascota: preferimos iconos de categoría del juego, sin tinte, para mantener
     -- un estilo más coherente con el resto de avisos del overlay.
@@ -1439,9 +1370,6 @@ InvocarAsistenteRecordada = function()
 end
 
 RefrescarDot = function()
-    if overlayMaintDot then overlayMaintDot:SetHidden(true) end
-    if overlayChargeDot then overlayChargeDot:SetHidden(true) end
-    if overlayFoodDot then overlayFoodDot:SetHidden(true) end
     if not EsEscenaHUD() then
         if overlayMountDot then overlayMountDot:SetHidden(true) end
         if overlayPetDot then overlayPetDot:SetHidden(true) end

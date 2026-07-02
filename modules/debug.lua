@@ -362,9 +362,7 @@ end
 local function EjecutarDebugTex()
     local lineas = {}
     local iconos = {
-        {nombre="MaintDot",    ctrl=EZOTools_MaintDot},
-        {nombre="FoodDot",     ctrl=EZOTools_FoodDot},
-        {nombre="ChargeDot",   ctrl=EZOTools_ChargeDot},
+        {nombre="MountDot",    ctrl=EZOToolsMountDot2},
         {nombre="PetDot",      ctrl=EZOToolsPetDot2},
         {nombre="CompanionDot",ctrl=EZOToolsCompDot2},
         {nombre="AssistantDot",ctrl=EZOToolsAssistDot2},

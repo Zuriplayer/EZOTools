@@ -3,5 +3,5 @@
 
 -- Constantes accesibles desde cualquier módulo
 EZOTools.ADDON_NAME    = "EZOTools"
-EZOTools.ADDON_VERSION = "1.2.22"
+EZOTools.ADDON_VERSION = "1.2.23"
 EZOTools.AUTHOR        = "@Zuriplayer"

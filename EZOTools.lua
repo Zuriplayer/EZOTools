@@ -154,7 +154,6 @@ function EZO:Initialize()
             guildCustomImageEnabled = false,
             simulateGamepad  = false,
             hideInCombat     = false,
-            hideInMenus      = false,
             locked           = false,
             lastMountCollectibleId = 0,
             lastPetCollectibleId = 0,

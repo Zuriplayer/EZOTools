@@ -56,7 +56,6 @@ EZO_STRINGS_EN = {
     EZO_OPTION_OVERLAY_LOCK             = "Lock overlay position",
     EZO_OPTION_OVERLAY_SIMULATE_GAMEPAD = "Simulate Gamepad style (overlay only)",
     EZO_OPTION_OVERLAY_HIDE_COMBAT      = "Hide during combat",
-    EZO_OPTION_OVERLAY_HIDE_MENUS       = "Hide in menus",
     EZO_OPTION_OVERLAY_CONTEXTUAL_TOOLTIPS = "Show contextual icon tooltips",
     EZO_OPTION_OVERLAY_CONTEXTUAL_TOOLTIPS_TOOLTIP = "Shows contextual information when hovering the overlay icons and the addon's side icons.",
     EZO_OPTION_OVERLAY_SCALE            = "Overlay scale",
