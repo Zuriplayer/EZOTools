@@ -6,7 +6,6 @@ EZO_STRINGS_EN = {
     -- -------------------------------------------------------------------------
     -- Keybind category
     -- -------------------------------------------------------------------------
-    SI_BINDING_CATEGORY_EZOTools                = "E|cB040FFZ|rOTools",
     SI_BINDING_CATEGORY_EZOTOOLS                = "E|cB040FFZ|rOTools",
 
     -- -------------------------------------------------------------------------
@@ -26,7 +25,6 @@ EZO_STRINGS_EN = {
     -- General addon messages
     -- -------------------------------------------------------------------------
     EZO_MSG_INIT                = "E|cB040FFZ|rOTools initialized.",
-    EZO_MSG_SLASH               = "/ezo command received",
     EZO_MSG_HIDE_PET            = "Hiding pet",
     EZO_MSG_HIDE_COMPANION      = "Hiding companion",
     EZO_MSG_HIDE_ASSISTANT      = "Hiding assistant",
@@ -129,7 +127,6 @@ EZO_STRINGS_EN = {
     -- -------------------------------------------------------------------------
     -- Quick settings submenu (gamepad_settings)
     -- -------------------------------------------------------------------------
-    EZO_SETTINGS_TITLE              = "Settings",
     EZO_SETTINGS_RECHARGE_THRESHOLD = "Recharge weapons: <<1>>%",
     EZO_SETTINGS_REPAIR_THRESHOLD   = "Repair equipped: <<1>>%",
     EZO_SETTINGS_BACK               = "Back",
@@ -189,9 +186,6 @@ EZO_STRINGS_EN = {
     EZO_MSG_DEBUG_LOGGER_UNAVAILABLE = "Technical diagnostics are not available; no report was generated.",
     EZO_MSG_DEBUG_REPORT_SENT = "Diagnostic report generated: <<1>>",
     EZO_MSG_DEBUG_REPORT_LOGGED_VIEWER_MISSING = "Diagnostic report generated: <<1>>. Diagnostic viewer is not available.",
-    EZO_MSG_INPUT_MODE_SET      = "Input mode: <<1>>",
-    EZO_MSG_INPUT_MODE_NA       = "Input mode setting not available.",
-
     -- -------------------------------------------------------------------------
     -- Slash command output
     -- -------------------------------------------------------------------------
@@ -255,10 +249,9 @@ EZO_STRINGS_EN = {
     EZO_SIDE_WIDGET_REPAIR_KITS_TOOLTIP = "Repair Kits low: <<1>> left (threshold <<2>>). Click to open settings.",
 }
 
-EZO_STRINGS_EN["EZO_OVERLAY_TABARD"] = "Tabard"
 EZO_STRINGS_EN["EZO_OPTION_LOW_STOCK_ALERTS_NOTE"] = "Low stock alerts drive the side widgets. Soul gems are counted by usable filled gems. Repair kits are currently counted by item units, without distinguishing single-piece kits from full-repair kits yet."
 EZO_STRINGS_EN["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE"] = "Use custom image for represented guild"
-EZO_STRINGS_EN["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE_TOOLTIP"] = "If enabled and the represented guild has an image registered in the addon, the central logo is replaced by that image. If anything is missing or unclear, the normal EZOTools logo stays in place."
+EZO_STRINGS_EN["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE_TOOLTIP"] = "If enabled and the represented guild has an image registered in the addon, the central logo is replaced by that image. If no valid image is available, the normal EZOTools logo stays in place."
 EZO_STRINGS_EN["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE"] = "Show low repair kit alert"
 EZO_STRINGS_EN["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE_TOOLTIP"] = "Show or hide the side alert widget when repair kits are low."
 EZO_STRINGS_EN["EZO_OPTION_REPAIR_KIT_ALERT_THRESHOLD"] = "Repair kit alert threshold"
@@ -268,7 +261,7 @@ EZO_STRINGS_EN["EZO_OPTION_SOUL_GEM_ALERT_ENABLE_TOOLTIP"] = "Show or hide the s
 EZO_STRINGS_EN["EZO_OPTION_SOUL_GEM_ALERT_THRESHOLD"] = "Soul gem alert threshold"
 EZO_STRINGS_EN["EZO_OPTION_SOUL_GEM_ALERT_THRESHOLD_TOOLTIP"] = "Show the soul gem alert when the detected filled soul gem count is at or below this value."
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_REPAIR_EQUIPPED_TOOLTIP"] = "Armor repair needed (threshold <<1>>%). Left click repairs equipped gear. Right click opens settings."
-EZO_STRINGS_EN["EZO_SIDE_WIDGET_RECHARGE_WEAPONS_TOOLTIP"] = "Weapon recharge needed (threshold <<1>>%). Left click opens the overlay menu. Right click opens settings."
+EZO_STRINGS_EN["EZO_SIDE_WIDGET_RECHARGE_WEAPONS_TOOLTIP"] = "Weapon recharge needed (threshold <<1>>%). Left click recharges weapons. Right click opens settings."
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_NONE_TOOLTIP"] = "No food or drink buff is active.|nUse a food or drink item to save it here.|nRight click: recent food and drinks."
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_ACTIVE_TOOLTIP"] = "Active food or drink: <<1>>. Time remaining: <<2>>.|nRight click: recent food and drinks."
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_ACTIVE_NO_TIME_TOOLTIP"] = "Active food or drink: <<1>>.|nRight click: recent food and drinks."

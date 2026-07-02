@@ -5,7 +5,6 @@ EZO_STRINGS_ES = {
     -- -------------------------------------------------------------------------
     -- Categoría de keybind
     -- -------------------------------------------------------------------------
-    SI_BINDING_CATEGORY_EZOTools                = "E|cB040FFZ|rOTools",
     SI_BINDING_CATEGORY_EZOTOOLS                = "E|cB040FFZ|rOTools",
 
     -- -------------------------------------------------------------------------
@@ -25,7 +24,6 @@ EZO_STRINGS_ES = {
     -- Mensajes generales del addon
     -- -------------------------------------------------------------------------
     EZO_MSG_INIT                = "E|cB040FFZ|rOTools inicializado.",
-    EZO_MSG_SLASH               = "Comando /ezo recibido",
     EZO_MSG_HIDE_PET            = "Ocultando mascota",
     EZO_MSG_HIDE_COMPANION      = "Ocultando compañero",
     EZO_MSG_HIDE_ASSISTANT      = "Ocultando asistente",
@@ -65,7 +63,7 @@ EZO_STRINGS_ES = {
     EZO_OPTION_OVERLAY_RESET_POS_TOOLTIP = "Devuelve el overlay a su posición inicial en pantalla.",
     EZO_OPTION_GUILD_OVERLAY            = "Imagen de gremio",
     EZO_OPTION_GUILD_LABEL_COLOR        = "Color del nombre del gremio representado",
-    EZO_OPTION_GUILD_LABEL_COLOR_TOOLTIP = "Sólo se aplica cuando hay un gremio representado seleccionado y no llevas tabardo. Los estados de tabardo y sin gremio mantienen sus colores actuales.",
+    EZO_OPTION_GUILD_LABEL_COLOR_TOOLTIP = "Solo se aplica cuando hay un gremio representado seleccionado y no llevas tabardo. Los estados de tabardo y sin gremio mantienen sus colores actuales.",
     EZO_OPTION_GUILD_HIDE_NO_GUILD      = "Ocultar texto 'Sin gremio'",
     EZO_OPTION_GUILD_HIDE_NO_GUILD_TOOLTIP = "Si está activado, el overlay oculta el texto 'Sin gremio' cuando no hay ningún gremio representado en el selector C.",
 
@@ -123,12 +121,11 @@ EZO_STRINGS_ES = {
     EZO_MENU_RECHARGE             = "Recargar armas (<= <<1>>%)",
     EZO_MENU_RELOAD               = "Recargar interfaz",
     EZO_MENU_DEBUG_VIEWER         = "Abrir visor técnico",
-    EZO_MENU_EXIT                 = "Cerrar",
+    EZO_MENU_EXIT                 = "Salir",
 
     -- -------------------------------------------------------------------------
     -- Submenú de ajustes rápidos (gamepad_settings)
     -- -------------------------------------------------------------------------
-    EZO_SETTINGS_TITLE              = "Ajustes",
     EZO_SETTINGS_RECHARGE_THRESHOLD = "Recarga de armas: <<1>>%",
     EZO_SETTINGS_REPAIR_THRESHOLD   = "Reparación de equipo: <<1>>%",
     EZO_SETTINGS_BACK               = "Volver",
@@ -188,16 +185,13 @@ EZO_STRINGS_ES = {
     EZO_MSG_DEBUG_LOGGER_UNAVAILABLE = "Diagnóstico técnico no disponible; no se ha generado reporte.",
     EZO_MSG_DEBUG_REPORT_SENT = "Diagnóstico generado: <<1>>",
     EZO_MSG_DEBUG_REPORT_LOGGED_VIEWER_MISSING = "Diagnóstico generado: <<1>>. Visor técnico no disponible.",
-    EZO_MSG_INPUT_MODE_SET      = "Modo de entrada: <<1>>",
-    EZO_MSG_INPUT_MODE_NA       = "Ajuste de modo de entrada no disponible.",
-
     -- -------------------------------------------------------------------------
     -- Salida de comandos slash
     -- -------------------------------------------------------------------------
     EZO_CMD_BANNER              = "E|cB040FFZ|rOTools v<<1>> — @Zuriplayer",
     EZO_CMD_REGISTERED          = "Comandos registrados: /ezo, /ezotools",
     EZO_CMD_HELP_TITLE          = "Comandos disponibles:",
-    EZO_CMD_HELP_STATUS         = "  /ezo status   — estado runtime del addon",
+    EZO_CMD_HELP_STATUS         = "  /ezo status   — estado de ejecución del addon",
     EZO_CMD_HELP_DEBUG          = "  /ezo debug    — lista comandos de diagnóstico",
     EZO_CMD_HELP_HELP           = "  /ezo help",
     EZO_CMD_HELP_DETAIL_STATUS  = "    status muestra versión cargada, idioma activo y disponibilidad de módulos principales.",
@@ -216,7 +210,7 @@ EZO_STRINGS_ES = {
     EZO_CMD_DEBUG_TEX           = "  /ezo debug tex      — estado de iconos del overlay",
     EZO_CMD_DEBUG_TEXLOAD       = "  /ezo debug texload  — prueba de carga de texturas",
     EZO_CMD_DEBUG_DOTS          = "  /ezo debug dots     — estado de iconos de mascota y aliados",
-    EZO_CMD_DEBUG_LAYOUT        = "  /ezo debug layout   — alterna preview de slots laterales",
+    EZO_CMD_DEBUG_LAYOUT        = "  /ezo debug layout   — alterna la vista previa de los iconos laterales",
     EZO_CMD_DEBUG_HOUSE         = "  /ezo debug house    — diagnóstico de vivienda actual",
 
     EZO_CMD_GUILDS_NONE         = "No perteneces a ningún gremio.",
@@ -230,7 +224,7 @@ EZO_STRINGS_ES = {
     EZO_CMD_INFO_ZONE           = "  Zona: <<1>>",
     EZO_CMD_INFO_GROUP          = "  Grupo: <<1>> miembros",
     EZO_CMD_INFO_LEADER         = "  Líder: <<1>>",
-    EZO_CMD_INFO_NO_GROUP       = "  Grupo: sin grupo",
+    EZO_CMD_INFO_NO_GROUP       = "  Grupo: ninguno",
     EZO_CMD_INFO_REPAIR         = "  Reparación (umbral <<1>>%): <<2>>",
     EZO_CMD_INFO_RECHARGE       = "  Recarga armas (umbral <<1>>%): <<2>>",
     EZO_CMD_INFO_NEEDED         = "NECESARIA",
@@ -254,7 +248,7 @@ EZO_STRINGS_ES = {
     EZO_SIDE_WIDGET_REPAIR_KITS_TOOLTIP = "Kits de reparación bajos: <<1>> disponibles (umbral <<2>>). Clic para abrir ajustes.",
 }
 EZO_STRINGS_ES["EZO_OPTION_LOW_STOCK_ALERTS_NOTE"] = "Estas alertas controlan los iconos laterales. Las gemas de alma se cuentan como gemas cargadas utilizables. Los kits de reparación se cuentan por unidades detectadas y, por ahora, no se diferencian los kits de una pieza y los de reparación completa."
-EZO_STRINGS_ES["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE"] = "Usar imagen propia del gremio"
+EZO_STRINGS_ES["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE"] = "Usar imagen propia del gremio representado"
 EZO_STRINGS_ES["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE_TOOLTIP"] = "Si está activado y el gremio representado tiene una imagen registrada en el addon, el logo central se sustituye por esa imagen. Si no hay imagen válida, se mantiene el logo normal de EZOTools."
 EZO_STRINGS_ES["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE"] = "Mostrar alerta de kits bajos"
 EZO_STRINGS_ES["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE_TOOLTIP"] = "Muestra u oculta el widget lateral cuando los kits de reparación estén bajos."
@@ -265,7 +259,7 @@ EZO_STRINGS_ES["EZO_OPTION_SOUL_GEM_ALERT_ENABLE_TOOLTIP"] = "Muestra u oculta e
 EZO_STRINGS_ES["EZO_OPTION_SOUL_GEM_ALERT_THRESHOLD"] = "Umbral alerta gemas de alma"
 EZO_STRINGS_ES["EZO_OPTION_SOUL_GEM_ALERT_THRESHOLD_TOOLTIP"] = "Muestra la alerta de gemas cuando la cantidad detectada de gemas de alma cargadas sea igual o inferior a este valor."
 EZO_STRINGS_ES["EZO_SIDE_WIDGET_REPAIR_EQUIPPED_TOOLTIP"] = "Se necesita reparar armadura (umbral <<1>>%). Clic izquierdo repara el equipo equipado. Clic derecho abre ajustes."
-EZO_STRINGS_ES["EZO_SIDE_WIDGET_RECHARGE_WEAPONS_TOOLTIP"] = "Se necesita recargar armas (umbral <<1>>%). Clic izquierdo abre el menú del overlay. Clic derecho abre ajustes."
+EZO_STRINGS_ES["EZO_SIDE_WIDGET_RECHARGE_WEAPONS_TOOLTIP"] = "Se necesita recargar armas (umbral <<1>>%). Clic izquierdo recarga las armas. Clic derecho abre ajustes."
 EZO_STRINGS_ES["EZO_SIDE_WIDGET_FOOD_NONE_TOOLTIP"] = "No tienes comida o bebida activa.|nUsa una comida o bebida para guardarla aquí.|nClic derecho: últimas comidas y bebidas."
 EZO_STRINGS_ES["EZO_SIDE_WIDGET_FOOD_ACTIVE_TOOLTIP"] = "Comida o bebida activa: <<1>>. Tiempo restante: <<2>>.|nClic derecho: últimas comidas y bebidas."
 EZO_STRINGS_ES["EZO_SIDE_WIDGET_FOOD_ACTIVE_NO_TIME_TOOLTIP"] = "Comida o bebida activa: <<1>>.|nClic derecho: últimas comidas y bebidas."

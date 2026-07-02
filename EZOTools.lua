@@ -356,20 +356,6 @@ local function _comandoVersion()
     safeChat(zo_strformat(GetString(EZO_CMD_VERSION_GAMEPAD), gamepad))
 end
 
-local function _establecerModoEntrada(modoConst, etiqueta)
-    if not (SETTING_TYPE_GAMEPAD and GAMEPAD_SETTING_INPUT_PREFERRED_MODE and SetSetting) then
-        safeChat(GetString(EZO_MSG_INPUT_MODE_NA))
-        return
-    end
-    if not modoConst then
-        safeChat(GetString(EZO_MSG_INPUT_MODE_NA))
-        return
-    end
-    SetSetting(SETTING_TYPE_GAMEPAD, GAMEPAD_SETTING_INPUT_PREFERRED_MODE, modoConst)
-    safeChat(zo_strformat(GetString(EZO_MSG_INPUT_MODE_SET), etiqueta))
-end
-
-
 local function _manejadorSlash(arg)
     local trimmed = zo_strtrim(tostring(arg or ""))
     if trimmed == "" then
