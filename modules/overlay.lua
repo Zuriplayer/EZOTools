@@ -123,11 +123,6 @@ local function RegistrarFragmentosHUD()
     overlaySceneFragment = RegistrarFragmentoHUD(overlayWin, overlaySceneFragment)
 end
 
--- Devuelve la ventana del overlay (o GuiRoot si no existe) para anclar otros controles
-function MOD.GetAnchor()
-    return overlayWin or GuiRoot
-end
-
 -- Aplica la posición guardada (o centra si no hay posición guardada)
 local function AplicarPosicion()
     if not overlayWin then return end
@@ -711,7 +706,6 @@ AplicarWidgetsLaterales = function()
         return
     end
 
-    WIDGETS.RebuildRegistry()
     for _, side in ipairs({ "left", "right" }) do
         local widgets = ObtenerWidgetsLaterales(side)
         local textures = ObtenerTexturasWidgetLaterales(side)
@@ -901,51 +895,6 @@ local function AplicarPulsoWidgetComida()
         data.color = color
         data.alpha = alpha
     end
-end
-
-function MOD.GetSideSlot(side, index)
-    local lista = ObtenerSlotsLaterales(side)
-    return lista and lista[index] or nil
-end
-
-function MOD.GetSideSlotCount()
-    return WIDGETS.GetSlotCount()
-end
-
-function MOD.GetSideWidget(side, index)
-    local lista = ObtenerWidgetsLaterales(side)
-    return lista and lista[index] or nil
-end
-
-function MOD.GetSideWidgetSlotState(side, index)
-    local lista = WIDGETS.GetRegistryList(side)
-    if not lista or type(index) ~= "number" then return nil end
-    return lista[index]
-end
-
-function MOD.GetSideWidgetRegistry()
-    return WIDGETS.GetRegistrySnapshot()
-end
-
-function MOD.FindFreeSideWidgetSlot(side)
-    return WIDGETS.FindFreeSlot(side)
-end
-
-function MOD.SetSideWidgetData(side, index, data)
-    if WIDGETS.SetData(side, index, data) then
-        MOD.Refresh()
-    end
-end
-
-function MOD.ClearSideWidgetData(side, index)
-    if WIDGETS.ClearData(side, index) then
-        MOD.Refresh()
-    end
-end
-
-function MOD.ClearAllSideWidgetData()
-    WIDGETS.ClearAllData()
-    MOD.Refresh()
 end
 
 function MOD.ToggleLayoutPreview()
@@ -1353,16 +1302,6 @@ function MOD.ResetPosition()
     EZO.sv.overlay.x = nil
     EZO.sv.overlay.y = nil
     AplicarPosicion()
-end
-
--- Devuelve true si el jugador tiene buff de comida o bebida activo.
--- Verificado en juego con datos reales:
---   comida larga duración → abil=0, canClickOff=true  (ej: All Primary Stat Recovery)
---   comida evento/especial → abil=5, canClickOff=true  (ej: Eye Scream Halloween)
---   buffs pasivos permanentes → canClickOff=false siempre (ej: Boon: The Thief)
--- Regla: canClickOff=true + endTime>0 es exclusivo de comida/bebida.
-local function TieneBuffComida()
-    return FOOD and type(FOOD.HasFoodBuff) == "function" and FOOD.HasFoodBuff() == true
 end
 
 ObtenerMascotaActivaId = function()

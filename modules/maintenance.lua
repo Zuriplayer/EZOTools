@@ -189,10 +189,6 @@ function EZOTools.GetFilledSoulGemCount()
     return ContarGemasAlmaCargadas()
 end
 
-function EZOTools.GetConsumableStockThreshold()
-    return ObtenerUmbralStockConsumibles()
-end
-
 function EZOTools.GetRepairKitStockThreshold()
     return ObtenerUmbralStockKitsReparacion()
 end
@@ -201,109 +197,12 @@ function EZOTools.GetSoulGemStockThreshold()
     return ObtenerUmbralStockGemasAlma()
 end
 
-function EZOTools.IsRepairKitAlertEnabled()
-    return EstaAlertaKitsReparacionActiva()
-end
-
-function EZOTools.IsSoulGemAlertEnabled()
-    return EstaAlertaGemasAlmaActiva()
-end
-
 function EZOTools.HasLowRepairKitStock()
     return EstaAlertaKitsReparacionActiva() and ContarKitsReparacion() <= ObtenerUmbralStockKitsReparacion()
 end
 
 function EZOTools.HasLowSoulGemStock()
     return EstaAlertaGemasAlmaActiva() and ContarGemasAlmaCargadas() <= ObtenerUmbralStockGemasAlma()
-end
-
-function EZOTools.GetFirstRepairKitDebugInfo()
-    local bag, slot = BuscarKitReparacion()
-    if not bag or not slot then return nil end
-    local info = { bag = bag, slot = slot }
-    if type(GetItemLink) == "function" then
-        info.link = GetItemLink(bag, slot, LINK_STYLE_DEFAULT)
-    end
-    if type(GetItemLinkName) == "function" and type(info.link) == "string" and info.link ~= "" then
-        info.name = GetItemLinkName(info.link)
-    elseif type(GetItemName) == "function" then
-        info.name = GetItemName(bag, slot)
-    end
-    if type(GetItemLinkIcon) == "function" and type(info.link) == "string" and info.link ~= "" then
-        info.icon = GetItemLinkIcon(info.link)
-    end
-    return info
-end
-
-function EZOTools.GetFirstSoulGemDebugInfo()
-    local bag, slot = BuscarGemaAlmaCargada()
-    if not bag or not slot then return nil end
-    local info = { bag = bag, slot = slot }
-    if type(GetItemLink) == "function" then
-        info.link = GetItemLink(bag, slot, LINK_STYLE_DEFAULT)
-    end
-    if type(GetItemLinkName) == "function" and type(info.link) == "string" and info.link ~= "" then
-        info.name = GetItemLinkName(info.link)
-    elseif type(GetItemName) == "function" then
-        info.name = GetItemName(bag, slot)
-    end
-    if type(GetItemLinkIcon) == "function" and type(info.link) == "string" and info.link ~= "" then
-        info.icon = GetItemLinkIcon(info.link)
-    end
-    return info
-end
-
-function EZOTools.GetFirstRepairKitIcon()
-    local bag, slot = BuscarKitReparacion()
-    if not bag or not slot then return nil end
-    if type(GetItemLink) == "function" and type(GetItemLinkIcon) == "function" then
-        local link = GetItemLink(bag, slot, LINK_STYLE_DEFAULT)
-        if type(link) == "string" and link ~= "" then
-            local icon = GetItemLinkIcon(link)
-            if type(icon) == "string" and icon ~= "" then
-                return icon
-            end
-        end
-    end
-    if type(GetItemInfo) == "function" then
-        local _, _, _, _, _, _, _, _, _, icon = GetItemInfo(bag, slot)
-        if type(icon) == "string" and icon ~= "" then
-            return icon
-        end
-    end
-    return nil
-end
-
-function EZOTools.GetFirstFilledSoulGemIcon()
-    if type(GetSoulGemInfo) == "function" then
-        local level = 1
-        if type(GetUnitEffectiveLevel) == "function" then
-            level = GetUnitEffectiveLevel("player") or 1
-        end
-        local _, icon = GetSoulGemInfo(SOUL_GEM_TYPE_FILLED, level, true)
-        if type(icon) == "string" and icon ~= "" then
-            return icon
-        end
-    end
-
-    local bag, slot = BuscarGemaAlmaCargada()
-    if not bag or not slot then return nil end
-    if type(GetItemLink) == "function" and type(GetItemLinkIcon) == "function" then
-        local link = GetItemLink(bag, slot, LINK_STYLE_DEFAULT)
-        if type(link) == "string" and link ~= "" then
-            local icon = GetItemLinkIcon(link)
-            if type(icon) == "string" and icon ~= "" then
-                return icon
-            end
-        end
-    end
-    if type(GetItemInfo) == "function" then
-        local _, _, _, _, _, _, _, _, _, icon = GetItemInfo(bag, slot)
-        if type(icon) == "string" and icon ~= "" then
-            return icon
-        end
-    end
-    return nil
 end
 
 function EZOTools.CanRepairEquipped()

@@ -78,10 +78,6 @@ function EZO.GetPlayerGuildChoices()
     return choices, values
 end
 
-function EZO.GetEligibleAutoFriendGuildChoices()
-    return EZO.GetPlayerGuildChoices()
-end
-
 function EZO.GetFriendHouseProfileChoices()
     local choices = { GetString(EZO_OPTION_FRIENDS_PROFILE_MANUAL) }
     local values = { FRIEND_HOUSE_MANUAL_PROFILE_KEY }

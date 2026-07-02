@@ -22,7 +22,6 @@ local SIDE_WIDGET_ASSIGNMENTS = {
 }
 
 local sideWidgetData = { left = {}, right = {} }
-local sideWidgetRegistry = { left = {}, right = {} }
 local layoutPreviewEnabled = false
 
 function MOD.GetSlotCount()
@@ -70,10 +69,6 @@ end
 
 function MOD.GetDataList(side)
     return sideWidgetData[side]
-end
-
-function MOD.GetRegistryList(side)
-    return sideWidgetRegistry[side]
 end
 
 function MOD.BuildData(config)
@@ -193,84 +188,11 @@ function MOD.GetRenderData(side, index)
     return nil
 end
 
-function MOD.RebuildRegistry()
-    sideWidgetRegistry.left = {}
-    sideWidgetRegistry.right = {}
-    for _, side in ipairs({ "left", "right" }) do
-        local dataList = sideWidgetData[side]
-        local registry = sideWidgetRegistry[side]
-        for i = 1, SIDE_SLOT_COUNT do
-            local data = dataList[i]
-            if type(data) == "table" and data.visible ~= false then
-                registry[i] = data.slotKey or true
-            else
-                registry[i] = false
-            end
-        end
-    end
-end
-
 function MOD.Assign(slotInfo, data)
     if not slotInfo or not slotInfo.side or not slotInfo.index then return end
     local dataList = sideWidgetData[slotInfo.side]
     if not dataList then return end
     dataList[slotInfo.index] = data
-end
-
-function MOD.GetRegistrySnapshot()
-    local snapshot = { left = {}, right = {} }
-    for _, side in ipairs({ "left", "right" }) do
-        for i = 1, SIDE_SLOT_COUNT do
-            snapshot[side][i] = sideWidgetRegistry[side][i] or false
-        end
-    end
-    return snapshot
-end
-
-function MOD.FindFreeSlot(side)
-    local registry = sideWidgetRegistry[side]
-    if not registry then return nil end
-    for i = 1, SIDE_SLOT_COUNT do
-        if not registry[i] then
-            return i
-        end
-    end
-    return nil
-end
-
-function MOD.SetData(side, index, data)
-    local dataList = sideWidgetData[side]
-    if not dataList or type(index) ~= "number" or index < 1 or index > SIDE_SLOT_COUNT then return false end
-    if type(data) ~= "table" then
-        dataList[index] = nil
-    else
-        dataList[index] = {
-            visible = data.visible,
-            texture = data.texture,
-            color = data.color,
-            alpha = data.alpha,
-            tooltipText = data.tooltipText,
-            tooltipStringId = data.tooltipStringId,
-            tooltipArgs = data.tooltipArgs,
-            actionId = data.actionId,
-            gamepadActionId = data.gamepadActionId,
-            secondaryActionId = data.secondaryActionId,
-            slotKey = data.slotKey,
-        }
-    end
-    return true
-end
-
-function MOD.ClearData(side, index)
-    local dataList = sideWidgetData[side]
-    if not dataList then return false end
-    dataList[index] = nil
-    return true
-end
-
-function MOD.ClearAllData()
-    sideWidgetData.left = {}
-    sideWidgetData.right = {}
 end
 
 function MOD.ToggleLayoutPreview()

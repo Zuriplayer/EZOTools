@@ -393,9 +393,7 @@ end
 function EZO:RegisterSlashCommands()
     -- Preferir LibSlashCommander si está disponible (autocompletado y mejor UX)
     if LibSlashCommander and LibSlashCommander.Register then
-        local LSC = LibSlashCommander
-        local cmd = LSC:Register({"/ezo", "/ezotools"}, _manejadorSlash, "EZOTools")
-        -- Sin subcomandos adicionales por ahora
+        LibSlashCommander:Register({"/ezo", "/ezotools"}, _manejadorSlash, "EZOTools")
     else
         -- Variante nativa si LibSlashCommander no está disponible.
         SLASH_COMMANDS["/ezo"]      = _manejadorSlash
