@@ -307,40 +307,34 @@ local function ObtenerCalidadItem(bagId, slotIndex, itemLink)
 end
 
 function MOD.FindFoodByReference(targetLink, targetName)
-    if type(GetBagSize) ~= "function" then return nil end
-
     targetLink = tostring(targetLink or "")
     targetName = tostring(targetName or "")
     if targetLink == "" and targetName == "" then
         return nil
     end
 
-    local bagSize = GetBagSize(BAG_BACKPACK)
-    if type(bagSize) ~= "number" or bagSize <= 0 then return nil end
-
-    local fallbackBag, fallbackSlot, fallbackName = nil, nil, nil
-    for slotIndex = 0, bagSize - 1 do
-        if EsConsumibleDeComidaOBebida(BAG_BACKPACK, slotIndex) then
-            local itemLink = ""
-            if type(GetItemLink) == "function" then
-                itemLink = tostring(GetItemLink(BAG_BACKPACK, slotIndex, LINK_STYLE_DEFAULT) or "")
-            end
-            local itemName = ObtenerNombreItem(BAG_BACKPACK, slotIndex, itemLink)
+    -- La caché de mochila (mantenida por HandleInventorySlotUpdate y
+    -- SyncBackpackCache) ya sabe qué huecos tienen comida/bebida: iterarla
+    -- evita releer toda la mochila con la API en cada refresco del widget.
+    local fallbackSlot, fallbackEntry = nil, nil
+    for slotIndex, entry in pairs(foodBackpackCache) do
+        if type(entry) == "table" then
+            local itemLink = tostring(entry.itemLink or "")
+            local itemName = tostring(entry.itemName or "")
             if targetLink ~= "" and itemLink == targetLink then
-                return BAG_BACKPACK, slotIndex, itemName or targetName, itemLink, ObtenerCalidadItem(BAG_BACKPACK, slotIndex, itemLink), ObtenerDescripcionUsoItem(itemLink)
+                return BAG_BACKPACK, slotIndex, (itemName ~= "" and itemName) or targetName, itemLink,
+                    ObtenerCalidadItem(BAG_BACKPACK, slotIndex, itemLink), ObtenerDescripcionUsoItem(itemLink)
             end
-            if not fallbackBag and targetName ~= "" and type(itemName) == "string" and itemName == targetName then
-                fallbackBag, fallbackSlot, fallbackName = BAG_BACKPACK, slotIndex, itemName
+            if not fallbackSlot and targetName ~= "" and itemName == targetName then
+                fallbackSlot, fallbackEntry = slotIndex, entry
             end
         end
     end
 
-    if fallbackBag then
-        local itemLink = ""
-        if type(GetItemLink) == "function" then
-            itemLink = tostring(GetItemLink(fallbackBag, fallbackSlot, LINK_STYLE_DEFAULT) or "")
-        end
-        return fallbackBag, fallbackSlot, fallbackName, itemLink, ObtenerCalidadItem(fallbackBag, fallbackSlot, itemLink), ObtenerDescripcionUsoItem(itemLink)
+    if fallbackSlot then
+        local itemLink = tostring(fallbackEntry.itemLink or "")
+        return BAG_BACKPACK, fallbackSlot, tostring(fallbackEntry.itemName or ""), itemLink,
+            ObtenerCalidadItem(BAG_BACKPACK, fallbackSlot, itemLink), ObtenerDescripcionUsoItem(itemLink)
     end
     return nil
 end
@@ -523,20 +517,16 @@ function MOD.RecordActiveFood()
     if IntentarRecordarComidaPendiente() then
         return true
     end
-    if type(GetBagSize) ~= "function" then return false end
 
-    local bagSize = GetBagSize(BAG_BACKPACK)
-    if type(bagSize) ~= "number" or bagSize <= 0 then return false end
-
-    for slotIndex = 0, bagSize - 1 do
-        if EsConsumibleDeComidaOBebida(BAG_BACKPACK, slotIndex) then
-            local itemLink = ""
-            if type(GetItemLink) == "function" then
-                itemLink = tostring(GetItemLink(BAG_BACKPACK, slotIndex, LINK_STYLE_DEFAULT) or "")
-            end
-            local itemName = ObtenerNombreItem(BAG_BACKPACK, slotIndex, itemLink)
+    -- Mismo criterio que antes (nombre del item o cabecera del efecto),
+    -- pero iterando la caché: solo se consulta la API para los huecos
+    -- que ya sabemos que contienen comida/bebida.
+    for _, entry in pairs(foodBackpackCache) do
+        if type(entry) == "table" then
+            local itemLink = tostring(entry.itemLink or "")
+            local itemName = tostring(entry.itemName or "")
             local abilityHeader = ObtenerCabeceraUsoItem(itemLink)
-            local coincideNombre = type(itemName) == "string" and itemName == foodInfo.name
+            local coincideNombre = itemName ~= "" and itemName == foodInfo.name
             local coincideCabecera = type(abilityHeader) == "string" and abilityHeader == foodInfo.name
             if coincideNombre or coincideCabecera then
                 GuardarComidaRecordada(itemLink, itemName)
@@ -884,3 +874,10 @@ end
 function MOD.HasFoodBuff()
     return MOD.GetBuffInfo().active == true
 end
+
+-- Resincronizar la caché de mochila al activarse el jugador (login, cambio
+-- de zona, reloadui). Es un único escaneo por activación; a partir de ahí
+-- la mantienen al día los eventos de hueco individual.
+EVENT_MANAGER:RegisterForEvent("EZOTools_Food_Activated",
+    EVENT_PLAYER_ACTIVATED,
+    function() MOD.SyncBackpackCache() end)

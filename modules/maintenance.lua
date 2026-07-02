@@ -93,6 +93,20 @@ local function ObtenerStackSlot(slot)
     return stack
 end
 
+-- ============================================================
+-- Caché de recuentos de consumibles.
+-- Recontar la mochila entera en cada refresco es caro y el resultado
+-- solo cambia cuando cambia el inventario: se guarda el último recuento
+-- y se invalida por evento (ver registro al final del módulo).
+-- ============================================================
+local cachedRepairKitCount = nil
+local cachedFilledSoulGemCount = nil
+
+local function InvalidarCacheStock()
+    cachedRepairKitCount = nil
+    cachedFilledSoulGemCount = nil
+end
+
 -- Busca el primer kit de reparación en la mochila
 local function BuscarKitReparacion()
     if type(IsItemRepairKit) ~= "function" then return nil end
@@ -105,6 +119,9 @@ local function BuscarKitReparacion()
 end
 
 local function ContarKitsReparacion()
+    if cachedRepairKitCount ~= nil then
+        return cachedRepairKitCount
+    end
     if type(IsItemRepairKit) ~= "function" then return 0 end
     local total = 0
     IterarSlotsMochila(function(slot)
@@ -113,6 +130,7 @@ local function ContarKitsReparacion()
         end
         return nil
     end)
+    cachedRepairKitCount = total
     return total
 end
 
@@ -135,6 +153,9 @@ local function BuscarGemaAlmaCargada()
 end
 
 local function ContarGemasAlmaCargadas()
+    if cachedFilledSoulGemCount ~= nil then
+        return cachedFilledSoulGemCount
+    end
     local total = 0
     IterarSlotsMochila(function(slot)
         local esGema = false
@@ -149,6 +170,7 @@ local function ContarGemasAlmaCargadas()
         end
         return nil
     end)
+    cachedFilledSoulGemCount = total
     return total
 end
 
@@ -289,6 +311,23 @@ function EZOTools.RechargeWeapons()
     end
     if recargadoAlgo then EZOTools.Print(GetString(EZO_MSG_RECHARGE_DONE)) end
 end
+
+-- ============================================================
+-- Invalidación de la caché de recuentos.
+-- Solo interesa la mochila: el filtro por bag evita despertar con
+-- cambios de banco, casa o equipo puesto.
+-- ============================================================
+EVENT_MANAGER:RegisterForEvent("EZOTools_Maintenance_Stock",
+    EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+    function() InvalidarCacheStock() end)
+if type(EVENT_MANAGER.AddFilterForEvent) == "function" and REGISTER_FILTER_BAG_ID ~= nil then
+    EVENT_MANAGER:AddFilterForEvent("EZOTools_Maintenance_Stock",
+        EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+        REGISTER_FILTER_BAG_ID, BAG_BACKPACK)
+end
+EVENT_MANAGER:RegisterForEvent("EZOTools_Maintenance_Activated",
+    EVENT_PLAYER_ACTIVATED,
+    function() InvalidarCacheStock() end)
 
 
 
