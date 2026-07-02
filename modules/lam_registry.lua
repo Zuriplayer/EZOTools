@@ -213,9 +213,16 @@ local function RegistrarSeccionesBase()
 
     REG.RegisterSection("guild_overlay", 15, function()
         local EZO = EZOTools
-        return {
+        local opciones = {
             { type = "header", name = GetString(EZO_OPTION_GUILD_OVERLAY) },
-            {
+        }
+
+        -- Huevo de pascua: la imagen personalizada por gremio solo se ofrece
+        -- si el jugador pertenece a un gremio del guild pack. Para el resto
+        -- de usuarios esta opción no existe.
+        local pack = _G.EZOTools_GuildPack
+        if pack and type(pack.IsUnlocked) == "function" and pack.IsUnlocked() then
+            opciones[#opciones + 1] = {
                 type    = "checkbox",
                 name    = GetString(EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE),
                 tooltip = GetString(EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE_TOOLTIP),
@@ -226,7 +233,10 @@ local function RegistrarSeccionesBase()
                 end,
                 default = false,
                 width   = "full",
-            },
+            }
+        end
+
+        local resto = {
             {
                 type    = "colorpicker",
                 name    = GetString(EZO_OPTION_GUILD_LABEL_COLOR),
@@ -253,6 +263,10 @@ local function RegistrarSeccionesBase()
                 width   = "full",
             },
         }
+        for _, control in ipairs(resto) do
+            opciones[#opciones + 1] = control
+        end
+        return opciones
     end)
 
     REG.RegisterSection("friend_houses", 20, function()

@@ -16,6 +16,7 @@ modules/debug.lua
 Bindings.xml
 modules/core.lua
 modules/shared_utils.lua
+modules/guild_pack.lua
 modules/friend_houses.lua
 modules/guild_overlay.lua
 modules/travel_actions.lua

@@ -4,29 +4,6 @@ EZOTools = EZOTools or {}
 
 local EZO = EZOTools
 
-local AUTO_FRIEND_HOUSES_BY_GUILD = {
-    ["hojablanca"] = {
-        craftingHall = "@sunsetlu",
-        secondaryHall = "@grukka",
-    },
-    ["fuego"] = {
-        craftingHall = "@Whasabi",
-        secondaryHall = "@Whasabi",
-    },
-    ["children of lamae"] = {
-        craftingHall = "@HoDPS",
-        secondaryHall = "@LadyRee",
-    },
-    ["ad-minions"] = {
-        craftingHall = "@Jogi1",
-        secondaryHall = "@Stucca",
-    },
-    ["sombras de lorkhan"] = {
-        craftingHall = "@Salander7",
-        secondaryHall = "@RoseDarkSpiryt",
-    },
-}
-
 local FRIEND_HOUSE_MANUAL_PROFILE_KEY = "__manual"
 EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY = FRIEND_HOUSE_MANUAL_PROFILE_KEY
 
@@ -93,13 +70,17 @@ local function ObtenerAsignacionCasasPorGuild(guildKey)
     guildKey = NormalizarClaveGuild(guildKey)
     if not guildKey then return nil end
 
+    -- Los perfiles guardados por el propio jugador funcionan para cualquier gremio.
     local custom = EZO.sv and EZO.sv.friends and EZO.sv.friends.customGuildFriendHouses
     if type(custom) == "table" and type(custom[guildKey]) == "table" then
         return custom[guildKey]
     end
 
-    if type(AUTO_FRIEND_HOUSES_BY_GUILD[guildKey]) == "table" then
-        return AUTO_FRIEND_HOUSES_BY_GUILD[guildKey]
+    -- Los valores predefinidos son contenido del guild pack: solo se
+    -- aplican si el jugador pertenece a un gremio de su lista blanca.
+    local pack = _G.EZOTools_GuildPack
+    if pack and type(pack.GetFriendHouses) == "function" then
+        return pack.GetFriendHouses(guildKey)
     end
 
     return nil
