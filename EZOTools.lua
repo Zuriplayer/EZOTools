@@ -320,7 +320,16 @@ local function _mostrarAyudaPrincipal()
     if EZO.IsDebugModeEnabled() then
         safeChat(GetString(EZO_CMD_HELP_DEBUG))
     end
+    safeChat(GetString(EZO_CMD_HELP_ABOUT))
     safeChat(GetString(EZO_CMD_HELP_HELP))
+end
+
+-- Información de autor y contacto. También la usa la entrada
+-- "Acerca de EZOTools" del diálogo de ajustes gamepad.
+function EZO.ShowAboutInfo()
+    safeChat(zo_strformat(GetString(EZO_CMD_BANNER), EZOTools.ADDON_VERSION))
+    safeChat(GetString(EZO_CMD_ABOUT_AUTHOR))
+    safeChat(zo_strformat(GetString(EZO_CMD_ABOUT_DISCORD), tostring(EZOTools.CONTACT_DISCORD or "")))
 end
 
 local function _mostrarAyudaDetallada()
@@ -377,6 +386,9 @@ local function _manejadorSlash(arg)
     end
     if a1 == "status" then
         _comandoVersion(); return
+    end
+    if a1 == "about" then
+        EZO.ShowAboutInfo(); return
     end
     if a1 == "debug" then
         if EZO.Debug and type(EZO.Debug.Execute) == "function" then

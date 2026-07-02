@@ -219,7 +219,8 @@ local function RegistrarSeccionesBase()
 
         -- Huevo de pascua: la imagen personalizada por gremio solo se ofrece
         -- si el jugador pertenece a un gremio del guild pack. Para el resto
-        -- de usuarios esta opción no existe.
+        -- de usuarios la opción no existe, pero sí una invitación a pedir
+        -- su propio pack contactando con el autor.
         local pack = _G.EZOTools_GuildPack
         if pack and type(pack.IsUnlocked) == "function" and pack.IsUnlocked() then
             opciones[#opciones + 1] = {
@@ -233,6 +234,17 @@ local function RegistrarSeccionesBase()
                 end,
                 default = false,
                 width   = "full",
+            }
+            opciones[#opciones + 1] = {
+                type  = "description",
+                text  = GetString(EZO_CONTACT_GUILD_ACTIVE),
+                width = "full",
+            }
+        else
+            opciones[#opciones + 1] = {
+                type  = "description",
+                text  = GetString(EZO_CONTACT_GUILD_LOCKED),
+                width = "full",
             }
         end
 

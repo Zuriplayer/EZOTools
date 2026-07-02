@@ -66,6 +66,16 @@ local function ConstruirEntradasAjustes()
         end,
         "repairThreshold")
 
+    -- Autor y contacto (se imprime en el chat; útil para usuarios de
+    -- gamepad que nunca abren el panel LAM)
+    AgregarEntrada(entradas,
+        GetString(EZO_MENU_ABOUT),
+        function()
+            if EZO and type(EZO.ShowAboutInfo) == "function" then
+                EZO.ShowAboutInfo()
+            end
+        end)
+
     -- Volver al panel principal de comandos
     AgregarEntrada(entradas,
         GetString(EZO_SETTINGS_BACK),

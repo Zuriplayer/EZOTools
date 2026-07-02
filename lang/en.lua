@@ -204,6 +204,12 @@ EZO_STRINGS_EN = {
     EZO_CMD_HELP_DETAIL_STATUS  = "    status shows loaded version, active language, and availability of the main modules.",
     EZO_CMD_HELP_DETAIL_DEBUG   = "    debug groups technical support and development tools; they are not normal gameplay commands.",
     EZO_CMD_HELP_CONTACT        = "    For addon issues, questions, or feedback, you can contact @Zuriplayer.",
+    EZO_CMD_HELP_ABOUT          = "  /ezo about    — author and contact info",
+    EZO_CMD_ABOUT_AUTHOR        = "Author: @Zuriplayer — in-game mail welcome (EU and NA).",
+    EZO_CMD_ABOUT_DISCORD       = "Discord: <<1>>",
+    EZO_MENU_ABOUT              = "About EZOTools",
+    EZO_CONTACT_GUILD_ACTIVE    = "Guild pack active. Outdated houses or image? Mail @Zuriplayer in game or reach us on Discord (/ezo about).",
+    EZO_CONTACT_GUILD_LOCKED    = "Want a custom pack for your guild (guild image and crafting houses)? Mail @Zuriplayer in game or join our Discord (/ezo about).",
 
     EZO_CMD_DEBUG_TITLE         = "Diagnostic commands",
     EZO_CMD_DEBUG_INFO          = "  /ezo debug info     — diagnostic: zone, group, maintenance, guild",

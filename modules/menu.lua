@@ -138,6 +138,9 @@ function MENU.Init()
         displayName       = DISPLAY_NAME,
         author            = "@Zuriplayer",
         version           = EZOTools.ADDON_VERSION,
+        -- LAM muestra un icono en la cabecera del panel que abre esta URL
+        -- con el diálogo oficial del juego.
+        feedback          = EZOTools.CONTACT_DISCORD,
         registerForRefresh  = true,
         registerForDefaults = true,
     }

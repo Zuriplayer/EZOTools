@@ -203,6 +203,12 @@ EZO_STRINGS_ES = {
     EZO_CMD_HELP_DETAIL_STATUS  = "    status muestra versión cargada, idioma activo y disponibilidad de módulos principales.",
     EZO_CMD_HELP_DETAIL_DEBUG   = "    debug agrupa herramientas técnicas de soporte y desarrollo; no son comandos de uso normal.",
     EZO_CMD_HELP_CONTACT        = "    Para incidencias, dudas o feedback del addon, puedes contactar con @Zuriplayer.",
+    EZO_CMD_HELP_ABOUT          = "  /ezo about    — autor y contacto",
+    EZO_CMD_ABOUT_AUTHOR        = "Autor: @Zuriplayer — correo del juego bienvenido (EU y NA).",
+    EZO_CMD_ABOUT_DISCORD       = "Discord: <<1>>",
+    EZO_MENU_ABOUT              = "Acerca de EZOTools",
+    EZO_CONTACT_GUILD_ACTIVE    = "Pack de gremio activo. ¿Casas o imagen desactualizadas? Escribe a @Zuriplayer por correo del juego o en nuestro Discord (/ezo about).",
+    EZO_CONTACT_GUILD_LOCKED    = "¿Quieres un pack personalizado para tu gremio (imagen y casas de artesanía)? Contacta con @Zuriplayer por correo del juego o en nuestro Discord (/ezo about).",
 
     EZO_CMD_DEBUG_TITLE         = "Comandos de diagnóstico",
     EZO_CMD_DEBUG_INFO          = "  /ezo debug info     — diagnóstico: zona, grupo, mantenimiento y gremio",
