@@ -8,9 +8,13 @@ on:
         required: true
         default: "DRY_RUN"
       note:
-        description: Release note for Discord
+        description: Release note for Discord (English only; used for #releases and #announcements)
         required: false
         default: Release prepared from GitHub Actions.
+      download_note:
+        description: "#downloads note (bilingual EN+ES required). Leave empty to reuse the release note as-is."
+        required: false
+        default: ""
       publish_download:
         description: Also publish the clean ZIP to the downloads channel
         required: true
@@ -48,6 +52,7 @@ jobs:
           EZO_CODEX_ANNOUNCER: ${{ secrets.EZO_CODEX_ANNOUNCER }}
           CODEX_LOG: ${{ secrets.CODEX_LOG }}
           EZO_RELEASE_NOTE: ${{ inputs.note }}
+          EZO_DOWNLOAD_NOTE: ${{ inputs.download_note }}
           EZO_PUBLISH_DOWNLOAD: ${{ inputs.publish_download }}
           EZO_PUBLISH_ANNOUNCEMENT: ${{ inputs.publish_announcement }}
           EZO_CONFIRM_PUBLISH: ${{ inputs.confirm_publish }}
@@ -55,4 +60,4 @@ jobs:
           $publish = "$env:EZO_CONFIRM_PUBLISH" -eq "PUBLISH"
           $publishDownload = "$env:EZO_PUBLISH_DOWNLOAD" -eq "true"
           $publishAnnouncement = "$env:EZO_PUBLISH_ANNOUNCEMENT" -eq "true"
-          .\scripts\ezo\publish-release.ps1 -Force -Note $env:EZO_RELEASE_NOTE -PublishDownload:$publishDownload -PublishAnnouncement:$publishAnnouncement -PublishCodexLog -DryRun:(!$publish)
+          .\scripts\ezo\publish-release.ps1 -Force -Note $env:EZO_RELEASE_NOTE -DownloadNote $env:EZO_DOWNLOAD_NOTE -PublishDownload:$publishDownload -PublishAnnouncement:$publishAnnouncement -PublishCodexLog -DryRun:(!$publish)

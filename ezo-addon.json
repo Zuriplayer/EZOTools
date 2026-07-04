@@ -4,8 +4,8 @@
     "id": "ezotools",
     "name": "EZOTools",
     "version": "2.0.0",
-    "status": "stable",
-    "phase": "public-release",
+    "status": "beta",
+    "phase": "public-beta",
     "visibility": "public",
     "manifest": "EZOTools.txt",
     "package": {

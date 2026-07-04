@@ -6,6 +6,7 @@ param(
     [string] $AnnouncementWebhookUrl = $env:EZO_CODEX_ANNOUNCER,
     [string] $CodexLogWebhookUrl = $env:CODEX_LOG,
     [string] $Note = "Release prepared from GitHub Actions.",
+    [string] $DownloadNote,
     [switch] $PublishDownload,
     [switch] $PublishAnnouncement,
     [switch] $PublishCodexLog,
@@ -49,8 +50,11 @@ $description = @(
     -DryRun:$DryRun
 
 if ($PublishDownload) {
+    # #downloads is bilingual (EN+ES) by rule; everything else stays English-only.
+    # Falls back to -Note if no bilingual text was provided, so old callers keep working.
+    $effectiveDownloadNote = if ($DownloadNote) { $DownloadNote } else { $Note }
     $downloadScript = Join-Path $PSScriptRoot "publish-download.ps1"
-    & $downloadScript -ConfigPath $ConfigPath -WebhookUrl $DownloadWebhookUrl -Note $Note -DryRun:$DryRun -Force:$Force
+    & $downloadScript -ConfigPath $ConfigPath -WebhookUrl $DownloadWebhookUrl -Note $effectiveDownloadNote -DryRun:$DryRun -Force:$Force
 }
 
 if ($PublishAnnouncement) {
