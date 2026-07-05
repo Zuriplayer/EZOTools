@@ -12,7 +12,6 @@ A quick command panel and small on-screen overlay, for keyboard, mouse and gamep
 
 - Travel to your house, crafting hall or secondary hall
 - Jump to the group leader, leave group/instance
-- Switch instance difficulty between Normal and Veteran when ESO allows it
 - Repair your gear or recharge weapons when something is actually low
 - Recall your last mount, pet, companion or assistant, with recent history
 - Track your food/drink buff and reuse it with one click
@@ -52,7 +51,7 @@ Please include when possible: addon version, ESO client language, reproduction s
 
 ## Status
 
-Current version: **2.0.2** — public beta.
+Current version: **2.0.0** — public beta.
 
 ## License
 

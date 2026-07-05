@@ -147,13 +147,6 @@ function X.RegisterCore()
         return false
     end)
 
-    X.Register("TOGGLE_DUNGEON_DIFFICULTY", function()
-        if EZO and type(EZO.ToggleDungeonDifficulty) == "function" then
-            return EZO.ToggleDungeonDifficulty()
-        end
-        return false
-    end)
-
     X.Register("REPAIR_EQUIPPED", function()
         if EZO and type(EZO.RepairEquipped) == "function" then
             EZO.RepairEquipped()

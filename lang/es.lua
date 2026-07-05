@@ -117,8 +117,6 @@ EZO_STRINGS_ES = {
     EZO_MENU_LEAVE_GROUP          = "Abandonar grupo",
     EZO_MENU_LEAVE_INSTANCE       = "Salir de instancia",
     EZO_MENU_LEAVE_GROUP_INSTANCE = "Abandonar grupo y salir de instancia",
-    EZO_MENU_DUNGEON_DIFFICULTY   = "Dificultad de instancia",
-    EZO_MENU_DUNGEON_DIFFICULTY_TO = "Cambiar dificultad de instancia: <<1>>",
     EZO_MENU_REPAIR               = "Reparar equipo (<= <<1>>%)",
     EZO_MENU_RECHARGE             = "Recargar armas (<= <<1>>%)",
     EZO_MENU_RELOAD               = "Recargar interfaz",
@@ -164,8 +162,6 @@ EZO_STRINGS_ES = {
     -- -------------------------------------------------------------------------
     EZO_MSG_NOT_IN_GROUP        = "No estás en un grupo.",
     EZO_MSG_CANT_JUMP_LEADER    = "No se puede saltar al líder desde aquí.",
-    EZO_MSG_DUNGEON_DIFFICULTY_CANT_CHANGE = "No puedes cambiar la dificultad de instancia desde aquí.",
-    EZO_MSG_DUNGEON_DIFFICULTY_CHANGED = "Dificultad de instancia cambiada a <<1>>.",
 
     -- -------------------------------------------------------------------------
     -- Mensajes de chat: mantenimiento
