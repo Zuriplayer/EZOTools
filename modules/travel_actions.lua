@@ -188,6 +188,12 @@ function EZO.CanChangeDungeonDifficulty()
         or type(CanPlayerChangeGroupDifficulty) ~= "function" then
         return false
     end
+    if type(IsUnitGrouped) ~= "function"
+        or type(IsUnitGroupLeader) ~= "function"
+        or not IsUnitGrouped("player")
+        or not IsUnitGroupLeader("player") then
+        return false
+    end
 
     local ok, canChange = pcall(CanPlayerChangeGroupDifficulty)
     return ok and canChange == true

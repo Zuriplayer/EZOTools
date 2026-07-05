@@ -60,6 +60,19 @@ end
 function A.BuildEntries()
     local entradas = {}
     local enCombate = JugadorEnCombate()
+    local enGrupo = JugadorEnGrupo()
+
+    -- Dificultad de instancia: primera entrada, solo para lider de grupo y si ESO lo permite.
+    if not enCombate
+        and EZO
+        and type(EZO.CanChangeDungeonDifficulty) == "function"
+        and EZO.CanChangeDungeonDifficulty()
+        and type(EZO.GetDungeonDifficultyMenuText) == "function"
+        and type(EZO.ToggleDungeonDifficulty) == "function" then
+        AgregarEntrada(entradas,
+            EZO.GetDungeonDifficultyMenuText,
+            function() return Trigger("TOGGLE_DUNGEON_DIFFICULTY") end)
+    end
 
     -- Viaje: casa principal del jugador (oculto en combate — el juego rechaza el viaje)
     if not enCombate then
@@ -114,7 +127,6 @@ function A.BuildEntries()
     end
 
     -- Acciones de grupo e instancia
-    local enGrupo     = JugadorEnGrupo()
     local enInstancia = JugadorEnInstancia()
 
     if enGrupo and type(EZO.LeaveGroup) == "function" then
@@ -131,16 +143,6 @@ function A.BuildEntries()
         AgregarEntrada(entradas,
             GetString(EZO_MENU_LEAVE_GROUP_INSTANCE),
             function() return Trigger("LEAVE_GROUP_AND_INSTANCE") end)
-    end
-    if not enCombate
-        and EZO
-        and type(EZO.CanChangeDungeonDifficulty) == "function"
-        and EZO.CanChangeDungeonDifficulty()
-        and type(EZO.GetDungeonDifficultyMenuText) == "function"
-        and type(EZO.ToggleDungeonDifficulty) == "function" then
-        AgregarEntrada(entradas,
-            EZO.GetDungeonDifficultyMenuText,
-            function() return Trigger("TOGGLE_DUNGEON_DIFFICULTY") end)
     end
 
     -- Mantenimiento: reparar equipo (solo si hay piezas por debajo del umbral)
