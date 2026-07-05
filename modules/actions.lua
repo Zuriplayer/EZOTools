@@ -62,11 +62,11 @@ function A.BuildEntries()
     local enCombate = JugadorEnCombate()
     local enGrupo = JugadorEnGrupo()
 
-    -- Dificultad de instancia: primera entrada, solo para lider de grupo y si ESO lo permite.
+    -- Dificultad de instancia: primera entrada, solo para lider de grupo.
     if not enCombate
         and EZO
-        and type(EZO.CanChangeDungeonDifficulty) == "function"
-        and EZO.CanChangeDungeonDifficulty()
+        and type(EZO.CanShowDungeonDifficultyOption) == "function"
+        and EZO.CanShowDungeonDifficultyOption()
         and type(EZO.GetDungeonDifficultyMenuText) == "function"
         and type(EZO.ToggleDungeonDifficulty) == "function" then
         AgregarEntrada(entradas,

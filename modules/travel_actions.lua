@@ -45,6 +45,7 @@ end
 
 function EZO.CanJumpToLeader()
     if not IsUnitGrouped or not IsUnitGrouped("player") then return false end
+    if type(IsUnitGroupLeader) == "function" and IsUnitGroupLeader("player") then return false end
     if GetGroupLeaderUnitTag and CanJumpToGroupMember then
         local leaderTag = GetGroupLeaderUnitTag()
         if leaderTag and leaderTag ~= "" then
@@ -99,6 +100,10 @@ end
 function EZO.JumpToLeader()
     if not IsUnitGrouped or not IsUnitGrouped("player") then
         Print(GetString(EZO_MSG_NOT_IN_GROUP))
+        return
+    end
+    if type(IsUnitGroupLeader) == "function" and IsUnitGroupLeader("player") then
+        Print(GetString(EZO_MSG_CANT_JUMP_LEADER))
         return
     end
 
@@ -183,20 +188,39 @@ local function GetDungeonDifficultyName(difficulty)
     return tostring(difficulty or "")
 end
 
-function EZO.CanChangeDungeonDifficulty()
-    if type(SetVeteranDifficulty) ~= "function"
-        or type(CanPlayerChangeGroupDifficulty) ~= "function" then
+local function PlayerIsGroupLeader()
+    return type(IsUnitGrouped) == "function"
+        and type(IsUnitGroupLeader) == "function"
+        and IsUnitGrouped("player")
+        and IsUnitGroupLeader("player")
+end
+
+local function GetDifficultyChangeState()
+    if type(CanPlayerChangeGroupDifficulty) ~= "function" then
+        return false, nil
+    end
+    local ok, canChange, reason = pcall(CanPlayerChangeGroupDifficulty)
+    if ok then
+        return canChange == true, reason
+    end
+    return false, nil
+end
+
+function EZO.CanShowDungeonDifficultyOption()
+    if type(SetVeteranDifficulty) ~= "function" then
         return false
     end
-    if type(IsUnitGrouped) ~= "function"
-        or type(IsUnitGroupLeader) ~= "function"
-        or not IsUnitGrouped("player")
-        or not IsUnitGroupLeader("player") then
+    return PlayerIsGroupLeader()
+end
+
+function EZO.CanChangeDungeonDifficulty()
+    if type(SetVeteranDifficulty) ~= "function"
+        or not PlayerIsGroupLeader() then
         return false
     end
 
-    local ok, canChange = pcall(CanPlayerChangeGroupDifficulty)
-    return ok and canChange == true
+    local canChange = GetDifficultyChangeState()
+    return canChange == true
 end
 
 function EZO.GetNextDungeonDifficulty()
@@ -220,7 +244,17 @@ function EZO.GetDungeonDifficultyMenuText()
 end
 
 function EZO.ToggleDungeonDifficulty()
-    if not EZO.CanChangeDungeonDifficulty() then
+    local canChange, reason = GetDifficultyChangeState()
+    if not PlayerIsGroupLeader()
+        or type(SetVeteranDifficulty) ~= "function"
+        or not canChange then
+        if reason ~= nil and type(GetString) == "function" then
+            local reasonText = GetString("SI_GROUPDIFFICULTYCHANGEREASON", reason)
+            if reasonText and reasonText ~= "" then
+                Print(zo_strformat(GetString(EZO_MSG_DUNGEON_DIFFICULTY_CANT_CHANGE_REASON), reasonText))
+                return false
+            end
+        end
         Print(GetString(EZO_MSG_DUNGEON_DIFFICULTY_CANT_CHANGE))
         return false
     end

@@ -165,6 +165,7 @@ EZO_STRINGS_ES = {
     EZO_MSG_NOT_IN_GROUP        = "No estás en un grupo.",
     EZO_MSG_CANT_JUMP_LEADER    = "No se puede saltar al líder desde aquí.",
     EZO_MSG_DUNGEON_DIFFICULTY_CANT_CHANGE = "No puedes cambiar la dificultad de instancia desde aquí.",
+    EZO_MSG_DUNGEON_DIFFICULTY_CANT_CHANGE_REASON = "No puedes cambiar la dificultad de instancia desde aquí: <<1>>",
     EZO_MSG_DUNGEON_DIFFICULTY_CHANGED = "Dificultad de instancia cambiada a <<1>>.",
 
     -- -------------------------------------------------------------------------
