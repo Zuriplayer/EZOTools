@@ -118,6 +118,8 @@ EZO_STRINGS_EN = {
     EZO_MENU_LEAVE_GROUP          = "Leave group",
     EZO_MENU_LEAVE_INSTANCE       = "Leave instance",
     EZO_MENU_LEAVE_GROUP_INSTANCE = "Leave group & instance",
+    EZO_MENU_DUNGEON_DIFFICULTY   = "Instance difficulty",
+    EZO_MENU_DUNGEON_DIFFICULTY_TO = "Set instance difficulty: <<1>>",
     EZO_MENU_REPAIR               = "Repair equipped (<= <<1>>%)",
     EZO_MENU_RECHARGE             = "Recharge weapons (<= <<1>>%)",
     EZO_MENU_RELOAD               = "Reload UI",
@@ -163,6 +165,8 @@ EZO_STRINGS_EN = {
     -- -------------------------------------------------------------------------
     EZO_MSG_NOT_IN_GROUP        = "You are not in a group.",
     EZO_MSG_CANT_JUMP_LEADER    = "Cannot jump to group leader from here.",
+    EZO_MSG_DUNGEON_DIFFICULTY_CANT_CHANGE = "You cannot change instance difficulty from here.",
+    EZO_MSG_DUNGEON_DIFFICULTY_CHANGED = "Instance difficulty set to <<1>>.",
 
     -- -------------------------------------------------------------------------
     -- Chat messages: maintenance

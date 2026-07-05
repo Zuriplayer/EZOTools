@@ -12,6 +12,7 @@ Un panel de comandos rápido y un pequeño overlay en pantalla, para teclado, ra
 
 - Viajar a tu casa, sala de artesanía o secundaria
 - Saltar al líder del grupo, abandonar grupo/instancia
+- Cambiar la dificultad de instancia entre Normal y Veterano cuando ESO lo permite
 - Reparar el equipo o recargar armas cuando algo está realmente bajo
 - Recuperar tu última montura, mascota, compañero o asistente, con historial reciente
 - Seguimiento del buff de comida/bebida y reutilizarlo con un clic
@@ -51,7 +52,7 @@ Incluye si puedes: versión del addon, idioma del cliente de ESO, pasos para rep
 
 ## Estado
 
-Versión actual: **2.0.0** — beta pública.
+Versión actual: **2.0.2** — beta pública.
 
 ## Licencia
 

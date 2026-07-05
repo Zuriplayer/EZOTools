@@ -150,3 +150,82 @@ function EZO.LeaveGroupAndInstance()
     end
     return done
 end
+
+local function GetEffectiveDungeonDifficulty()
+    if type(ZO_GetEffectiveDungeonDifficulty) == "function" then
+        local ok, difficulty = pcall(ZO_GetEffectiveDungeonDifficulty)
+        if ok then
+            return difficulty
+        end
+    end
+
+    if type(IsUnitGrouped) == "function"
+        and IsUnitGrouped("player")
+        and type(IsGroupUsingVeteranDifficulty) == "function" then
+        return IsGroupUsingVeteranDifficulty()
+            and DUNGEON_DIFFICULTY_VETERAN
+            or DUNGEON_DIFFICULTY_NORMAL
+    end
+
+    if type(IsUnitUsingVeteranDifficulty) == "function" then
+        return IsUnitUsingVeteranDifficulty("player")
+            and DUNGEON_DIFFICULTY_VETERAN
+            or DUNGEON_DIFFICULTY_NORMAL
+    end
+
+    return nil
+end
+
+local function GetDungeonDifficultyName(difficulty)
+    if type(GetString) == "function" and difficulty ~= nil then
+        return GetString("SI_DUNGEONDIFFICULTY", difficulty)
+    end
+    return tostring(difficulty or "")
+end
+
+function EZO.CanChangeDungeonDifficulty()
+    if type(SetVeteranDifficulty) ~= "function"
+        or type(CanPlayerChangeGroupDifficulty) ~= "function" then
+        return false
+    end
+
+    local ok, canChange = pcall(CanPlayerChangeGroupDifficulty)
+    return ok and canChange == true
+end
+
+function EZO.GetNextDungeonDifficulty()
+    local current = GetEffectiveDungeonDifficulty()
+    if current == DUNGEON_DIFFICULTY_VETERAN then
+        return DUNGEON_DIFFICULTY_NORMAL
+    end
+    if current == DUNGEON_DIFFICULTY_NORMAL then
+        return DUNGEON_DIFFICULTY_VETERAN
+    end
+    return nil
+end
+
+function EZO.GetDungeonDifficultyMenuText()
+    local nextDifficulty = EZO.GetNextDungeonDifficulty()
+    if nextDifficulty == nil then
+        return GetString(EZO_MENU_DUNGEON_DIFFICULTY)
+    end
+    return zo_strformat(GetString(EZO_MENU_DUNGEON_DIFFICULTY_TO),
+        GetDungeonDifficultyName(nextDifficulty))
+end
+
+function EZO.ToggleDungeonDifficulty()
+    if not EZO.CanChangeDungeonDifficulty() then
+        Print(GetString(EZO_MSG_DUNGEON_DIFFICULTY_CANT_CHANGE))
+        return false
+    end
+
+    local nextDifficulty = EZO.GetNextDungeonDifficulty()
+    if nextDifficulty == nil then
+        return false
+    end
+
+    SetVeteranDifficulty(nextDifficulty == DUNGEON_DIFFICULTY_VETERAN)
+    Print(zo_strformat(GetString(EZO_MSG_DUNGEON_DIFFICULTY_CHANGED),
+        GetDungeonDifficultyName(nextDifficulty)))
+    return true
+end

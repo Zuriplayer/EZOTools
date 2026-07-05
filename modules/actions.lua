@@ -132,6 +132,16 @@ function A.BuildEntries()
             GetString(EZO_MENU_LEAVE_GROUP_INSTANCE),
             function() return Trigger("LEAVE_GROUP_AND_INSTANCE") end)
     end
+    if not enCombate
+        and EZO
+        and type(EZO.CanChangeDungeonDifficulty) == "function"
+        and EZO.CanChangeDungeonDifficulty()
+        and type(EZO.GetDungeonDifficultyMenuText) == "function"
+        and type(EZO.ToggleDungeonDifficulty) == "function" then
+        AgregarEntrada(entradas,
+            EZO.GetDungeonDifficultyMenuText,
+            function() return Trigger("TOGGLE_DUNGEON_DIFFICULTY") end)
+    end
 
     -- Mantenimiento: reparar equipo (solo si hay piezas por debajo del umbral)
     -- El umbral se lee una sola vez y se pasa al texto del menú
