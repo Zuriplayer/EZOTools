@@ -52,7 +52,7 @@ Incluye si puedes: versión del addon, idioma del cliente de ESO, pasos para rep
 
 ## Estado
 
-Versión actual: **2.0.4** — rama experimental.
+Versión actual: **2.0.5** — rama experimental.
 
 ## Licencia
 
