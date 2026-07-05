@@ -719,7 +719,7 @@ end
 
 function MOD.ReuseRecordedFood(options)
     local foodInfoAntes = MOD.GetBuffInfo()
-    local bagId, slotIndex, itemName, itemLink, quality, effectDescription = MOD.FindRecordedFood()
+    local bagId, slotIndex, itemName, _itemLink, quality, effectDescription = MOD.FindRecordedFood()
     if not bagId or slotIndex == nil then
         EmitirDebugComida(GetString(EZO_MSG_DEBUG_FOOD_NO_RECORDED))
         return false

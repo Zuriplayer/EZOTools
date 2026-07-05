@@ -505,7 +505,7 @@ end
 local function EjecutarAccionWidget(side, index, data, button)
     if type(data) ~= "table" then return end
 
-    local handler = nil
+    local handler
     if button == MOUSE_BUTTON_INDEX_RIGHT then
         handler = data.secondaryHandler
     else
@@ -990,7 +990,7 @@ local function AsegurarControles()
             EZO.Print(GetString(activo and msgOcultarId or msgInvocarId))
         end
 
-        local ok = false
+        local ok
         if activo then
             ok = ocultarFn()
         else

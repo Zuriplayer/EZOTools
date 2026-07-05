@@ -97,7 +97,7 @@ local function EjecutarAccionAliado(key, msgOcultarId, msgInvocarId)
         _G.EZOTools.Print(GetString(activo and msgOcultarId or msgInvocarId))
     end
 
-    local ok = false
+    local ok
     if activo then
         ok = type(provider.HideActive) == "function" and provider.HideActive(key) or false
     else

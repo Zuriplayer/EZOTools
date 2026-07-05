@@ -271,8 +271,6 @@ function EZO:Initialize()
 
 end
 
--- EZOTools.OpenOverlayMenu eliminado (keybind EZO_OPEN_OVERLAY_MENU eliminado en v3.7.5)
-
 -- ============================================================
 -- Registro de eventos principales
 -- ============================================================
@@ -307,8 +305,6 @@ function EZOTools.ReloadUIBinding() ReloadUI() end
 function EZOTools.ToggleOverlay()
     if EZOTools_Overlay and EZOTools_Overlay.Toggle then EZOTools_Overlay.Toggle() end
 end
-
--- EZOTools.ToggleGamepadStyle eliminado (keybind EZO_TOGGLE_GAMEPAD_STYLE eliminado en v3.7.5)
 
 -- ============================================================
 -- Comandos de chat (/ezo, /ezotools)
@@ -387,7 +383,7 @@ local function _manejadorSlash(arg)
     _mostrarAyudaPrincipal()
 end
 
-function EZO:RegisterSlashCommands()
+function EZO.RegisterSlashCommands(_self)
     -- Preferir LibSlashCommander si está disponible (autocompletado y mejor UX)
     if LibSlashCommander and LibSlashCommander.Register then
         LibSlashCommander:Register({"/ezo", "/ezotools"}, _manejadorSlash, "EZOTools")

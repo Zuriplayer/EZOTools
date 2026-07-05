@@ -59,7 +59,7 @@ local function RecopilarAcciones()
     return acciones
 end
 
-local function PrepararCallback(entry, cb, dialog, closeCurrent)
+local function PrepararCallback(entry, cb, _dialog, closeCurrent)
     if type(entry.name) == "string" and entry.name == GetString(EZO_MENU_SETTINGS)
         and type(cb) == "function" then
         local cbOriginal = cb

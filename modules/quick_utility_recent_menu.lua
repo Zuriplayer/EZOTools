@@ -12,7 +12,7 @@ local function AddEntry(label, onSelect, tooltipText, enabled, onEnter, onExit)
     end
     label = NormalizarTextoTooltip(label)
 
-    local index = nil
+    local index
     if type(AddCustomMenuItem) == "function" then
         index = AddCustomMenuItem(label, onSelect, MENU_ADD_OPTION_LABEL, nil, nil, nil, nil, nil, nil, onEnter, onExit, enabled ~= false)
     elseif type(AddMenuItem) == "function" then

@@ -178,7 +178,7 @@ local function GuardarCasaPropiaEnHistorial(houseId)
     }
 
     for _, entry in ipairs(history) do
-        local oldHouseId = nil
+        local oldHouseId
         local oldName = ""
         if type(entry) == "table" then
             oldHouseId = tonumber(entry.houseId) or 0
