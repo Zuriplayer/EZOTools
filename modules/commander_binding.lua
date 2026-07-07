@@ -71,6 +71,22 @@ function EZO.ToggleUtilityPanel()
     return manager.Toggle("utility")
 end
 
+function EZO.ToggleGroupActivitiesPanel()
+    if EstaJugadorEnCombate() then
+        return false
+    end
+    local manager = ObtenerManager()
+    if not (manager and type(manager.Toggle) == "function") then
+        AvisarNoDisponible(EZO_MSG_GROUP_ACTIVITIES_PANEL_MISSING)
+        return
+    end
+    return manager.Toggle("groupActivities")
+end
+
+function EZO.ToggleTrialTravelPanel()
+    return EZO.ToggleGroupActivitiesPanel()
+end
+
 -- Keybind de ejecucion dedicado para cuando un dialogo lateral ya esta abierto.
 function EZO.ExecuteCommandPanelSelection()
     return EZO.ActivateVisibleDialogSelection()

@@ -62,6 +62,19 @@ function EZOTools_ContextMenu.OpenMouse(anchor)
                     return true
                 end
 
+                if (e.key == "groupActivities")
+                    and EZOTools and EZOTools.RaidLeaderActivitiesDialog
+                    and type(EZOTools.RaidLeaderActivitiesDialog.OpenMouse) == "function" then
+                    if zo_callLater then
+                        zo_callLater(function()
+                            EZOTools.RaidLeaderActivitiesDialog.OpenMouse(anchor)
+                        end, 10)
+                    else
+                        EZOTools.RaidLeaderActivitiesDialog.OpenMouse(anchor)
+                    end
+                    return true
+                end
+
                 local ok, retOrErr = pcall(e.callback or function() end)
                 local mantenerAbierto = (ok and retOrErr == true) or false
                 if not ok then

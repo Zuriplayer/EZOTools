@@ -20,6 +20,7 @@ EZO_STRINGS_EN = {
     SI_BINDING_NAME_EZO_LEAVE_GROUP_INSTANCE    = "Leave Group and Instance",
     SI_BINDING_NAME_EZO_RELOAD_UI               = "Reload UI",
     SI_BINDING_NAME_EZO_TOGGLE_UTILITY_PANEL    = "Open Utility Panel",
+    SI_BINDING_NAME_EZO_TOGGLE_GROUP_ACTIVITIES_PANEL = "Open Group Activities Panel",
 
     -- -------------------------------------------------------------------------
     -- General addon messages
@@ -118,6 +119,12 @@ EZO_STRINGS_EN = {
     EZO_MENU_LEAVE_GROUP          = "Leave group",
     EZO_MENU_LEAVE_INSTANCE       = "Leave instance",
     EZO_MENU_LEAVE_GROUP_INSTANCE = "Leave group & instance",
+    EZO_MENU_GROUP_ACTIVITIES     = "Group activities",
+    EZO_MENU_GROUP_ACTIVITIES_TITLE = "Group Activities",
+    EZO_MENU_TRIAL_TRAVEL         = "Trial travel (Veteran)",
+    EZO_MENU_TRIAL_TRAVEL_TITLE   = "Trials (Veteran)",
+    EZO_MENU_TRIAL_TRAVEL_LAST    = "Last trial: <<1>>",
+    EZO_MENU_TRIAL_TRAVEL_LAST_NONE = "Last trial: none",
     EZO_MENU_DUNGEON_DIFFICULTY   = "Instance difficulty",
     EZO_MENU_DUNGEON_DIFFICULTY_TO = "Set instance difficulty: <<1>>",
     EZO_MENU_REPAIR               = "Repair equipped (<= <<1>>%)",
@@ -168,6 +175,11 @@ EZO_STRINGS_EN = {
     EZO_MSG_DUNGEON_DIFFICULTY_CANT_CHANGE = "You cannot change instance difficulty from here.",
     EZO_MSG_DUNGEON_DIFFICULTY_CANT_CHANGE_REASON = "You cannot change instance difficulty from here: <<1>>",
     EZO_MSG_DUNGEON_DIFFICULTY_CHANGED = "Instance difficulty set to <<1>>.",
+    EZO_MSG_TRIAL_TRAVEL_START = "Traveling to <<1>>.",
+    EZO_MSG_TRIAL_TRAVEL_NODE_MISSING = "Fast travel node not found for <<1>>. Discover it first, or add its node name as an alias after checking it in game.",
+    EZO_MSG_TRIAL_TRAVEL_UNAVAILABLE = "Fast travel is not available from this context.",
+    EZO_MSG_TRIAL_TRAVEL_VETERAN_BLOCKED = "Veteran mode could not be set from here. Travel will still be attempted.",
+    EZO_MSG_TRIAL_TRAVEL_VETERAN_BLOCKED_REASON = "Veteran mode could not be set from here: <<1>>. Travel will still be attempted.",
 
     -- -------------------------------------------------------------------------
     -- Chat messages: maintenance
@@ -186,6 +198,8 @@ EZO_STRINGS_EN = {
     EZO_MSG_CANT_OPEN_COMBAT    = "Cannot open settings while in combat.",
     EZO_MSG_CMD_PANEL_MISSING   = "Command Panel not available.",
     EZO_MSG_UTILITY_PANEL_MISSING = "Utility Panel not available.",
+    EZO_MSG_GROUP_ACTIVITIES_PANEL_MISSING = "Group activities panel not available.",
+    EZO_MSG_TRIAL_PANEL_MISSING = "Trial travel panel not available.",
     EZO_MSG_MENU_CALLBACK_FAILED = "Menu debug: failed to run option: <<1>>",
     EZO_MSG_DEBUG_VIEWER_UNAVAILABLE = "Technical viewer is not available.",
     EZO_MSG_DEBUG_LOGGER_UNAVAILABLE = "Technical diagnostics are not available; no report was generated.",

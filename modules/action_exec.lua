@@ -56,6 +56,40 @@ function X.RegisterCore()
         return false
     end)
 
+    -- Actividades de grupo/trial/dungeon (submenú)
+    X.Register("OPEN_GROUP_ACTIVITIES", function(ctx)
+        local activitiesDialog = EZO and EZO.RaidLeaderActivitiesDialog
+        if type(activitiesDialog) ~= "table" then return false end
+
+        if ctx and ctx.source == "MOUSE" and type(activitiesDialog.OpenMouse) == "function" then
+            return activitiesDialog.OpenMouse(ctx.anchor)
+        end
+        if type(activitiesDialog.OpenGamepad) == "function" then
+            return activitiesDialog.OpenGamepad()
+        end
+        if type(activitiesDialog.Open) == "function" then
+            return activitiesDialog.Open()
+        end
+        return false
+    end)
+
+    -- Viajes a trials en veterano (submenú hijo)
+    X.Register("OPEN_TRIAL_TRAVEL", function(ctx)
+        local trialDialog = EZO and EZO.RaidLeaderTrialsDialog
+        if type(trialDialog) ~= "table" then return false end
+
+        if ctx and ctx.source == "MOUSE" and type(trialDialog.OpenMouse) == "function" then
+            return trialDialog.OpenMouse(ctx.anchor)
+        end
+        if type(trialDialog.OpenGamepad) == "function" then
+            return trialDialog.OpenGamepad()
+        end
+        if type(trialDialog.Open) == "function" then
+            return trialDialog.Open()
+        end
+        return false
+    end)
+
     -- Ajustes completos del addon via LibAddonMenu
     X.Register("OPEN_ADDON_SETTINGS", function()
         if type(IsUnitInCombat) == "function" and IsUnitInCombat("player") then

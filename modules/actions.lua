@@ -62,7 +62,18 @@ function A.BuildEntries()
     local enCombate = JugadorEnCombate()
     local enGrupo = JugadorEnGrupo()
 
-    -- Dificultad de instancia: primera entrada, solo para lider de grupo.
+    -- Actividades de grupo/trial/dungeon: disponible fuera de combate.
+    if not enCombate
+        and EZO
+        and EZO.RaidLeaderActivitiesDialog
+        and type(EZO.RaidLeaderActivitiesDialog.OpenGamepad) == "function" then
+        AgregarEntrada(entradas,
+            GetString(EZO_MENU_GROUP_ACTIVITIES),
+            function() return Trigger("OPEN_GROUP_ACTIVITIES") end,
+            "groupActivities")
+    end
+
+    -- Dificultad de instancia: solo para lider de grupo.
     if not enCombate
         and EZO
         and type(EZO.CanShowDungeonDifficultyOption) == "function"

@@ -287,12 +287,19 @@ end)
 -- Se mantiene registrado permanentemente porque el overlay puede necesitar actualizarse
 -- al volver de una instancia, cambiar de zona, etc.
 EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED, function()
-    if EZOTools_Overlay and EZOTools_Overlay.Refresh then
-        EZOTools_Overlay.Refresh()
+    local function refrescarOverlay()
+        if EZOTools_Overlay and EZOTools_Overlay.Refresh then
+            EZOTools_Overlay.Refresh()
+        end
+        -- Refrescar dot al activar — EVENT_INVENTORY_SINGLE_SLOT_UPDATE cubre cambios en tiempo real
+        if EZOTools_Overlay and EZOTools_Overlay.RefreshDot then
+            EZOTools_Overlay.RefreshDot()
+        end
     end
-    -- Refrescar dot al activar — EVENT_INVENTORY_SINGLE_SLOT_UPDATE cubre cambios en tiempo real
-    if EZOTools_Overlay and EZOTools_Overlay.RefreshDot then
-        EZOTools_Overlay.RefreshDot()
+    refrescarOverlay()
+    if type(zo_callLater) == "function" then
+        zo_callLater(refrescarOverlay, 500)
+        zo_callLater(refrescarOverlay, 1500)
     end
 end)
 
@@ -414,4 +421,16 @@ function EZOTools_ToggleUtilityPanel()
         return ezo.ToggleUtilityPanel()
     end
     safeChat(GetString(EZO_MSG_UTILITY_PANEL_MISSING))
+end
+
+function EZOTools_ToggleGroupActivitiesPanel()
+    local ezo = _G.EZOTools
+    if type(ezo) == "table" and type(ezo.ToggleGroupActivitiesPanel) == "function" then
+        return ezo.ToggleGroupActivitiesPanel()
+    end
+    safeChat(GetString(EZO_MSG_GROUP_ACTIVITIES_PANEL_MISSING))
+end
+
+function EZOTools_ToggleTrialTravelPanel()
+    return EZOTools_ToggleGroupActivitiesPanel()
 end

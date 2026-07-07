@@ -171,9 +171,14 @@ local function RefrescarTexturaLogoCentral()
     if not overlayTex then return end
     local guildOverlay = EZOTools_GuildOverlay
     if not (guildOverlay and type(guildOverlay.GetCentralTexturePaths) == "function") then
+        overlayTex:SetHidden(false)
+        overlayTex:SetColor(1, 1, 1, 1)
+        overlayTex:SetTexture("/AddOns/EZOTools/media/ezotools_logo.dds")
         return
     end
     local rutasPrimarias, rutasFallback = guildOverlay.GetCentralTexturePaths()
+    overlayTex:SetHidden(false)
+    overlayTex:SetColor(1, 1, 1, 1)
     AplicarTexturaConFallback(overlayTex, rutasPrimarias, rutasFallback)
 end
 
@@ -1190,6 +1195,11 @@ local function ActualizarVisibilidad()
         or (EZO.sv.overlay.hideInCombat and enCombate)
     if not enHUD then
         oculto = true
+    end
+    if not oculto then
+        RefrescarTexturaLogoCentral()
+        RefrescarEtiquetaGuild()
+        AplicarEscalaVisual()
     end
     overlayWin:SetHidden(oculto)
     if oculto then

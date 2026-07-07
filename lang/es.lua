@@ -19,6 +19,7 @@ EZO_STRINGS_ES = {
     SI_BINDING_NAME_EZO_LEAVE_GROUP_INSTANCE    = "Salir del grupo y de la instancia",
     SI_BINDING_NAME_EZO_RELOAD_UI               = "Recargar interfaz",
     SI_BINDING_NAME_EZO_TOGGLE_UTILITY_PANEL    = "Abrir panel de utilidades",
+    SI_BINDING_NAME_EZO_TOGGLE_GROUP_ACTIVITIES_PANEL = "Abrir panel de actividades de grupo",
 
     -- -------------------------------------------------------------------------
     -- Mensajes generales del addon
@@ -117,6 +118,12 @@ EZO_STRINGS_ES = {
     EZO_MENU_LEAVE_GROUP          = "Abandonar grupo",
     EZO_MENU_LEAVE_INSTANCE       = "Salir de instancia",
     EZO_MENU_LEAVE_GROUP_INSTANCE = "Abandonar grupo y salir de instancia",
+    EZO_MENU_GROUP_ACTIVITIES     = "Actividades de grupo",
+    EZO_MENU_GROUP_ACTIVITIES_TITLE = "Actividades de grupo",
+    EZO_MENU_TRIAL_TRAVEL         = "Viajar a trials (Veterano)",
+    EZO_MENU_TRIAL_TRAVEL_TITLE   = "Trials (Veterano)",
+    EZO_MENU_TRIAL_TRAVEL_LAST    = "Última trial: <<1>>",
+    EZO_MENU_TRIAL_TRAVEL_LAST_NONE = "Última trial: ninguna",
     EZO_MENU_DUNGEON_DIFFICULTY   = "Dificultad de instancia",
     EZO_MENU_DUNGEON_DIFFICULTY_TO = "Cambiar dificultad de instancia: <<1>>",
     EZO_MENU_REPAIR               = "Reparar equipo (<= <<1>>%)",
@@ -167,6 +174,11 @@ EZO_STRINGS_ES = {
     EZO_MSG_DUNGEON_DIFFICULTY_CANT_CHANGE = "No puedes cambiar la dificultad de instancia desde aquí.",
     EZO_MSG_DUNGEON_DIFFICULTY_CANT_CHANGE_REASON = "No puedes cambiar la dificultad de instancia desde aquí: <<1>>",
     EZO_MSG_DUNGEON_DIFFICULTY_CHANGED = "Dificultad de instancia cambiada a <<1>>.",
+    EZO_MSG_TRIAL_TRAVEL_START = "Viajando a <<1>>.",
+    EZO_MSG_TRIAL_TRAVEL_NODE_MISSING = "No se encontró el nodo de viaje rápido para <<1>>. Descúbrelo primero o añade su nombre como alias tras comprobarlo en juego.",
+    EZO_MSG_TRIAL_TRAVEL_UNAVAILABLE = "El viaje rápido no está disponible desde este contexto.",
+    EZO_MSG_TRIAL_TRAVEL_VETERAN_BLOCKED = "No se pudo activar modo veterano desde aquí. Se intentará viajar igualmente.",
+    EZO_MSG_TRIAL_TRAVEL_VETERAN_BLOCKED_REASON = "No se pudo activar modo veterano desde aquí: <<1>>. Se intentará viajar igualmente.",
 
     -- -------------------------------------------------------------------------
     -- Mensajes de chat: mantenimiento
@@ -185,6 +197,8 @@ EZO_STRINGS_ES = {
     EZO_MSG_CANT_OPEN_COMBAT    = "No se pueden abrir ajustes en combate.",
     EZO_MSG_CMD_PANEL_MISSING   = "Panel de comandos no disponible.",
     EZO_MSG_UTILITY_PANEL_MISSING = "Panel de utilidades no disponible.",
+    EZO_MSG_GROUP_ACTIVITIES_PANEL_MISSING = "Panel de actividades de grupo no disponible.",
+    EZO_MSG_TRIAL_PANEL_MISSING = "Panel de viaje a trials no disponible.",
     EZO_MSG_MENU_CALLBACK_FAILED = "Debug menú: error al ejecutar una opción: <<1>>",
     EZO_MSG_DEBUG_VIEWER_UNAVAILABLE = "Visor técnico no disponible.",
     EZO_MSG_DEBUG_LOGGER_UNAVAILABLE = "Diagnóstico técnico no disponible; no se ha generado reporte.",

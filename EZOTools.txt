@@ -1,8 +1,8 @@
 ## Title: E|cB040FFZ|rOTools
 ## Author: @Zuriplayer
 ## Description: Quick command panel and HUD overlay for keyboard, mouse and gamepad. Travel and group actions, ally recall with history (mount, pet, companion, assistant), food buff tracking, repair/recharge helpers and low stock alerts. English and Spanish.
-## Version: 2.0.5
-## AddOnVersion: 10075
+## Version: 2.0.10
+## AddOnVersion: 10080
 ## APIVersion: 101049 101050
 ## DependsOn: LibAddonMenu-2.0
 ## OptionalDependsOn: LibChatMessage LibDebugLogger DebugLogViewer LibSlashCommander
@@ -30,6 +30,8 @@ modules/quick_utility_preview.lua
 modules/quick_utility_recent_menu.lua
 modules/side_menu_navigation.lua
 modules/side_menu_core.lua
+modules/raid_leader_activities_dialog.lua
+modules/raid_leader_trials_dialog.lua
 modules/lam_registry.lua
 modules/action_exec.lua
 modules/input_router.lua
