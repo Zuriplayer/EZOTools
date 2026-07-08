@@ -12,6 +12,24 @@ Dialog.DIALOG_NAME = NOMBRE_DIALOGO
 
 local ConstruirSubtituloDialogo = EZOTools_ConstruirSubtituloDialogo
 
+local function EmitirDiagnosticoAperturaTrial(stage, detail)
+    if not (EZO and EZO.Debug and type(EZO.Debug.EmitReport) == "function") then
+        return
+    end
+
+    local trialDialog = EZO and EZO.RaidLeaderTrialsDialog
+    local lines = {
+        "=== EZOTools group activities ===",
+        "stage=" .. tostring(stage or ""),
+        "detail=" .. tostring(detail or ""),
+        "activities.isShowing=" .. tostring(type(Dialog.IsShowing) == "function" and Dialog.IsShowing() or ""),
+        "trialDialog.exists=" .. tostring(type(trialDialog) == "table"),
+        "trialDialog.openFunction=" .. tostring(type(trialDialog) == "table" and type(trialDialog.Open) == "function"),
+        "================================",
+    }
+    EZO.Debug.EmitReport(GetString(EZO_DEBUG_GROUP_ACTIVITIES_TITLE), lines, { force = true })
+end
+
 local function AbrirDialogoPrincipal()
     local main = EZO and EZO.GamepadDialog
     if main and type(main.Open) == "function" then
@@ -24,24 +42,81 @@ local function AbrirDialogoPrincipal()
 end
 
 local function AbrirViajeTrials()
-    Dialog.Close()
     local trialDialog = EZO and EZO.RaidLeaderTrialsDialog
     if trialDialog and type(trialDialog.Open) == "function" then
+        EmitirDiagnosticoAperturaTrial("open-request", "trial dialog available")
         if zo_callLater then
-            zo_callLater(function() pcall(function() trialDialog.Open() end) end, 150)
+            zo_callLater(function()
+                local ok, err = pcall(function() trialDialog.Open() end)
+                EmitirDiagnosticoAperturaTrial("open-called", ok and "ok" or tostring(err or "error"))
+            end, 150)
         else
-            pcall(function() trialDialog.Open() end)
+            local ok, err = pcall(function() trialDialog.Open() end)
+            EmitirDiagnosticoAperturaTrial("open-called", ok and "ok" or tostring(err or "error"))
         end
+    else
+        EmitirDiagnosticoAperturaTrial("open-missing", "trial dialog unavailable")
     end
+    return false
+end
+
+local function ResolverTexto(valor)
+    if type(valor) == "function" then
+        local ok, texto = pcall(valor)
+        if ok then return tostring(texto) end
+        return "Item"
+    end
+    return tostring(valor or "Item")
+end
+
+local function PuedeMostrarCambioDificultad()
+    return EZO
+        and type(EZO.CanShowDungeonDifficultyOption) == "function"
+        and EZO.CanShowDungeonDifficultyOption()
+        and type(EZO.GetDungeonDifficultyMenuText) == "function"
+        and type(EZO.ToggleDungeonDifficulty) == "function"
+end
+
+local function CambiarDificultadInstancia()
+    if EZO and type(EZO.ToggleDungeonDifficulty) == "function" then
+        return EZO.ToggleDungeonDifficulty()
+    end
+    return false
 end
 
 local function ConstruirEntradas()
     local entradas = {}
 
+    if EZO and EZO.RaidLeaderStatus and type(EZO.RaidLeaderStatus.Show) == "function" then
+        entradas[#entradas + 1] = {
+            text = GetString(EZO_MENU_GROUP_STATUS),
+            callback = function() return EZO.RaidLeaderStatus.Show() end,
+        }
+    end
+
+    if PuedeMostrarCambioDificultad() then
+        entradas[#entradas + 1] = {
+            text = EZO.GetDungeonDifficultyMenuText,
+            callback = CambiarDificultadInstancia,
+        }
+    end
+
     if EZO and EZO.RaidLeaderTrialsDialog and type(EZO.RaidLeaderTrialsDialog.Open) == "function" then
         entradas[#entradas + 1] = {
             text = GetString(EZO_MENU_TRIAL_TRAVEL),
             callback = AbrirViajeTrials,
+            key = "trialTravel",
+        }
+    end
+
+    if EZO and EZO.RaidLeaderTools
+        and type(EZO.RaidLeaderTools.CanDisbandGroup) == "function"
+        and EZO.RaidLeaderTools.CanDisbandGroup()
+        and type(EZO.RaidLeaderTools.DisbandGroup) == "function" then
+        entradas[#entradas + 1] = {
+            text = GetString(EZO_MENU_DISBAND_GROUP),
+            callback = function() return EZO.RaidLeaderTools.DisbandGroup() end,
+            key = "disbandGroup",
         }
     end
 
@@ -69,6 +144,20 @@ if Core and type(Core.CreateDialog) == "function" then
         buildEntries = ConstruirEntradas,
         dynamicText = true,
         trackActiveDialog = true,
+        prepareCallback = function(entry, cb, _, closeCurrent)
+            if entry and entry.key == "trialTravel" and type(cb) == "function" then
+                return function()
+                    EmitirDiagnosticoAperturaTrial("prepare", "closing group activities before trial travel")
+                    closeCurrent()
+                    if zo_callLater then
+                        zo_callLater(function() pcall(cb) end, 200)
+                    else
+                        pcall(cb)
+                    end
+                end
+            end
+            return cb
+        end,
         onNegative = function(_, _, closeCurrent)
             closeCurrent()
             AbrirDialogoPrincipal()
@@ -100,6 +189,26 @@ function Dialog.OpenMouse(anchor)
 
     if ClearMenu then ClearMenu() end
 
+    if EZO and EZO.RaidLeaderStatus and type(EZO.RaidLeaderStatus.Show) == "function" then
+        AddMenuItem(GetString(EZO_MENU_GROUP_STATUS), function()
+            local ok = pcall(function() EZO.RaidLeaderStatus.Show() end)
+            if not ok then return false end
+            if HideMenu then HideMenu() end
+            if EZO then EZO._contextMenuOpen = false end
+            return false
+        end)
+    end
+
+    if PuedeMostrarCambioDificultad() then
+        AddMenuItem(ResolverTexto(EZO.GetDungeonDifficultyMenuText), function()
+            local ok = pcall(CambiarDificultadInstancia)
+            if not ok then return false end
+            if HideMenu then HideMenu() end
+            if EZO then EZO._contextMenuOpen = false end
+            return false
+        end)
+    end
+
     if EZO and EZO.RaidLeaderTrialsDialog and type(EZO.RaidLeaderTrialsDialog.OpenMouse) == "function" then
         AddMenuItem(GetString(EZO_MENU_TRIAL_TRAVEL), function()
             if zo_callLater then
@@ -110,6 +219,19 @@ function Dialog.OpenMouse(anchor)
                 EZO.RaidLeaderTrialsDialog.OpenMouse(anchor, "groupActivities")
             end
             return true
+        end)
+    end
+
+    if EZO and EZO.RaidLeaderTools
+        and type(EZO.RaidLeaderTools.CanDisbandGroup) == "function"
+        and EZO.RaidLeaderTools.CanDisbandGroup()
+        and type(EZO.RaidLeaderTools.DisbandGroup) == "function" then
+        AddMenuItem(GetString(EZO_MENU_DISBAND_GROUP), function()
+            local ok = pcall(function() EZO.RaidLeaderTools.DisbandGroup() end)
+            if not ok then return false end
+            if HideMenu then HideMenu() end
+            if EZO then EZO._contextMenuOpen = false end
+            return false
         end)
     end
 

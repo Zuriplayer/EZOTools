@@ -15,8 +15,8 @@ local function safeChat(msg)
     end
 end
 
-function EZO.DebugLog(msg)
-    if not EZO.IsDebugModeEnabled() then
+function EZO.DebugLog(msg, force)
+    if not force and not EZO.IsDebugModeEnabled() then
         return false
     end
     local lib = _G.LibDebugLogger
@@ -54,30 +54,36 @@ function EZO.DebugLog(msg)
         end)
     end
 
+    if type(logger.SetLogTracesOverride) == "function" then
+        pcall(function()
+            logger:SetLogTracesOverride(false)
+        end)
+    end
+
     if type(logger.Debug) == "function" then
         return pcall(function()
-            logger:Debug(tostring(msg))
+            logger:Debug("%s", tostring(msg))
         end)
     end
 
     if type(logger.Log) == "function" and type(lib) == "table" and lib.LOG_LEVEL_DEBUG ~= nil then
         return pcall(function()
-            logger:Log(lib.LOG_LEVEL_DEBUG, tostring(msg))
+            logger:Log(lib.LOG_LEVEL_DEBUG, "%s", tostring(msg))
         end)
     end
 
     return false
 end
 
-function EZO.DebugPrint(msg)
-    if EZO.DebugLog(msg) then
+function EZO.DebugPrint(msg, force)
+    if EZO.DebugLog(msg, force) then
         return true
     end
     return false
 end
 
-function EZO.CanOpenDebugLogViewer()
-    if not EZO.IsDebugModeEnabled() then
+function EZO.CanOpenDebugLogViewer(force)
+    if not force and not EZO.IsDebugModeEnabled() then
         return false
     end
     local viewer = _G.DebugLogViewer
@@ -88,8 +94,8 @@ function EZO.CanOpenDebugLogViewer()
         or type(viewer.ToggleWindow) == "function"
 end
 
-function EZO.OpenDebugLogViewer()
-    if not EZO.CanOpenDebugLogViewer() then
+function EZO.OpenDebugLogViewer(force)
+    if not EZO.CanOpenDebugLogViewer(force) then
         safeChat(GetString(EZO_MSG_DEBUG_VIEWER_UNAVAILABLE))
         return false
     end
@@ -262,7 +268,9 @@ local function ConstruirReporteHouse()
     return lineas
 end
 
-function Debug.EmitReport(titulo, lineas)
+function Debug.EmitReport(titulo, lineas, options)
+    local force = options == true
+        or (type(options) == "table" and options.force == true)
     local reporte = {}
     local tituloFinal = tostring(titulo or "EZOTools debug")
     reporte[#reporte + 1] = tituloFinal
@@ -273,8 +281,8 @@ function Debug.EmitReport(titulo, lineas)
     elseif lineas ~= nil then
         reporte[#reporte + 1] = tostring(lineas)
     end
-    if EZO.DebugPrint(table.concat(reporte, "\n")) then
-        if EZO.CanOpenDebugLogViewer() then
+    if EZO.DebugPrint(table.concat(reporte, "\n"), force) then
+        if EZO.CanOpenDebugLogViewer(force) then
             safeChat(zo_strformat(GetString(EZO_MSG_DEBUG_REPORT_SENT), tituloFinal))
         else
             safeChat(zo_strformat(GetString(EZO_MSG_DEBUG_REPORT_LOGGED_VIEWER_MISSING), tituloFinal))

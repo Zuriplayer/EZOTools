@@ -58,6 +58,34 @@ local function GetDungeonDifficultyName(difficulty)
     return tostring(difficulty or "")
 end
 
+local function YesNo(value)
+    return value and "yes" or "no"
+end
+
+local function EmitTrialTravelDiagnostic(trial, nodeIndex, nodeName, veteranReady, veteranChanged, blockedReason, stage, okTravel)
+    if not (EZO and EZO.Debug and type(EZO.Debug.EmitReport) == "function") then
+        return
+    end
+
+    local difficulty = GetEffectiveDungeonDifficulty()
+    local lines = {
+        "=== EZOTools trial travel ===",
+        "stage=" .. tostring(stage or ""),
+        "trial.key=" .. tostring(trial and trial.key or ""),
+        "trial.name=" .. tostring(trial and trial.name or ""),
+        "node.index=" .. tostring(nodeIndex or ""),
+        "node.name=" .. tostring(nodeName or ""),
+        "difficulty.current=" .. tostring(difficulty or ""),
+        "difficulty.currentName=" .. tostring(GetDungeonDifficultyName(difficulty)),
+        "veteran.ready=" .. YesNo(veteranReady),
+        "veteran.changed=" .. YesNo(veteranChanged),
+        "veteran.blockedReason=" .. tostring(blockedReason or ""),
+        "travel.ok=" .. tostring(okTravel),
+        "================================",
+    }
+    EZO.Debug.EmitReport(GetString(EZO_DEBUG_TRIAL_TRAVEL_TITLE), lines, { force = true })
+end
+
 local function GetDifficultyChangeState()
     if type(CanPlayerChangeGroupDifficulty) ~= "function" then
         return false, nil
@@ -83,88 +111,25 @@ local function IsPlayerInInstance()
     return false
 end
 
-local TRIALS = {
-    {
-        key = "aetherian_archive",
-        name = "Aetherian Archive",
-        aliases = { "Aetherian Archive", "Archivo Aetheriano" },
-    },
-    {
-        key = "hel_ra_citadel",
-        name = "Hel Ra Citadel",
-        aliases = { "Hel Ra Citadel", "Ciudadela de Hel Ra" },
-    },
-    {
-        key = "sanctum_ophidia",
-        name = "Sanctum Ophidia",
-        aliases = { "Sanctum Ophidia" },
-    },
-    {
-        key = "maw_of_lorkhaj",
-        name = "Maw of Lorkhaj",
-        aliases = { "Maw of Lorkhaj", "Lorkhaj" },
-    },
-    {
-        key = "halls_of_fabrication",
-        name = "Halls of Fabrication",
-        aliases = { "Halls of Fabrication", "Fabrication" },
-    },
-    {
-        key = "asylum_sanctorium",
-        name = "Asylum Sanctorium",
-        aliases = { "Asylum Sanctorium", "Sanctorium" },
-    },
-    {
-        key = "cloudrest",
-        name = "Cloudrest",
-        aliases = { "Cloudrest" },
-    },
-    {
-        key = "sunspire",
-        name = "Sunspire",
-        aliases = { "Sunspire" },
-    },
-    {
-        key = "kynes_aegis",
-        name = "Kyne's Aegis",
-        aliases = { "Kyne's Aegis", "Kyne’s Aegis", "Kyne" },
-    },
-    {
-        key = "rockgrove",
-        name = "Rockgrove",
-        aliases = { "Rockgrove" },
-    },
-    {
-        key = "dreadsail_reef",
-        name = "Dreadsail Reef",
-        aliases = { "Dreadsail Reef" },
-    },
-    {
-        key = "sanitys_edge",
-        name = "Sanity's Edge",
-        aliases = { "Sanity's Edge", "Sanity’s Edge" },
-    },
-    {
-        key = "lucent_citadel",
-        name = "Lucent Citadel",
-        aliases = { "Lucent Citadel" },
-    },
-    {
-        key = "ossein_cage",
-        name = "Ossein Cage",
-        aliases = { "Ossein Cage" },
-    },
-}
-
-local TRIAL_BY_KEY = {}
-for _, trial in ipairs(TRIALS) do
-    TRIAL_BY_KEY[trial.key] = trial
-end
-
 local function EnsureRaidLeaderSavedVariables()
     EZO.sv = EZO.sv or {}
     EZO.sv.raidLeaderTools = EZO.sv.raidLeaderTools or {}
     return EZO.sv.raidLeaderTools
+end
+
+local function GetCatalog()
+    return EZO and EZO.RaidLeaderActivityCatalog
+end
+
+local function GetTrialDefinitions()
+    local catalog = GetCatalog()
+    if catalog and type(catalog.GetTrialDefinitions) == "function" then
+        local ok, trials = SafeCall(catalog.GetTrialDefinitions)
+        if ok and type(trials) == "table" then
+            return trials
+        end
+    end
+    return {}
 end
 
 local function NormalizeNodeName(value)
@@ -226,33 +191,38 @@ end
 
 local function TrySetVeteranDifficulty()
     if type(SetVeteranDifficulty) ~= "function" then
-        return false, nil
+        return false, false, nil
     end
 
     local current = GetEffectiveDungeonDifficulty()
     if current == DUNGEON_DIFFICULTY_VETERAN then
-        return true, nil
+        return true, false, nil
     end
 
     local canChange, reason = GetDifficultyChangeState()
     if canChange then
-        SetVeteranDifficulty(true)
-        return true, nil
+        local okSet = SafeCall(SetVeteranDifficulty, true)
+        if okSet then
+            return true, true, nil
+        end
     end
 
-    return false, GetGroupDifficultyChangeReasonText(reason)
+    return false, false, GetGroupDifficultyChangeReasonText(reason)
 end
 
 local function GetTrialByKey(trialKey)
-    return TRIAL_BY_KEY[tostring(trialKey or "")]
+    local catalog = GetCatalog()
+    if catalog and type(catalog.GetTrialByKey) == "function" then
+        local ok, trial = SafeCall(catalog.GetTrialByKey, trialKey)
+        if ok and type(trial) == "table" then
+            return trial
+        end
+    end
+    return nil
 end
 
 function MOD.GetTrialDefinitions()
-    local copy = {}
-    for i, trial in ipairs(TRIALS) do
-        copy[i] = trial
-    end
-    return copy
+    return GetTrialDefinitions()
 end
 
 function MOD.GetLastTrialKey()
@@ -279,7 +249,7 @@ function MOD.TravelToTrial(trialKey)
         return false
     end
 
-    local veteranReady, blockedReason = TrySetVeteranDifficulty()
+    local veteranReady, veteranChanged, blockedReason = TrySetVeteranDifficulty()
     if not veteranReady then
         if blockedReason and blockedReason ~= "" then
             Print(zo_strformat(GetString(EZO_MSG_TRIAL_TRAVEL_VETERAN_BLOCKED_REASON), blockedReason))
@@ -290,22 +260,33 @@ function MOD.TravelToTrial(trialKey)
 
     if type(FastTravelToNode) ~= "function" then
         Print(GetString(EZO_MSG_TRIAL_TRAVEL_UNAVAILABLE))
+        EmitTrialTravelDiagnostic(trial, nil, nil, veteranReady, veteranChanged, blockedReason, "fast-travel-unavailable", false)
         return false
     end
 
-    local nodeIndex = FindFastTravelNodeForTrial(trial)
+    local nodeIndex, nodeName = FindFastTravelNodeForTrial(trial)
     if not nodeIndex then
         Print(zo_strformat(GetString(EZO_MSG_TRIAL_TRAVEL_NODE_MISSING), trial.name))
+        EmitTrialTravelDiagnostic(trial, nil, nodeName, veteranReady, veteranChanged, blockedReason, "node-missing", false)
         return false
     end
 
-    local sv = EnsureRaidLeaderSavedVariables()
-    sv.lastTrialKey = trial.key
+    local function DoTravel()
+        local sv = EnsureRaidLeaderSavedVariables()
+        sv.lastTrialKey = trial.key
 
-    Print(zo_strformat(GetString(EZO_MSG_TRIAL_TRAVEL_START), trial.name))
-    local okTravel = SafeCall(FastTravelToNode, nodeIndex)
-    if not okTravel then
-        Print(GetString(EZO_MSG_TRIAL_TRAVEL_UNAVAILABLE))
+        Print(zo_strformat(GetString(EZO_MSG_TRIAL_TRAVEL_START), trial.name))
+        local okTravel = SafeCall(FastTravelToNode, nodeIndex)
+        if not okTravel then
+            Print(GetString(EZO_MSG_TRIAL_TRAVEL_UNAVAILABLE))
+        end
+        EmitTrialTravelDiagnostic(trial, nodeIndex, nodeName, veteranReady, veteranChanged, blockedReason, "travel-called", okTravel)
+    end
+
+    if veteranChanged and type(zo_callLater) == "function" then
+        zo_callLater(DoTravel, 500)
+    else
+        DoTravel()
     end
     return false
 end
@@ -325,7 +306,7 @@ function MOD.BuildTrialTravelEntries()
         text = MOD.GetLastTrialMenuText,
         callback = function() return MOD.TravelToLastTrial() end,
     }
-    for _, trial in ipairs(TRIALS) do
+    for _, trial in ipairs(GetTrialDefinitions()) do
         local trialKey = trial.key
         local trialName = trial.name
         entries[#entries + 1] = {
@@ -341,6 +322,29 @@ function MOD.CanShowDungeonDifficultyOption()
         return false
     end
     return MOD.IsPlayerGroupLeader() and not IsPlayerInInstance()
+end
+
+function MOD.CanDisbandGroup()
+    if type(GroupDisband) ~= "function" or not MOD.IsPlayerGroupLeader() then
+        return false
+    end
+    if type(DoesGroupModificationRequireVote) == "function" then
+        local ok, requiresVote = SafeCall(DoesGroupModificationRequireVote)
+        if ok and requiresVote == true then
+            return false
+        end
+    end
+    return true
+end
+
+function MOD.DisbandGroup()
+    if not MOD.CanDisbandGroup() then
+        Print(GetString(EZO_MSG_GROUP_DISBAND_UNAVAILABLE))
+        return false
+    end
+    GroupDisband()
+    Print(GetString(EZO_MSG_GROUP_DISBAND_STARTED))
+    return false
 end
 
 function MOD.CanChangeDungeonDifficulty()

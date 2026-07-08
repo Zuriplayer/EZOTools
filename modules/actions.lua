@@ -73,18 +73,6 @@ function A.BuildEntries()
             "groupActivities")
     end
 
-    -- Dificultad de instancia: solo para lider de grupo.
-    if not enCombate
-        and EZO
-        and type(EZO.CanShowDungeonDifficultyOption) == "function"
-        and EZO.CanShowDungeonDifficultyOption()
-        and type(EZO.GetDungeonDifficultyMenuText) == "function"
-        and type(EZO.ToggleDungeonDifficulty) == "function" then
-        AgregarEntrada(entradas,
-            EZO.GetDungeonDifficultyMenuText,
-            function() return Trigger("TOGGLE_DUNGEON_DIFFICULTY") end)
-    end
-
     -- Viaje: casa principal del jugador (oculto en combate — el juego rechaza el viaje)
     if not enCombate then
         if type(GetHousingPrimaryHouse) == "function" and type(RequestJumpToHouse) == "function" then

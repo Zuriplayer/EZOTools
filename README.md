@@ -52,7 +52,7 @@ Please include when possible: addon version, ESO client language, reproduction s
 
 ## Status
 
-Current version: **2.0.10** — experimental branch.
+Current version: **2.0.17** — experimental branch.
 
 ## License
 
