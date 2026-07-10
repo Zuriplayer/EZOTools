@@ -4,8 +4,7 @@ Panel rápido de comandos para teclado, ratón y mando en *The Elder Scrolls Onl
 
 🇬🇧 Prefer English? Read the [README in English](README.md).
 
-📢 Para soporte, feedback, reportes de errores o sugerencias, únete a nuestro Discord: https://discord.gg/ekw8zUAcRm
-
+📢 Para soporte, feedback, reportes de errores o sugerencias, únete a nuestro Discord: https://discord.gg/FtP4KapGua
 ## ✨ Qué hace
 
 Un panel de comandos rápido y un pequeño overlay en pantalla, para teclado, ratón y mando:
