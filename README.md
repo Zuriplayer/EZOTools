@@ -2,8 +2,7 @@
 
 EZOTools is a beta quality-of-life addon for *The Elder Scrolls Online* on PC. It provides a small HUD overlay plus keyboard, mouse, and gamepad-friendly command panels for travel, group actions, utilities, maintenance, and diagnostics.
 
-Prefer Spanish? Read the [Spanish README](README.es.md).
-
+¿Prefieres español? Lee el [README en español](README.es.md).
 Support, bug reports, and suggestions: https://discord.gg/ekw8zUAcRm
 
 ## Status

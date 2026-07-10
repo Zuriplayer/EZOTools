@@ -2,8 +2,7 @@
 
 EZOTools es un addon beta de calidad de vida para *The Elder Scrolls Online* en PC. Añade un pequeño overlay en pantalla y paneles de comandos compatibles con teclado, ratón y mando para viajes, acciones de grupo, utilidades, mantenimiento y diagnóstico.
 
-¿Prefieres inglés? Lee el [README en inglés](README.md).
-
+Prefer English? Read the [README in English](README.md).
 Soporte, errores y sugerencias: https://discord.gg/ekw8zUAcRm
 
 ## Estado
