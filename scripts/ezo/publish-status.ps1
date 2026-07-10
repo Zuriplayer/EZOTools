@@ -3,6 +3,7 @@ param(
     [string] $ConfigPath,
     [string] $WebhookUrl = $env:EZO_CODEX_STATUS,
     [string] $CodexLogWebhookUrl = $env:CODEX_LOG,
+    [string] $Note,
     [switch] $PublishCodexLog,
     [switch] $DryRun
 )
@@ -26,6 +27,14 @@ $description = @(
     "**Visibility:** $($addon.visibility)"
     "**Manifest:** $($addon.manifest)"
 ) -join "`n"
+
+if ($Note) {
+    $description = @(
+        $description
+        ""
+        $Note
+    ) -join "`n"
+}
 
 & $publishDiscord `
     -WebhookUrl $WebhookUrl `

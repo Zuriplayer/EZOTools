@@ -69,6 +69,10 @@ local function ResolverTexto(valor)
     return tostring(valor or "Item")
 end
 
+local function TextoInformativo(texto)
+    return "|cFFFF66" .. tostring(texto or "") .. "|r"
+end
+
 local function PuedeMostrarCambioDificultad()
     return EZO
         and type(EZO.CanShowDungeonDifficultyOption) == "function"
@@ -89,7 +93,7 @@ local function ConstruirEntradas()
 
     if EZO and EZO.RaidLeaderStatus and type(EZO.RaidLeaderStatus.Show) == "function" then
         entradas[#entradas + 1] = {
-            text = GetString(EZO_MENU_GROUP_STATUS),
+            text = TextoInformativo(GetString(EZO_MENU_GROUP_STATUS)),
             callback = function() return EZO.RaidLeaderStatus.Show() end,
         }
     end
@@ -190,7 +194,7 @@ function Dialog.OpenMouse(anchor)
     if ClearMenu then ClearMenu() end
 
     if EZO and EZO.RaidLeaderStatus and type(EZO.RaidLeaderStatus.Show) == "function" then
-        AddMenuItem(GetString(EZO_MENU_GROUP_STATUS), function()
+        AddMenuItem(TextoInformativo(GetString(EZO_MENU_GROUP_STATUS)), function()
             local ok = pcall(function() EZO.RaidLeaderStatus.Show() end)
             if not ok then return false end
             if HideMenu then HideMenu() end
