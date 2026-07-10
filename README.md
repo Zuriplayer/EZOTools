@@ -4,8 +4,7 @@ Quick command panel for keyboard, mouse and gamepad in *The Elder Scrolls Online
 
 🇪🇸 Prefieres español? Lee el [README en español](README.es.md).
 
-📢 For support, feedback, bug reports or suggestions, join our Discord: https://discord.gg/ekw8zUAcRm
-
+📢 For support, feedback, bug reports or suggestions, join our Discord: https://discord.gg/FtP4KapGua
 ## ✨ What it does
 
 A quick command panel and small on-screen overlay, for keyboard, mouse and gamepad:
