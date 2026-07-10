@@ -2,8 +2,7 @@
 
 Quick command panel for keyboard, mouse and gamepad in *The Elder Scrolls Online*.
 
-🇪🇸 Prefieres español? Lee el [README en español](README.es.md).
-
+¿Prefieres español? Lee el [README en español](README.es.md).
 📢 For support, feedback, bug reports or suggestions, join our Discord: https://discord.gg/ekw8zUAcRm
 
 ## ✨ What it does

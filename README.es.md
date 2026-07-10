@@ -2,8 +2,7 @@
 
 Panel rápido de comandos para teclado, ratón y mando en *The Elder Scrolls Online*.
 
-🇬🇧 Prefer English? Read the [README in English](README.md).
-
+Prefer English? Read the [README in English](README.md).
 📢 Para soporte, feedback, reportes de errores o sugerencias, únete a nuestro Discord: https://discord.gg/ekw8zUAcRm
 
 ## ✨ Qué hace
