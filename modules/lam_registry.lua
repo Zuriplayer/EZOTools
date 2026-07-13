@@ -466,8 +466,9 @@ local function RegistrarSeccionesBase()
                 GetString(EZO_OPTION_INSTANCE_RESET_DESTINATION_PRIMARY),
                 GetString(EZO_OPTION_INSTANCE_RESET_DESTINATION_CRAFTING),
                 GetString(EZO_OPTION_INSTANCE_RESET_DESTINATION_SECONDARY),
+                GetString(EZO_MENU_LEAVE_INSTANCE),
             }
-            values = { "primary", "crafting", "secondary" }
+            values = { "primary", "crafting", "secondary", "leave-instance" }
         end
         return {
             { type = "header", name = GetString(EZO_OPTION_GROUP_ACTIVITIES_DIAGNOSTICS) },

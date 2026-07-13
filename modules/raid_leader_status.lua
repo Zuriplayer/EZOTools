@@ -76,7 +76,7 @@ function MOD.EmitForAction(actionKey)
 
     local snapshot = BuildSnapshot()
     if EZO and EZO.Debug and type(EZO.Debug.EmitReport) == "function" then
-        EZO.Debug.EmitReport(GetString(EZO_DEBUG_GROUP_STATUS_TITLE), BuildDebugLines(snapshot, actionKey))
+        EZO.Debug.EmitReport(GetString(EZO_DEBUG_GROUP_STATUS_TITLE), BuildDebugLines(snapshot, actionKey), { level = "info" })
         return true
     end
 

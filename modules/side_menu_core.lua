@@ -107,6 +107,65 @@ function Core.CreateDialog(config)
         return {}
     end
 
+    local function ReconstruirDialogo(zoDialog)
+        if not zoDialog or not zoDialog.info then return false end
+        if config.trackActiveDialog then
+            dialog._activeDialog = zoDialog
+        end
+        if type(config.onBeforeSetup) == "function" then
+            config.onBeforeSetup(zoDialog, dialog)
+        end
+
+        local list = zoDialog.info.parametricList
+        if type(list) ~= "table" then return false end
+        ZO_ClearNumericallyIndexedTable(list)
+
+        local setupEntry = CrearSetupEntrada(config)
+        for _, entry in ipairs(ConstruirEntradas()) do
+            if type(entry) == "table" then
+                local texto = ResolverTexto(entry.text or entry.name)
+                local ed = ZO_GamepadEntryData:New(texto)
+                CopiarDatosEntrada(entry, ed)
+                local cb = entry.callback
+                if type(config.prepareCallback) == "function" then
+                    local preparado = config.prepareCallback(entry, cb, dialog, CerrarActual)
+                    if preparado ~= nil then
+                        cb = preparado
+                    end
+                end
+                ed.callback = cb
+                ed.setup = setupEntry
+                if type(config.onEntryCreated) == "function" then
+                    config.onEntryCreated(entry, ed, dialog)
+                end
+                table.insert(list, {
+                    template = "ZO_GamepadMenuEntryTemplate",
+                    entryData = ed,
+                })
+            end
+        end
+
+        ZO_GenericParametricListGamepadDialogTemplate_RebuildEntryList(zoDialog)
+
+        if zoDialog.entryList and zoDialog.entryList.GetNumItems
+            and zoDialog.entryList:GetNumItems() == 0
+            and config.allowEmptyEntry ~= false then
+            local emptyText = ResolverTexto(config.emptyText or config.titleText or "Item")
+            if emptyText == "" and config.allowBlankEmptyEntry ~= true then
+                return true
+            end
+            local ed = ZO_GamepadEntryData:New(emptyText)
+            ed.callback = function() end
+            ed.setup = setupEntry
+            table.insert(list, {
+                template = "ZO_GamepadMenuEntryTemplate",
+                entryData = ed,
+            })
+            ZO_GenericParametricListGamepadDialogTemplate_RebuildEntryList(zoDialog)
+        end
+        return true
+    end
+
     local function AsegurarRegistrado()
         if dialog._registered then return end
 
@@ -117,61 +176,7 @@ function Core.CreateDialog(config)
             blockDialogReleaseOnPress = config.blockDialogReleaseOnPress == true,
             parametricList = {},
 
-            setup = function(zoDialog)
-                if config.trackActiveDialog then
-                    dialog._activeDialog = zoDialog
-                end
-                if type(config.onBeforeSetup) == "function" then
-                    config.onBeforeSetup(zoDialog, dialog)
-                end
-
-                local list = zoDialog.info.parametricList
-                ZO_ClearNumericallyIndexedTable(list)
-
-                local setupEntry = CrearSetupEntrada(config)
-                for _, entry in ipairs(ConstruirEntradas()) do
-                    if type(entry) == "table" then
-                        local texto = ResolverTexto(entry.text or entry.name)
-                        local ed = ZO_GamepadEntryData:New(texto)
-                        CopiarDatosEntrada(entry, ed)
-                        local cb = entry.callback
-                        if type(config.prepareCallback) == "function" then
-                            local preparado = config.prepareCallback(entry, cb, dialog, CerrarActual)
-                            if preparado ~= nil then
-                                cb = preparado
-                            end
-                        end
-                        ed.callback = cb
-                        ed.setup = setupEntry
-                        if type(config.onEntryCreated) == "function" then
-                            config.onEntryCreated(entry, ed, dialog)
-                        end
-                        table.insert(list, {
-                            template = "ZO_GamepadMenuEntryTemplate",
-                            entryData = ed,
-                        })
-                    end
-                end
-
-                ZO_GenericParametricListGamepadDialogTemplate_RebuildEntryList(zoDialog)
-
-                if zoDialog.entryList and zoDialog.entryList.GetNumItems
-                    and zoDialog.entryList:GetNumItems() == 0
-                    and config.allowEmptyEntry ~= false then
-                    local emptyText = ResolverTexto(config.emptyText or config.titleText or "Item")
-                    if emptyText == "" and config.allowBlankEmptyEntry ~= true then
-                        return
-                    end
-                    local ed = ZO_GamepadEntryData:New(emptyText)
-                    ed.callback = function() end
-                    ed.setup = setupEntry
-                    table.insert(list, {
-                        template = "ZO_GamepadMenuEntryTemplate",
-                        entryData = ed,
-                    })
-                    ZO_GenericParametricListGamepadDialogTemplate_RebuildEntryList(zoDialog)
-                end
-            end,
+            setup = ReconstruirDialogo,
 
             OnShownCallback = function(zoDialog)
                 Core.AttachListTriggerNavigation(dialog, function()
@@ -224,6 +229,15 @@ function Core.CreateDialog(config)
 
     function dialog.ActivateSelected()
         return ActivarSeleccionDialogoGamepad(BuscarDialogo())
+    end
+
+    function dialog.Refresh()
+        local zoDialog = config.trackActiveDialog and dialog._activeDialog or nil
+        zoDialog = zoDialog or BuscarDialogo()
+        if not zoDialog or not dialog.IsShowing() then
+            return false
+        end
+        return ReconstruirDialogo(zoDialog)
     end
 
     function dialog.Open(...)

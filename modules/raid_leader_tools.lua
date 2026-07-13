@@ -202,6 +202,7 @@ local function EnsureConfirmDialog()
         },
         buttons = {
             [1] = {
+                keybind = "DIALOG_PRIMARY",
                 text = function(dialog)
                     local data = ResolveConfirmationData(dialog)
                     return tostring(data.confirmText or GetString(EZO_CONFIRM_RAID_ACTION_CONFIRM))
@@ -219,6 +220,7 @@ local function EnsureConfirmDialog()
                 end,
             },
             [2] = {
+                keybind = "DIALOG_NEGATIVE",
                 text = GetString(SI_DIALOG_CANCEL),
                 callback = function(dialog)
                     local data = ResolveConfirmationData(dialog)
@@ -416,7 +418,7 @@ local function EmitTrialTravelDiagnostic(trial, nodeIndex, nodeName, targetDiffi
         "travel.ok=" .. tostring(okTravel),
         "================================",
     }
-    EZO.Debug.EmitReport(GetString(EZO_DEBUG_TRIAL_TRAVEL_TITLE), lines, { force = true })
+    EZO.Debug.EmitReport(GetString(EZO_DEBUG_TRIAL_TRAVEL_TITLE), lines, { level = "info" })
 end
 
 local function GetDifficultyChangeState()
@@ -880,6 +882,69 @@ function MOD.BuildGroupSnapshot()
     end
 
     return snapshot
+end
+
+function MOD.GetCurrentGroupDisplayNameMap()
+    local names = {}
+    if type(IsUnitGrouped) ~= "function" or not IsUnitGrouped("player") then
+        return names
+    end
+    if type(GetGroupSize) ~= "function" or type(GetGroupUnitTagByIndex) ~= "function" then
+        return names
+    end
+
+    local okSize, groupSize = SafeCall(GetGroupSize)
+    groupSize = okSize and tonumber(groupSize) or 0
+    for index = 1, groupSize do
+        local okTag, unitTag = SafeCall(GetGroupUnitTagByIndex, index)
+        if okTag and unitTag and type(GetUnitDisplayName) == "function" then
+            local okName, displayName = SafeCall(GetUnitDisplayName, unitTag)
+            displayName = okName and tostring(displayName or "") or ""
+            if displayName ~= "" then
+                names[displayName] = unitTag
+            end
+        end
+    end
+    return names
+end
+
+function MOD.InviteDisplayNames(displayNames, options)
+    if type(GroupInviteByName) ~= "function" or type(displayNames) ~= "table" then
+        return false, 0, 0
+    end
+
+    options = type(options) == "table" and options or {}
+    local currentNames = MOD.GetCurrentGroupDisplayNameMap()
+    local playerName = type(GetDisplayName) == "function" and tostring(GetDisplayName() or "") or ""
+    local seen = {}
+    local invited = 0
+    local errors = 0
+
+    for _, rawName in ipairs(displayNames) do
+        local displayName = tostring(rawName or "")
+        local shouldInvite = displayName ~= ""
+            and displayName ~= playerName
+            and not currentNames[displayName]
+            and not seen[displayName]
+        if shouldInvite and type(options.shouldInvite) == "function" then
+            local okFilter, accepted = SafeCall(options.shouldInvite, displayName)
+            shouldInvite = okFilter and accepted ~= false
+        end
+        if shouldInvite then
+            seen[displayName] = true
+            local ok = SafeCall(GroupInviteByName, displayName)
+            if ok then
+                invited = invited + 1
+            else
+                errors = errors + 1
+            end
+            if type(options.onResult) == "function" then
+                SafeCall(options.onResult, displayName, ok)
+            end
+        end
+    end
+
+    return true, invited, errors
 end
 
 function MOD.BuildInstanceSnapshot()

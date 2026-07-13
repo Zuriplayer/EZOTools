@@ -193,6 +193,9 @@ function EZO:Initialize()
             inviteMembers = true,
             confirmDangerousActions = true,
         },
+        raidLeaderActivitySession = {
+            lastActivity = nil,
+        },
         groupActivities = {
             logGroupStatusOnAction = true,
         },
@@ -272,6 +275,10 @@ function EZO:Initialize()
 
     if EZO.GroupAutoinvite and type(EZO.GroupAutoinvite.Initialize) == "function" then
         EZO.GroupAutoinvite.Initialize()
+    end
+
+    if EZO.RaidLeaderActivitiesDialog and type(EZO.RaidLeaderActivitiesDialog.Initialize) == "function" then
+        EZO.RaidLeaderActivitiesDialog.Initialize()
     end
 
     if EZO.EZOCoreIntegration and type(EZO.EZOCoreIntegration.RegisterLocalAddon) == "function" then

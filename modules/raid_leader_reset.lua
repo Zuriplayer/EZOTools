@@ -25,7 +25,7 @@ local displayedRunId = nil
 local statusPanel, statusWin
 local statusWindowUnlocked = false
 local GetCurrentGroupDisplayNames
-local CheckHouseArrival
+local CheckStagingArrival
 local CheckReturnArrival
 local CompleteRun
 local EmitReport
@@ -263,21 +263,23 @@ local function GetMemberStatusText(status)
     return GetString(EZO_INSTANCE_RESET_MEMBER_STATUS_PENDING)
 end
 
-local function BuildMemberDebugLines(run)
+local function BuildMemberSummaryLines(run)
     local lines = {}
     if not run then
         return lines
     end
     local currentNames = GetCurrentGroupDisplayNames()
     for index, state in ipairs(SyncMemberStates(run, currentNames)) do
-        lines[#lines + 1] = string.format("member[%d].displayName=%s", index, tostring(state.displayName or ""))
-        lines[#lines + 1] = string.format("member[%d].invitesSent=%d", index, tonumber(state.invitesSent) or 0)
-        lines[#lines + 1] = string.format("member[%d].inviteResponses=%d", index, tonumber(state.inviteResponses) or 0)
-        lines[#lines + 1] = string.format("member[%d].lastResponse=%s", index, tostring(state.lastResponse or ""))
-        lines[#lines + 1] = string.format("member[%d].requestErrors=%d", index, tonumber(state.requestErrors) or 0)
-        lines[#lines + 1] = string.format("member[%d].status=%s", index, tostring(state.status or "pending"))
-        lines[#lines + 1] = string.format("member[%d].excludeFromInvites=%s", index, tostring(state.excludeFromInvites == true))
-        lines[#lines + 1] = string.format("member[%d].leaveReason=%s", index, tostring(state.leaveReason or ""))
+        lines[#lines + 1] = string.format(
+            "member[%d]=%s status:%s invites:%d responses:%d errors:%d excluded:%s",
+            index,
+            tostring(state.displayName or ""),
+            tostring(state.status or "pending"),
+            tonumber(state.invitesSent) or 0,
+            tonumber(state.inviteResponses) or 0,
+            tonumber(state.requestErrors) or 0,
+            tostring(state.excludeFromInvites == true)
+        )
     end
     return lines
 end
@@ -397,8 +399,11 @@ local function UpdateStatusWindow(run, stageText, phaseIndex)
         mode = GetString(EZO_INSTANCE_RESET_STATUS_TARGET_UNKNOWN)
     end
     local nowMs = GetNowMilliseconds()
-    local elapsedText = FormatDurationMilliseconds(nowMs - (tonumber(run.startedAtMs) or nowMs))
-    local phaseElapsedText = FormatDurationMilliseconds(nowMs - (tonumber(run.phaseStartedAtMs) or nowMs))
+    local displayNowMs = run.stage == "interrupted"
+        and (tonumber(run.interruptedAtMs) or nowMs)
+        or nowMs
+    local elapsedText = FormatDurationMilliseconds(displayNowMs - (tonumber(run.startedAtMs) or displayNowMs))
+    local phaseElapsedText = FormatDurationMilliseconds(displayNowMs - (tonumber(run.phaseStartedAtMs) or displayNowMs))
     local resetComplete = run.stage == "waiting-trial-entry" and #pending == 0
     local phaseIndexValue = tonumber(run.phaseIndex) or 1
     local phaseText = resetComplete
@@ -646,6 +651,68 @@ CompleteRun = function(run, monitorPending, completionText)
     UnregisterRunEvents()
 end
 
+local REPORT_LEVEL_BY_STAGE = {
+    ["started"] = "info",
+    ["disband-confirmed"] = "info",
+    ["waiting-at-staging"] = "info",
+    ["returning"] = "info",
+    ["returned-activation"] = "info",
+    ["invites-disabled"] = "info",
+    ["waiting-members"] = "info",
+    ["waiting-trial-entry"] = "info",
+    ["complete"] = "info",
+    ["resumed"] = "info",
+    ["trial-entered"] = "info",
+    ["reset-session-cleared"] = "info",
+    ["new-reset-superseding-previous"] = "info",
+    ["interrupted"] = "warning",
+    ["start-rejected"] = "warning",
+}
+
+local TERMINAL_REPORT_STAGES = {
+    ["waiting-members"] = true,
+    ["waiting-trial-entry"] = true,
+    ["complete"] = true,
+    ["interrupted"] = true,
+    ["trial-entered"] = true,
+    ["reset-session-cleared"] = true,
+}
+
+local function AccumulateReportEvent(run, stage)
+    if not run then
+        return
+    end
+    run.reportEventCounts = run.reportEventCounts or {}
+    run.reportEventCounts[stage] = (tonumber(run.reportEventCounts[stage]) or 0) + 1
+    run.reportEventTotal = (tonumber(run.reportEventTotal) or 0) + 1
+    run.lastReportEvent = stage
+end
+
+local function AppendEventSummary(lines, run)
+    local counts = run and run.reportEventCounts
+    if type(counts) ~= "table" then
+        return
+    end
+    local stages = {}
+    for stage in pairs(counts) do
+        stages[#stages + 1] = stage
+    end
+    table.sort(stages)
+    for _, stage in ipairs(stages) do
+        lines[#lines + 1] = string.format("events.%s=%d", stage, tonumber(counts[stage]) or 0)
+    end
+end
+
+local function GetReportKey(stage, run)
+    if stage == "interrupted" then
+        return stage .. ":" .. tostring(run and run.interruptionCount or 0)
+    end
+    if stage == "resumed" then
+        return stage .. ":" .. tostring(run and run.interruptionCount or 0)
+    end
+    return stage
+end
+
 EmitReport = function(stage, run, extra)
     if not (EZO and EZO.IsDebugModeEnabled and EZO.IsDebugModeEnabled()) then
         return
@@ -654,27 +721,50 @@ EmitReport = function(stage, run, extra)
         return
     end
 
+    stage = tostring(stage or "")
+    local level = REPORT_LEVEL_BY_STAGE[stage]
+    if level == nil then
+        AccumulateReportEvent(run, stage)
+        return
+    end
+
+    if run then
+        run.reportedLifecycleStages = run.reportedLifecycleStages or {}
+        local reportKey = GetReportKey(stage, run)
+        if run.reportedLifecycleStages[reportKey] == true then
+            return
+        end
+        run.reportedLifecycleStages[reportKey] = true
+    end
+
     local snapshot = run and run.snapshot or {}
     local group = snapshot.group or {}
     local instance = snapshot.instance or {}
-    local settings = GetSettings()
+    local nowMs = GetNowMilliseconds()
+    local currentNames = run and GetCurrentGroupDisplayNames() or {}
+    local pending = run and GetPendingNames(run) or {}
     local lines = {
         "=== EZOTools instance reset ===",
-        "stage=" .. tostring(stage or ""),
+        "run.id=" .. tostring(run and run.id or "none"),
+        "stage=" .. stage,
+        "phase=" .. tostring(run and run.phaseIndex or "") .. "/" .. tostring(TOTAL_PHASES),
+        "elapsed.ms=" .. tostring(run and math.max(0, nowMs - (tonumber(run.startedAtMs) or nowMs)) or 0),
+        "phase.elapsed.ms=" .. tostring(run and math.max(0, nowMs - (tonumber(run.phaseStartedAtMs) or nowMs)) or 0),
         "destination=" .. tostring(run and run.destination or ""),
         "target.trialKey=" .. tostring(run and run.targetTrialKey or ""),
         "target.trialName=" .. tostring(run and run.targetTrialName or ""),
         "group.size=" .. tostring(group.size or 0),
         "group.isLeader=" .. tostring(group.isLeader == true),
+        "group.currentCaptured=" .. tostring(run and GetCurrentCapturedCount(run, currentNames) or 0),
+        "group.pending=" .. tostring(#pending),
         "instance.inInstance=" .. tostring(instance.inInstance == true),
         "instance.zoneName=" .. tostring(instance.zoneName or ""),
         "instance.difficulty=" .. tostring(instance.difficulty or ""),
         "instance.difficultyName=" .. tostring(instance.difficultyName or ""),
-        "settings.inviteMembers=" .. tostring(settings.inviteMembers == true),
         "run.invitesEnabled=" .. tostring(run and run.invitesEnabled == true),
-        "settings.inviteDelaySeconds=" .. tostring(settings.inviteDelaySeconds or ""),
-        "settings.reinviteAttempts=" .. tostring(settings.reinviteAttempts or ""),
-        "settings.reinviteDelaySeconds=" .. tostring(settings.reinviteDelaySeconds or ""),
+        "run.invitesSent=" .. tostring(run and run.invitedTotal or 0),
+        "run.inviteAttempt=" .. tostring(run and run.inviteAttempt or 0),
+        "events.total=" .. tostring(run and run.reportEventTotal or 0),
         "run.internalDisbandExpected=" .. tostring(run and run.internalDisbandExpected == true),
         "run.internalDisbandConfirmed=" .. tostring(run and run.internalDisbandConfirmed == true),
         "run.groupReformedObserved=" .. tostring(run and run.groupReformedObserved == true),
@@ -685,11 +775,19 @@ EmitReport = function(stage, run, extra)
             lines[#lines + 1] = tostring(line)
         end
     end
-    for _, line in ipairs(BuildMemberDebugLines(run)) do
-        lines[#lines + 1] = line
+    AppendEventSummary(lines, run)
+    if TERMINAL_REPORT_STAGES[stage] then
+        for _, line in ipairs(BuildMemberSummaryLines(run)) do
+            lines[#lines + 1] = line
+        end
     end
     lines[#lines + 1] = "================================"
-    EZO.Debug.EmitReport(GetString(EZO_DEBUG_INSTANCE_RESET_TITLE), lines)
+    EZO.Debug.EmitReport(GetString(EZO_DEBUG_INSTANCE_RESET_TITLE), lines, { level = level })
+    if run then
+        run.reportEventCounts = {}
+        run.reportEventTotal = 0
+        run.lastReportEvent = nil
+    end
 end
 
 ClearResetSession = function(run, source)
@@ -796,7 +894,7 @@ IsAtTargetInstance = function(run)
         return false
     end
     local ok, instance = SafeCall(tools.BuildInstanceSnapshot)
-    if not ok or type(instance) ~= "table" or instance.inInstance ~= true then
+    if not ok or type(instance) ~= "table" then
         return false
     end
     local targetZoneIndex = tonumber(run.targetZoneIndex)
@@ -837,6 +935,7 @@ local function InterruptRun(run, reasonCode, reasonText, resumeStage, resumeHint
     run.resumeHintText = resumeHintText
     run.interruptionReason = reasonCode
     run.interruptionCount = (tonumber(run.interruptionCount) or 0) + 1
+    run.interruptedAtMs = GetNowMilliseconds()
     statusRun = run
     UnregisterTravelEvent()
     UpdateStatusWindow(run, reasonText, run.phaseIndex)
@@ -853,13 +952,22 @@ end
 local function GetDestination()
     local settings = GetSettings()
     local destination = tostring(settings.destination or DEFAULT_DESTINATION)
-    if destination ~= "primary" and destination ~= "crafting" and destination ~= "secondary" then
+    if destination ~= "primary"
+        and destination ~= "crafting"
+        and destination ~= "secondary"
+        and destination ~= "leave-instance" then
         destination = DEFAULT_DESTINATION
     end
     return destination
 end
 
 local function CanTravelToDestination(destination)
+    if destination == "leave-instance" then
+        return EZO
+            and type(EZO.CanLeaveInstance) == "function"
+            and type(EZO.LeaveInstance) == "function"
+    end
+
     if destination == "primary" then
         if type(GetHousingPrimaryHouse) ~= "function" or type(RequestJumpToHouse) ~= "function" then
             return false
@@ -880,6 +988,11 @@ local function CanTravelToDestination(destination)
 end
 
 local function TravelToDestination(destination)
+    if destination == "leave-instance" then
+        local ok, requested = SafeCall(EZO.LeaveInstance)
+        return ok and requested == true
+    end
+
     if destination == "primary" then
         local ok, houseId = SafeCall(GetHousingPrimaryHouse)
         if ok and tonumber(houseId) and tonumber(houseId) > 0 then
@@ -922,6 +1035,38 @@ local function IsPlayerInHouse()
     return false
 end
 
+local function IsLeaveInstanceDestination(run)
+    return run and run.destination == "leave-instance"
+end
+
+local function IsStagingDestinationReached(run)
+    if IsLeaveInstanceDestination(run) then
+        return not IsAtTargetInstance(run)
+    end
+    return IsPlayerInHouse()
+end
+
+local function GetStagingTravelText(run)
+    if IsLeaveInstanceDestination(run) then
+        return GetString(EZO_INSTANCE_RESET_STAGE_LEAVING_INSTANCE)
+    end
+    return GetString(EZO_INSTANCE_RESET_STAGE_TRAVELING_HOME)
+end
+
+local function GetStagingWaitText(run)
+    if IsLeaveInstanceDestination(run) then
+        return GetString(EZO_INSTANCE_RESET_STAGE_WAITING_OUTSIDE_INSTANCE)
+    end
+    return GetString(EZO_INSTANCE_RESET_STAGE_WAITING_HOME)
+end
+
+local function GetStagingNotReachedText(run)
+    if IsLeaveInstanceDestination(run) then
+        return GetString(EZO_INSTANCE_RESET_STAGE_INSTANCE_NOT_LEFT)
+    end
+    return GetString(EZO_INSTANCE_RESET_STAGE_HOME_NOT_REACHED)
+end
+
 local function IsPlayerInCombat()
     if type(IsUnitInCombat) ~= "function" then
         return false
@@ -937,23 +1082,11 @@ local function IsPlayerMovingNow()
 end
 
 function GetCurrentGroupDisplayNames()
-    local names = {}
-    if type(IsUnitGrouped) ~= "function" or not IsUnitGrouped("player") then
-        return names
+    local tools = EZO and EZO.RaidLeaderTools
+    if tools and type(tools.GetCurrentGroupDisplayNameMap) == "function" then
+        return tools.GetCurrentGroupDisplayNameMap()
     end
-    if type(GetGroupSize) ~= "function" or type(GetGroupUnitTagByIndex) ~= "function" then
-        return names
-    end
-    local size = tonumber(GetGroupSize()) or 0
-    for i = 1, size do
-        local tag = GetGroupUnitTagByIndex(i)
-        if tag and tag ~= "" and type(GetUnitDisplayName) == "function" then
-            local ok, name = SafeCall(GetUnitDisplayName, tag)
-            name = ok and tostring(name or "") or ""
-            if name ~= "" then names[name] = tag end
-        end
-    end
-    return names
+    return {}
 end
 
 local function VerifyInitialSnapshotMembers(run)
@@ -985,63 +1118,44 @@ local function VerifyInitialSnapshotMembers(run)
     return true, removed
 end
 
-local function ForEachInviteTarget(run, currentNames, playerName, callback)
-    local group = run and run.snapshot and run.snapshot.group
-    if not group or type(callback) ~= "function" then
-        return 0
-    end
-
-    currentNames = type(currentNames) == "table" and currentNames or {}
-    playerName = tostring(playerName or "")
-    local processed = 0
-
-    for _, member in ipairs(group.members or {}) do
-        local displayName = tostring(member.displayName or "")
-        local state = run.memberStates and run.memberStates[displayName]
-        local excluded = state and state.excludeFromInvites == true
-        if displayName ~= "" and displayName ~= playerName and not currentNames[displayName] and not excluded then
-            processed = processed + 1
-            callback(displayName, processed)
-        end
-    end
-
-    return processed
-end
-
 local function InviteSnapshotMembers(run)
     if not run or not run.snapshot or not run.snapshot.group then
         return false
     end
-    if type(GroupInviteByName) ~= "function" then
-        Print(GetString(EZO_MSG_INSTANCE_RESET_INVITES_UNAVAILABLE))
+    local tools = EZO and EZO.RaidLeaderTools
+    if not tools or type(tools.InviteDisplayNames) ~= "function" then
         EmitReport("invite-unavailable", run)
         return false
     end
 
-    local currentNames = GetCurrentGroupDisplayNames()
-    local playerName = type(GetDisplayName) == "function" and tostring(GetDisplayName() or "") or ""
     local memberStates = EnsureMemberStates(run)
-    local invited = 0
-
-    ForEachInviteTarget(run, currentNames, playerName, function(displayName)
-        local state = memberStates[displayName]
-        local ok = SafeCall(GroupInviteByName, displayName)
-        if ok then
-            invited = invited + 1
-            state.invitesSent = (tonumber(state.invitesSent) or 0) + 1
-            state.responseStatus = nil
-            state.lastResponse = nil
-            state.status = "invited"
-        else
-            state.requestErrors = (tonumber(state.requestErrors) or 0) + 1
-            state.status = "error"
-        end
-    end)
+    local available, invited = tools.InviteDisplayNames(GetCapturedNames(run), {
+        shouldInvite = function(displayName)
+            local state = memberStates[displayName]
+            return not state or state.excludeFromInvites ~= true
+        end,
+        onResult = function(displayName, ok)
+            local state = memberStates[displayName]
+            if not state then return end
+            if ok then
+                state.invitesSent = (tonumber(state.invitesSent) or 0) + 1
+                state.responseStatus = nil
+                state.lastResponse = nil
+                state.status = "invited"
+            else
+                state.requestErrors = (tonumber(state.requestErrors) or 0) + 1
+                state.status = "error"
+            end
+        end,
+    })
+    if not available then
+        EmitReport("invite-unavailable", run)
+        return false
+    end
 
     run.inviteAttempt = (run.inviteAttempt or 0) + 1
     run.inviteCycleAttempt = (run.inviteCycleAttempt or 0) + 1
     run.invitedTotal = (run.invitedTotal or 0) + invited
-    Print(zo_strformat(GetString(EZO_MSG_INSTANCE_RESET_INVITES_SENT), invited, run.inviteAttempt))
     EmitReport("invites-sent", run, {
         "invited.count=" .. tostring(invited),
         "invite.attempt=" .. tostring(run.inviteAttempt),
@@ -1175,7 +1289,6 @@ local function ReturnToInstance(run)
             and tools.TravelToTrialWithDifficulty
             or tools.TravelToTrial
         if type(travelFn) ~= "function" then
-            Print(GetString(EZO_MSG_TRIAL_TRAVEL_UNAVAILABLE))
             EmitReport("return-travel-unavailable", run)
             InterruptRun(
                 run,
@@ -1187,7 +1300,6 @@ local function ReturnToInstance(run)
         end
 
         run.stage = "returning"
-        Print(zo_strformat(GetString(EZO_MSG_INSTANCE_RESET_RETURNING), run.targetTrialName))
         EmitReport("returning", run)
         UpdateStatusWindow(run, GetString(EZO_INSTANCE_RESET_STAGE_RETURNING), 5)
         if IsPlayerMovingNow() then
@@ -1267,7 +1379,7 @@ function CheckReturnArrival(run)
     end
 end
 
-local function StartTravelHome(run)
+local function StartStagingTravel(run)
     if not run then return end
     if IsPlayerInCombat() then
         run.stage = "waiting-combat"
@@ -1278,19 +1390,18 @@ local function StartTravelHome(run)
     end
     run.stage = "traveling-home"
     run.houseChecks = 0
-    UpdateStatusWindow(run, GetString(EZO_INSTANCE_RESET_STAGE_TRAVELING_HOME), 3)
+    UpdateStatusWindow(run, GetStagingTravelText(run), 3)
     if not TravelToDestination(run.destination) then
-        Print(GetString(EZO_MSG_INSTANCE_RESET_DESTINATION_UNAVAILABLE))
         return InterruptRun(
             run,
             "staging-travel-unavailable",
-            GetString(EZO_INSTANCE_RESET_STAGE_HOME_NOT_REACHED),
+            GetStagingNotReachedText(run),
             "traveling-home"
         )
     end
 
     if type(zo_callLater) == "function" then
-        zo_callLater(function() CheckHouseArrival(run) end, 6000)
+        zo_callLater(function() CheckStagingArrival(run) end, 6000)
     end
     return false
 end
@@ -1307,7 +1418,7 @@ local function WaitForDisbandThenTravel(run)
             "disband.checks=" .. tostring(run.disbandChecks or 0),
             "disband.result=confirmed",
         })
-        StartTravelHome(run)
+        StartStagingTravel(run)
         return
     end
     if run.disbandChecks >= 8 or type(zo_callLater) ~= "function" then
@@ -1331,67 +1442,65 @@ local function WaitForDisbandThenTravel(run)
     end, 1000)
 end
 
-local function StartWaitAtHome(run)
+local function StartWaitAtStaging(run)
     if not run then return end
     run.stage = "waiting"
     local settings = GetSettings()
     local waitMs = ClampNumber(settings.waitSeconds, DEFAULT_WAIT_SECONDS, 5, 300) * 1000
     run.waitEndsAtMs = GetNowMilliseconds() + waitMs
-    Print(zo_strformat(GetString(EZO_MSG_INSTANCE_RESET_WAITING), math.floor(waitMs / 1000)))
-    EmitReport("waiting-at-home", run)
-    UpdateStatusWindow(run, GetString(EZO_INSTANCE_RESET_STAGE_WAITING_HOME), 4)
+    EmitReport("waiting-at-staging", run)
+    UpdateStatusWindow(run, GetStagingWaitText(run), 4)
     if type(zo_callLater) == "function" then
         zo_callLater(function()
             if activeRun and activeRun.id == run.id then
-                if IsPlayerInHouse() then
+                if IsStagingDestinationReached(run) then
                     ReturnToInstance(run)
                 else
                     InterruptRun(
                         run,
-                        "staging-house-left",
-                        GetString(EZO_INSTANCE_RESET_STAGE_HOME_NOT_REACHED),
+                        "staging-destination-left",
+                        GetStagingNotReachedText(run),
                         "traveling-home"
                     )
                 end
             end
         end, waitMs)
-    elseif IsPlayerInHouse() then
+    elseif IsStagingDestinationReached(run) then
         ReturnToInstance(run)
     else
         InterruptRun(
             run,
-            "staging-house-left",
-            GetString(EZO_INSTANCE_RESET_STAGE_HOME_NOT_REACHED),
+            "staging-destination-left",
+            GetStagingNotReachedText(run),
             "traveling-home"
         )
     end
 end
 
-function CheckHouseArrival(run)
+function CheckStagingArrival(run)
     if not activeRun or activeRun.id ~= run.id or run.stage ~= "traveling-home" then
         return
     end
 
-    if IsPlayerInHouse() then
-        StartWaitAtHome(run)
+    if IsStagingDestinationReached(run) then
+        StartWaitAtStaging(run)
         return
     end
 
     run.houseChecks = (run.houseChecks or 0) + 1
     if run.houseChecks >= MAX_HOUSE_CHECKS then
-        Print(GetString(EZO_MSG_INSTANCE_RESET_HOME_NOT_CONFIRMED))
-        EmitReport("home-not-confirmed", run)
+        EmitReport("staging-not-confirmed", run)
         InterruptRun(
             run,
-            "staging-house-not-reached",
-            GetString(EZO_INSTANCE_RESET_STAGE_HOME_NOT_REACHED),
+            "staging-destination-not-reached",
+            GetStagingNotReachedText(run),
             "traveling-home"
         )
         return
     end
 
     if type(zo_callLater) == "function" then
-        zo_callLater(function() CheckHouseArrival(run) end, 5000)
+        zo_callLater(function() CheckStagingArrival(run) end, 5000)
     end
 end
 
@@ -1402,11 +1511,11 @@ OnPlayerActivated = function()
     if not activeRun then return end
     if activeRun.stage == "waiting-combat" then
         if not IsPlayerInCombat() then
-            StartTravelHome(activeRun)
+            StartStagingTravel(activeRun)
         end
     elseif activeRun.stage == "traveling-home" then
-        if IsPlayerInHouse() then
-            StartWaitAtHome(activeRun)
+        if IsStagingDestinationReached(activeRun) then
+            StartWaitAtStaging(activeRun)
         end
     elseif activeRun.stage == "returning" and IsAtTargetInstance(activeRun) then
         ContinueAfterConfirmedReturn(activeRun)
@@ -1596,7 +1705,7 @@ OnPlayerCombatState = function(_, inCombat)
         return
     end
     EmitReport("combat-ended", run)
-    StartTravelHome(run)
+    StartStagingTravel(run)
 end
 
 OnPrepareForJump = function(_, zoneName)
@@ -1615,7 +1724,6 @@ OnJumpFailed = function(_, reason)
     end
     local resumeStage = run.stage
     run.lastJumpResult = reason
-    Print(GetString(EZO_MSG_INSTANCE_RESET_TRAVEL_FAILED))
     EmitReport("jump-failed", run, {
         "event.jumpResult=" .. tostring(reason or ""),
         "resume.stage=" .. tostring(resumeStage),
@@ -1697,10 +1805,15 @@ function MOD.ResumeConfirmed()
     end
 
     local resumeStage = run.resumeStage or "inviting"
+    local resumedAtMs = GetNowMilliseconds()
+    if tonumber(run.interruptedAtMs) and tonumber(run.startedAtMs) then
+        run.startedAtMs = run.startedAtMs + math.max(0, resumedAtMs - run.interruptedAtMs)
+    end
+    run.interruptedAtMs = nil
     run.resumeStage = nil
     run.resumeHintText = nil
     run.interruptionReason = nil
-    run.phaseStartedAtMs = GetNowMilliseconds()
+    run.phaseStartedAtMs = resumedAtMs
     run.waitEndsAtMs = nil
     activeRun = run
     statusRun = run
@@ -1709,8 +1822,6 @@ function MOD.ResumeConfirmed()
     EmitReport("resumed", run, {
         "resume.stage=" .. tostring(resumeStage),
     })
-    Print(GetString(EZO_MSG_INSTANCE_RESET_RESUMED))
-
     if resumeStage == "disbanding" then
         run.stage = "disbanding"
         run.disbandChecks = 0
@@ -1720,7 +1831,7 @@ function MOD.ResumeConfirmed()
         if not stillGrouped then
             run.internalDisbandConfirmed = true
             run.internalDisbandExpected = false
-            StartTravelHome(run)
+            StartStagingTravel(run)
             return false
         end
         local tools = EZO and EZO.RaidLeaderTools
@@ -1751,10 +1862,10 @@ function MOD.ResumeConfirmed()
         WaitForDisbandThenTravel(run)
         return false
     elseif resumeStage == "traveling-home" or resumeStage == "waiting-combat" then
-        if IsPlayerInHouse() then
-            StartWaitAtHome(run)
+        if IsStagingDestinationReached(run) then
+            StartWaitAtStaging(run)
         else
-            StartTravelHome(run)
+            StartStagingTravel(run)
         end
         return false
     elseif resumeStage == "returning" then
@@ -1785,7 +1896,7 @@ local function GetCurrentSupportedTrial()
         return nil, nil
     end
     local ok, instance = SafeCall(tools.BuildInstanceSnapshot)
-    if not ok or type(instance) ~= "table" or instance.inInstance ~= true then
+    if not ok or type(instance) ~= "table" then
         return nil, instance
     end
     return DetectTrialFromZone(instance.zoneName), instance
@@ -1821,6 +1932,36 @@ local function GetReplaceableRunForFreshStart()
         return run
     end
     return nil
+end
+
+function MOD.HasSession()
+    return activeRun ~= nil or statusRun ~= nil
+end
+
+function MOD.CancelConfirmed()
+    local run = activeRun or statusRun
+    if not run then
+        return false
+    end
+    return ClearResetSession(run, "user-cancelled")
+end
+
+function MOD.Cancel()
+    if not MOD.HasSession() then
+        return false
+    end
+    EmitAutomaticGroupStatus("cancel-instance-reset")
+    local tools = EZO and EZO.RaidLeaderTools
+    if tools and type(tools.ConfirmDangerousAction) == "function" then
+        return tools.ConfirmDangerousAction(
+            GetString(EZO_CONFIRM_INSTANCE_RESET_CANCEL_TITLE),
+            GetString(EZO_CONFIRM_INSTANCE_RESET_CANCEL_TEXT),
+            GetString(EZO_CONFIRM_INSTANCE_RESET_CANCEL_CONFIRM),
+            MOD.CancelConfirmed,
+            "cancel-instance-reset"
+        )
+    end
+    return MOD.CancelConfirmed()
 end
 
 function MOD.CanStart()
@@ -1883,7 +2024,7 @@ function MOD.StartConfirmed()
         return false
     end
     local instance = snapshot.instance or {}
-    local trial = instance.inInstance and DetectTrialFromZone(instance.zoneName) or nil
+    local trial = DetectTrialFromZone(instance.zoneName)
     if not trial then
         EmitReport("start-rejected", nil, {
             "start.result=unsupported-target",
@@ -1951,7 +2092,6 @@ function MOD.StartConfirmed()
     StartStatusTicker()
     RegisterRunEvents()
 
-    Print(zo_strformat(GetString(EZO_MSG_INSTANCE_RESET_STARTED), snapshot.group.size or 0))
     EmitReport("started", run, {
         "snapshot.verified=true",
         "snapshot.removedBeforeDisband=" .. tostring(removedBeforeDisband or 0),
@@ -1975,6 +2115,11 @@ function MOD.StartConfirmed()
             "snapshot.finalGroupSize=" .. tostring(run.snapshot.group and run.snapshot.group.size or 0),
         })
         UpdateStatusWindow(run)
+    end
+
+    local activitySession = EZO and EZO.RaidLeaderActivitySession
+    if activitySession and type(activitySession.SaveResetSnapshot) == "function" then
+        SafeCall(activitySession.SaveResetSnapshot, run.snapshot, run.targetTrialKey, run.targetTrialName)
     end
 
     EmitReport("disband-requested", run, {
@@ -2047,7 +2192,8 @@ function MOD.GetDestinationChoices()
         GetString(EZO_OPTION_INSTANCE_RESET_DESTINATION_PRIMARY),
         GetString(EZO_OPTION_INSTANCE_RESET_DESTINATION_CRAFTING),
         GetString(EZO_OPTION_INSTANCE_RESET_DESTINATION_SECONDARY),
-    }, { "primary", "crafting", "secondary" }
+        GetString(EZO_MENU_LEAVE_INSTANCE),
+    }, { "primary", "crafting", "secondary", "leave-instance" }
 end
 
 function MOD.IsStatusWindowUnlocked()

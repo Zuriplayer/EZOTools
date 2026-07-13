@@ -8,7 +8,9 @@ EZO.RaidLeaderActivitiesDialog = EZO.RaidLeaderActivitiesDialog or {}
 local Dialog = EZO.RaidLeaderActivitiesDialog
 
 local NOMBRE_DIALOGO = "EZO_RAID_LEADER_ACTIVITIES_DIALOG"
+local EVENT_NAMESPACE = "EZOTools_GroupActivitiesContext"
 Dialog.DIALOG_NAME = NOMBRE_DIALOGO
+local contextRefreshPending = false
 
 local ConstruirSubtituloDialogo = EZOTools_ConstruirSubtituloDialogo
 
@@ -27,7 +29,7 @@ local function EmitirDiagnosticoAperturaTrial(stage, detail)
         "trialDialog.openFunction=" .. tostring(type(trialDialog) == "table" and type(trialDialog.Open) == "function"),
         "================================",
     }
-    EZO.Debug.EmitReport(GetString(EZO_DEBUG_GROUP_ACTIVITIES_TITLE), lines, { force = true })
+    EZO.Debug.EmitReport(GetString(EZO_DEBUG_GROUP_ACTIVITIES_TITLE), lines)
 end
 
 local function EmitirDiagnosticoAccionLateral(stage, actionKey, result)
@@ -146,11 +148,27 @@ local function EsLiderDeGrupo()
 end
 
 local function PuedeResetearInstancia()
-    return EsLiderDeGrupo()
+    return EZO
         and EZO.RaidLeaderReset
         and type(EZO.RaidLeaderReset.CanStart) == "function"
         and EZO.RaidLeaderReset.CanStart()
         and type(EZO.RaidLeaderReset.Start) == "function"
+end
+
+local function PuedeCancelarResetInstancia()
+    return EZO
+        and EZO.RaidLeaderReset
+        and type(EZO.RaidLeaderReset.HasSession) == "function"
+        and EZO.RaidLeaderReset.HasSession()
+        and type(EZO.RaidLeaderReset.Cancel) == "function"
+end
+
+local function PuedeIniciarUltimaActividad()
+    return EZO
+        and EZO.RaidLeaderActivitySession
+        and type(EZO.RaidLeaderActivitySession.CanStartLastActivity) == "function"
+        and EZO.RaidLeaderActivitySession.CanStartLastActivity()
+        and type(EZO.RaidLeaderActivitySession.StartLastActivity) == "function"
 end
 
 local function PuedeDisbandearGrupo()
@@ -163,6 +181,14 @@ end
 
 local function ConstruirEntradas()
     local entradas = {}
+
+    if PuedeCancelarResetInstancia() then
+        entradas[#entradas + 1] = {
+            text = GetString(EZO_MENU_CANCEL_INSTANCE_RESET),
+            callback = EZO.RaidLeaderReset.Cancel,
+            key = "cancelInstanceReset",
+        }
+    end
 
     if PuedeDisbandearGrupo() then
         entradas[#entradas + 1] = {
@@ -181,6 +207,15 @@ local function ConstruirEntradas()
                 return EZO.RaidLeaderReset.Start()
             end,
             key = "instanceReset",
+        }
+    end
+
+
+    if PuedeIniciarUltimaActividad() then
+        entradas[#entradas + 1] = {
+            text = GetString(EZO_MENU_START_LAST_GROUP_ACTIVITY),
+            callback = EZO.RaidLeaderActivitySession.StartLastActivity,
+            key = "startLastGroupActivity",
         }
     end
 
@@ -258,7 +293,10 @@ if Core and type(Core.CreateDialog) == "function" then
                     end
                 end
             end
-            if entry and (entry.key == "instanceReset" or entry.key == "disbandGroup")
+            if entry and (entry.key == "instanceReset"
+                or entry.key == "disbandGroup"
+                or entry.key == "cancelInstanceReset"
+                or entry.key == "startLastGroupActivity")
                 and type(cb) == "function" then
                 return function()
                     EmitirDiagnosticoAccionLateral("selected", entry.key, "closing-parent")
@@ -297,6 +335,61 @@ function Dialog.Open()
     return Dialog.OpenGamepad()
 end
 
+local function EmitirDiagnosticoContexto(source, refreshed)
+    if not (EZO and type(EZO.IsDebugModeEnabled) == "function" and EZO.IsDebugModeEnabled()) then
+        return
+    end
+    if not (EZO.Debug and type(EZO.Debug.EmitReport) == "function") then
+        return
+    end
+    EZO.Debug.EmitReport(GetString(EZO_DEBUG_GROUP_ACTIVITIES_TITLE), {
+        "=== EZOTools group activities context refresh ===",
+        "source=" .. tostring(source or ""),
+        "group.isGrouped=" .. tostring(type(IsUnitGrouped) == "function" and IsUnitGrouped("player") == true),
+        "group.isLeader=" .. tostring(EsLiderDeGrupo() == true),
+        "reset.canStart=" .. tostring(PuedeResetearInstancia() == true),
+        "menu.isShowing=" .. tostring(type(Dialog.IsShowing) == "function" and Dialog.IsShowing() == true),
+        "menu.refreshed=" .. tostring(refreshed == true),
+        "================================",
+    })
+end
+
+local function SolicitarRefrescoContexto(source)
+    if contextRefreshPending then return end
+    contextRefreshPending = true
+    local function Refresh()
+        contextRefreshPending = false
+        local refreshed = false
+        if type(Dialog.IsShowing) == "function" and Dialog.IsShowing()
+            and type(Dialog.Refresh) == "function" then
+            refreshed = Dialog.Refresh() == true
+        end
+        EmitirDiagnosticoContexto(source, refreshed)
+    end
+    if type(zo_callLater) == "function" then
+        zo_callLater(Refresh, 250)
+    else
+        Refresh()
+    end
+end
+
+function Dialog.Initialize()
+    if Dialog._contextEventsRegistered == true or type(EVENT_MANAGER) ~= "table" then
+        return
+    end
+    Dialog._contextEventsRegistered = true
+    if EVENT_LEADER_UPDATE ~= nil then
+        EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_LEADER_UPDATE, function()
+            SolicitarRefrescoContexto("leader-update")
+        end)
+    end
+    if EVENT_GROUP_UPDATE ~= nil then
+        EVENT_MANAGER:RegisterForEvent(EVENT_NAMESPACE, EVENT_GROUP_UPDATE, function()
+            SolicitarRefrescoContexto("group-update")
+        end)
+    end
+end
+
 function Dialog.OpenMouse(anchor)
     if type(AddMenuItem) ~= "function" or type(ShowMenu) ~= "function" then
         return Dialog.OpenGamepad()
@@ -308,35 +401,41 @@ function Dialog.OpenMouse(anchor)
 
     if ClearMenu then ClearMenu() end
 
+    local function RunConfirmedAction(callback)
+        if HideMenu then HideMenu() end
+        if EZO then EZO._contextMenuOpen = false end
+        local function Run()
+            EjecutarCallbackSeguro(callback)
+        end
+        if zo_callLater then
+            zo_callLater(Run, 50)
+        else
+            Run()
+        end
+        return false
+    end
+
+    if PuedeCancelarResetInstancia() then
+        AddMenuItem(GetString(EZO_MENU_CANCEL_INSTANCE_RESET), function()
+            return RunConfirmedAction(EZO.RaidLeaderReset.Cancel)
+        end)
+    end
+
     if PuedeDisbandearGrupo() then
         AddMenuItem(GetString(EZO_MENU_DISBAND_GROUP), function()
-            if HideMenu then HideMenu() end
-            if EZO then EZO._contextMenuOpen = false end
-            local function Run()
-                EjecutarCallbackSeguro(function() EZO.RaidLeaderTools.DisbandGroup() end)
-            end
-            if zo_callLater then
-                zo_callLater(Run, 50)
-            else
-                Run()
-            end
-            return false
+            return RunConfirmedAction(EZO.RaidLeaderTools.DisbandGroup)
         end)
     end
 
     if PuedeResetearInstancia() then
         AddMenuItem(GetString(EZO_MENU_INSTANCE_RESET), function()
-            if HideMenu then HideMenu() end
-            if EZO then EZO._contextMenuOpen = false end
-            local function Run()
-                EjecutarCallbackSeguro(function() EZO.RaidLeaderReset.Start() end)
-            end
-            if zo_callLater then
-                zo_callLater(Run, 50)
-            else
-                Run()
-            end
-            return false
+            return RunConfirmedAction(EZO.RaidLeaderReset.Start)
+        end)
+    end
+
+    if PuedeIniciarUltimaActividad() then
+        AddMenuItem(GetString(EZO_MENU_START_LAST_GROUP_ACTIVITY), function()
+            return RunConfirmedAction(EZO.RaidLeaderActivitySession.StartLastActivity)
         end)
     end
 
