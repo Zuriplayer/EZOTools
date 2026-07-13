@@ -19,8 +19,13 @@ function EZO.DebugLog(msg, force)
     if not force and not EZO.IsDebugModeEnabled() then
         return false
     end
+    if EZO._debugLoggerUnavailable == true then
+        return false
+    end
+
     local lib = _G.LibDebugLogger
     if type(lib) ~= "function" and type(lib) ~= "table" then
+        EZO._debugLoggerUnavailable = true
         return false
     end
 
@@ -41,10 +46,12 @@ function EZO.DebugLog(msg, force)
         if ok and created ~= nil then
             logger = created
             EZO._debugLogger = logger
+            EZO._debugLoggerUnavailable = false
         end
     end
 
     if not logger then
+        EZO._debugLoggerUnavailable = true
         return false
     end
 
