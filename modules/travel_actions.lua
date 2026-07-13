@@ -12,6 +12,13 @@ local function Print(message)
     end
 end
 
+local function EmitAutomaticGroupStatus(actionKey)
+    local status = EZO and EZO.RaidLeaderStatus
+    if status and type(status.EmitForAction) == "function" then
+        pcall(status.EmitForAction, actionKey)
+    end
+end
+
 function EZO.JumpPrimaryHouse()
     local id = GetHousingPrimaryHouse()
     if id and id > 0 then
@@ -127,31 +134,42 @@ function EZO.JumpToLeader()
     Print(GetString(EZO_MSG_CANT_JUMP_LEADER))
 end
 
-function EZO.LeaveGroup()
-    if type(GroupLeave) == "function" then
-        GroupLeave()
-        return true
+function EZO.CanLeaveGroup()
+    if type(IsUnitGrouped) ~= "function" then return false end
+    local ok, grouped = pcall(IsUnitGrouped, "player")
+    return ok and grouped == true and type(GroupLeave) == "function"
+end
+
+function EZO.CanLeaveInstance()
+    if type(CanExitInstanceImmediately) ~= "function" or type(ExitInstanceImmediately) ~= "function" then
+        return false
     end
-    return false
+    local ok, canExit = pcall(CanExitInstanceImmediately)
+    return ok and canExit == true
+end
+
+function EZO.CanLeaveGroupAndInstance()
+    return EZO.CanLeaveGroup() and EZO.CanLeaveInstance()
+end
+
+function EZO.LeaveGroup()
+    if not EZO.CanLeaveGroup() then return false end
+    EmitAutomaticGroupStatus("leave-group")
+    GroupLeave()
+    return true
 end
 
 function EZO.LeaveInstance()
-    if type(ExitInstanceImmediately) == "function" then
-        ExitInstanceImmediately()
-        return true
-    end
-    return false
+    if not EZO.CanLeaveInstance() then return false end
+    EmitAutomaticGroupStatus("leave-instance")
+    ExitInstanceImmediately()
+    return true
 end
 
 function EZO.LeaveGroupAndInstance()
-    local done = false
-    if type(GroupLeave) == "function" then
-        GroupLeave()
-        done = true
-    end
-    if type(ExitInstanceImmediately) == "function" then
-        ExitInstanceImmediately()
-        done = true
-    end
-    return done
+    if not EZO.CanLeaveGroupAndInstance() then return false end
+    EmitAutomaticGroupStatus("leave-group-and-instance")
+    GroupLeave()
+    ExitInstanceImmediately()
+    return true
 end

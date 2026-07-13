@@ -418,6 +418,170 @@ local function RegistrarSeccionesBase()
             },
         }
     end)
+
+    REG.RegisterSection("group_autoinvite", 22, function()
+        local EZO = EZOTools
+        EZO.sv = EZO.sv or {}
+        EZO.sv.groupAutoinvite = EZO.sv.groupAutoinvite or {}
+        return {
+            { type = "header", name = GetString(EZO_OPTION_GROUP_AUTOINVITE) },
+            {
+                type = "description",
+                text = GetString(EZO_OPTION_GROUP_AUTOINVITE_NOTE),
+                width = "full",
+            },
+            {
+                type = "checkbox",
+                name = GetString(EZO_OPTION_GROUP_AUTOINVITE_ENABLED),
+                tooltip = GetString(EZO_OPTION_GROUP_AUTOINVITE_ENABLED_TOOLTIP),
+                getFunc = function() return EZO.sv.groupAutoinvite.enabled == true end,
+                setFunc = function(v) EZO.sv.groupAutoinvite.enabled = v == true end,
+                default = false,
+                width = "full",
+            },
+            {
+                type = "editbox",
+                name = GetString(EZO_OPTION_GROUP_AUTOINVITE_KEYWORDS),
+                tooltip = GetString(EZO_OPTION_GROUP_AUTOINVITE_KEYWORDS_TOOLTIP),
+                getFunc = function() return tostring(EZO.sv.groupAutoinvite.keywords or "") end,
+                setFunc = function(v) EZO.sv.groupAutoinvite.keywords = tostring(v or "") end,
+                isMultiline = true,
+                default = "",
+                width = "full",
+            },
+        }
+    end)
+
+    REG.RegisterSection("raid_leader_reset", 25, function()
+        local EZO = EZOTools
+        EZO.sv = EZO.sv or {}
+        EZO.sv.raidLeaderReset = EZO.sv.raidLeaderReset or {}
+        EZO.sv.groupActivities = EZO.sv.groupActivities or {}
+        local reset = EZO.RaidLeaderReset
+        local choices, values
+        if reset and type(reset.GetDestinationChoices) == "function" then
+            choices, values = reset.GetDestinationChoices()
+        else
+            choices = {
+                GetString(EZO_OPTION_INSTANCE_RESET_DESTINATION_PRIMARY),
+                GetString(EZO_OPTION_INSTANCE_RESET_DESTINATION_CRAFTING),
+                GetString(EZO_OPTION_INSTANCE_RESET_DESTINATION_SECONDARY),
+            }
+            values = { "primary", "crafting", "secondary" }
+        end
+        return {
+            { type = "header", name = GetString(EZO_OPTION_GROUP_ACTIVITIES_DIAGNOSTICS) },
+            {
+                type = "checkbox",
+                name = GetString(EZO_OPTION_GROUP_STATUS_AUTO_LOG),
+                tooltip = GetString(EZO_OPTION_GROUP_STATUS_AUTO_LOG_TOOLTIP),
+                getFunc = function() return EZO.sv.groupActivities.logGroupStatusOnAction ~= false end,
+                setFunc = function(v) EZO.sv.groupActivities.logGroupStatusOnAction = v == true end,
+                disabled = function()
+                    return not (type(EZO.IsDebugModeEnabled) == "function" and EZO.IsDebugModeEnabled())
+                end,
+                default = true,
+                width = "full",
+            },
+            { type = "header", name = GetString(EZO_OPTION_INSTANCE_RESET) },
+            {
+                type = "description",
+                text = GetString(EZO_OPTION_INSTANCE_RESET_NOTE),
+                width = "full",
+            },
+            {
+                type = "checkbox",
+                name = GetString(EZO_OPTION_INSTANCE_RESET_INVITE_MEMBERS),
+                tooltip = GetString(EZO_OPTION_INSTANCE_RESET_INVITE_MEMBERS_TOOLTIP),
+                getFunc = function() return EZO.sv.raidLeaderReset.inviteMembers ~= false end,
+                setFunc = function(v) EZO.sv.raidLeaderReset.inviteMembers = v == true end,
+                default = true,
+                width = "full",
+            },
+            {
+                type = "checkbox",
+                name = GetString(EZO_OPTION_INSTANCE_RESET_CONFIRM_ACTIONS),
+                tooltip = GetString(EZO_OPTION_INSTANCE_RESET_CONFIRM_ACTIONS_TOOLTIP),
+                getFunc = function() return EZO.sv.raidLeaderReset.confirmDangerousActions ~= false end,
+                setFunc = function(v) EZO.sv.raidLeaderReset.confirmDangerousActions = v == true end,
+                default = true,
+                width = "full",
+            },
+            {
+                type = "checkbox",
+                name = GetString(EZO_OPTION_INSTANCE_RESET_MOVE_STATUS_WINDOW),
+                tooltip = GetString(EZO_OPTION_INSTANCE_RESET_MOVE_STATUS_WINDOW_TOOLTIP),
+                getFunc = function()
+                    if reset and type(reset.IsStatusWindowUnlocked) == "function" then
+                        return reset.IsStatusWindowUnlocked()
+                    end
+                    return false
+                end,
+                setFunc = function(v)
+                    if reset and type(reset.SetStatusWindowUnlocked) == "function" then
+                        reset.SetStatusWindowUnlocked(v)
+                    end
+                end,
+                default = false,
+                width = "full",
+            },
+            {
+                type = "dropdown",
+                name = GetString(EZO_OPTION_INSTANCE_RESET_DESTINATION),
+                tooltip = GetString(EZO_OPTION_INSTANCE_RESET_DESTINATION_TOOLTIP),
+                choices = choices,
+                choicesValues = values,
+                getFunc = function()
+                    return EZO.sv.raidLeaderReset.destination or "primary"
+                end,
+                setFunc = function(v)
+                    EZO.sv.raidLeaderReset.destination = tostring(v or "primary")
+                end,
+                default = "primary",
+                width = "full",
+            },
+            {
+                type = "slider",
+                name = GetString(EZO_OPTION_INSTANCE_RESET_WAIT_SECONDS),
+                tooltip = GetString(EZO_OPTION_INSTANCE_RESET_WAIT_SECONDS_TOOLTIP),
+                min = 5, max = 300, step = 5,
+                getFunc = function() return tonumber(EZO.sv.raidLeaderReset.waitSeconds) or 30 end,
+                setFunc = function(v) EZO.sv.raidLeaderReset.waitSeconds = tonumber(v) or 30 end,
+                default = 30,
+                width = "half",
+            },
+            {
+                type = "slider",
+                name = GetString(EZO_OPTION_INSTANCE_RESET_INVITE_DELAY_SECONDS),
+                tooltip = GetString(EZO_OPTION_INSTANCE_RESET_INVITE_DELAY_SECONDS_TOOLTIP),
+                min = 0, max = 120, step = 5,
+                getFunc = function() return tonumber(EZO.sv.raidLeaderReset.inviteDelaySeconds) or 10 end,
+                setFunc = function(v) EZO.sv.raidLeaderReset.inviteDelaySeconds = tonumber(v) or 10 end,
+                default = 10,
+                width = "half",
+            },
+            {
+                type = "slider",
+                name = GetString(EZO_OPTION_INSTANCE_RESET_REINVITE_ATTEMPTS),
+                tooltip = GetString(EZO_OPTION_INSTANCE_RESET_REINVITE_ATTEMPTS_TOOLTIP),
+                min = 0, max = 5, step = 1,
+                getFunc = function() return tonumber(EZO.sv.raidLeaderReset.reinviteAttempts) or 1 end,
+                setFunc = function(v) EZO.sv.raidLeaderReset.reinviteAttempts = tonumber(v) or 1 end,
+                default = 1,
+                width = "half",
+            },
+            {
+                type = "slider",
+                name = GetString(EZO_OPTION_INSTANCE_RESET_REINVITE_DELAY_SECONDS),
+                tooltip = GetString(EZO_OPTION_INSTANCE_RESET_REINVITE_DELAY_SECONDS_TOOLTIP),
+                min = 10, max = 300, step = 10,
+                getFunc = function() return tonumber(EZO.sv.raidLeaderReset.reinviteDelaySeconds) or 30 end,
+                setFunc = function(v) EZO.sv.raidLeaderReset.reinviteDelaySeconds = tonumber(v) or 30 end,
+                default = 30,
+                width = "half",
+            },
+        }
+    end)
 end
 
 RegistrarSeccionesBase()

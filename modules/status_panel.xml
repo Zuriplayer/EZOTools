@@ -1,0 +1,123 @@
+<GuiXml>
+    <Controls>
+        <Control name="EZOToolsStatusPanelMetricTemplate" virtual="true">
+            <Dimensions x="116" y="42" />
+            <Controls>
+                <Label name="$(parent)Value" font="ZoFontWinH3" horizontalAlignment="CENTER"
+                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED">
+                    <Anchor point="TOPLEFT" />
+                    <Anchor point="TOPRIGHT" />
+                </Label>
+                <Label name="$(parent)Label" font="ZoFontGameSmall" wrapMode="ELLIPSIS"
+                    horizontalAlignment="CENTER"
+                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SUBTLE">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Value" relativePoint="BOTTOMLEFT" offsetY="-2" />
+                    <Anchor point="TOPRIGHT" relativeTo="$(parent)Value" relativePoint="BOTTOMRIGHT" offsetY="-2" />
+                </Label>
+            </Controls>
+        </Control>
+
+        <Control name="EZOToolsStatusPanelRowTemplate" virtual="true">
+            <Dimensions y="28" />
+            <Controls>
+                <Texture name="$(parent)Background" textureFile="EsoUI/Art/Miscellaneous/listItem_backdrop.dds" alpha="0.32">
+                    <AnchorFill />
+                    <TextureCoords left="0" right="1" top="0" bottom="0.8125" />
+                </Texture>
+                <Texture name="$(parent)Icon" layer="CONTROLS">
+                    <Dimensions x="20" y="20" />
+                    <Anchor point="LEFT" offsetX="5" />
+                </Texture>
+                <Label name="$(parent)Status" font="ZoFontGameSmall" wrapMode="ELLIPSIS" horizontalAlignment="RIGHT">
+                    <Dimensions x="170" />
+                    <Anchor point="RIGHT" offsetX="-7" />
+                </Label>
+                <Label name="$(parent)Location" font="ZoFontGameSmall" wrapMode="ELLIPSIS"
+                    horizontalAlignment="RIGHT" hidden="true" />
+                <Label name="$(parent)Name" font="ZoFontGame" wrapMode="ELLIPSIS"
+                    verticalAlignment="CENTER"
+                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED" />
+            </Controls>
+        </Control>
+
+        <Control name="EZOToolsStatusPanelActionTemplate" inherits="ZO_KeybindButton" virtual="true">
+            <Dimensions x="180" y="35" />
+        </Control>
+
+        <TopLevelControl name="EZOToolsStatusPanelTemplate" virtual="true" hidden="true"
+            clampedToScreen="true">
+            <Dimensions x="520" y="190" />
+            <Controls>
+                <Backdrop name="$(parent)Backdrop" inherits="ZO_DarkThinFrame" alpha="0.96">
+                    <AnchorFill />
+                </Backdrop>
+
+                <Label name="$(parent)Phase" font="ZoFontGameShadow" horizontalAlignment="RIGHT"
+                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+                    <Dimensions x="100" y="28" />
+                    <Anchor point="TOPRIGHT" offsetX="-16" offsetY="11" />
+                </Label>
+                <Label name="$(parent)Title" font="ZoFontWinH3" wrapMode="ELLIPSIS"
+                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED">
+                    <Dimensions y="30" />
+                    <Anchor point="TOPLEFT" offsetX="16" offsetY="11" />
+                </Label>
+
+                <Label name="$(parent)Context" font="ZoFontGame" wrapMode="ELLIPSIS"
+                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+                    <Dimensions y="22" />
+                </Label>
+                <Label name="$(parent)TotalTime" font="ZoFontGame" horizontalAlignment="RIGHT"
+                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SUBTLE" />
+
+                <StatusBar name="$(parent)Progress" inherits="ZO_ArrowProgressBarWithBG">
+                    <Dimensions y="20" />
+                </StatusBar>
+                <Backdrop name="$(parent)ProgressValueBackdrop" inherits="ZO_ThinBackdrop" alpha="0.96">
+                    <Dimensions x="58" y="24" />
+                    <Anchor point="CENTER" relativeTo="$(parent)Progress" relativePoint="CENTER" />
+                </Backdrop>
+                <Label name="$(parent)ProgressValue" font="ZoFontGameShadow"
+                    horizontalAlignment="CENTER" verticalAlignment="CENTER"
+                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)ProgressValueBackdrop" relativePoint="TOPLEFT" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)ProgressValueBackdrop" relativePoint="BOTTOMRIGHT" />
+                </Label>
+
+                <Label name="$(parent)Stage" font="ZoFontGameShadow" wrapMode="ELLIPSIS"
+                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED">
+                    <Dimensions y="22" />
+                </Label>
+                <Label name="$(parent)StageTime" font="ZoFontGameSmall" horizontalAlignment="RIGHT"
+                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SUBTLE" />
+
+                <Control name="$(parent)Alert" hidden="true">
+                    <Controls>
+                        <Backdrop name="$(parent)Backdrop" inherits="ZO_ThinBackdrop" />
+                        <Label name="$(parent)Text" font="ZoFontGame" verticalAlignment="CENTER"
+                            color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED">
+                            <Anchor point="TOPLEFT" offsetX="10" offsetY="5" />
+                            <Anchor point="BOTTOMRIGHT" offsetX="-10" offsetY="-5" />
+                        </Label>
+                    </Controls>
+                </Control>
+
+                <Control name="$(parent)Metrics">
+                    <Controls>
+                        <Control name="$(parent)1" inherits="EZOToolsStatusPanelMetricTemplate" />
+                        <Control name="$(parent)2" inherits="EZOToolsStatusPanelMetricTemplate" />
+                        <Control name="$(parent)3" inherits="EZOToolsStatusPanelMetricTemplate" />
+                        <Control name="$(parent)4" inherits="EZOToolsStatusPanelMetricTemplate" />
+                    </Controls>
+                </Control>
+
+                <Label name="$(parent)RowsTitle" font="ZoFontGameShadow" wrapMode="ELLIPSIS"
+                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+                    <Dimensions y="22" />
+                </Label>
+                <Control name="$(parent)Rows" />
+                <Control name="$(parent)Actions" hidden="true" />
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

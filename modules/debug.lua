@@ -304,6 +304,7 @@ local function MostrarAyudaDebug()
         GetString(EZO_CMD_DEBUG_TEXLOAD),
         GetString(EZO_CMD_DEBUG_DOTS),
         GetString(EZO_CMD_DEBUG_LAYOUT),
+        GetString(EZO_CMD_DEBUG_RESET_PANEL),
         GetString(EZO_CMD_DEBUG_FOOD),
         GetString(EZO_CMD_DEBUG_HOUSE),
     })
@@ -469,6 +470,15 @@ function Debug.Execute(sub, arg)
     end
     if sub == "layout" then
         EjecutarDebugLayout()
+        return true
+    end
+    if sub == "resetpanel" then
+        local preview = EZO.StatusPanelPreview
+        if preview and type(preview.Execute) == "function" then
+            preview.Execute(arg)
+        else
+            safeChat(GetString(EZO_CMD_LAYOUT_NA))
+        end
         return true
     end
     if sub == "food" then

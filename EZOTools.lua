@@ -184,6 +184,22 @@ function EZO:Initialize()
             fuegoFriendHouseDefaultMigrated = false,
             customGuildFriendHouses = {},
         },
+        raidLeaderReset = {
+            destination = "primary",
+            waitSeconds = 30,
+            inviteDelaySeconds = 10,
+            reinviteDelaySeconds = 30,
+            reinviteAttempts = 1,
+            inviteMembers = true,
+            confirmDangerousActions = true,
+        },
+        groupActivities = {
+            logGroupStatusOnAction = true,
+        },
+        groupAutoinvite = {
+            enabled = false,
+            keywords = "",
+        },
     }
 
     local charDefaults = {
@@ -252,6 +268,14 @@ function EZO:Initialize()
 
     if self.RefreshActiveFriendHouses then
         self.RefreshActiveFriendHouses()
+    end
+
+    if EZO.GroupAutoinvite and type(EZO.GroupAutoinvite.Initialize) == "function" then
+        EZO.GroupAutoinvite.Initialize()
+    end
+
+    if EZO.EZOCoreIntegration and type(EZO.EZOCoreIntegration.RegisterLocalAddon) == "function" then
+        EZO.EZOCoreIntegration.RegisterLocalAddon()
     end
 
     -- Inicializar submódulos en orden
@@ -433,4 +457,24 @@ end
 
 function EZOTools_ToggleTrialTravelPanel()
     return EZOTools_ToggleGroupActivitiesPanel()
+end
+
+function EZOTools_ResetInstance()
+    local ezo = _G.EZOTools
+    local reset = type(ezo) == "table" and ezo.RaidLeaderReset or nil
+    if reset and type(reset.Start) == "function" then
+        return reset.Start()
+    end
+    safeChat(GetString(EZO_MSG_GROUP_ACTIVITIES_PANEL_MISSING))
+    return false
+end
+
+function EZOTools_DisbandGroup()
+    local ezo = _G.EZOTools
+    local tools = type(ezo) == "table" and ezo.RaidLeaderTools or nil
+    if tools and type(tools.DisbandGroup) == "function" then
+        return tools.DisbandGroup()
+    end
+    safeChat(GetString(EZO_MSG_GROUP_DISBAND_UNAVAILABLE))
+    return false
 end

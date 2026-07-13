@@ -36,5 +36,6 @@ dist/
 
 # Internal AI-agent instructions and dev-process notes.
 # Kept locally for Claude Code/Codex to read, never tracked in git.
-docs/
+docs/*
+!docs/status-panel.md
 tools/

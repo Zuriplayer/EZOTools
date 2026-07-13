@@ -6,16 +6,16 @@ local EZO = EZOTools
 EZO.RaidLeaderStatus = EZO.RaidLeaderStatus or {}
 local MOD = EZO.RaidLeaderStatus
 
-local function Print(message)
-    if EZO and type(EZO.Print) == "function" then
-        EZO.Print(message)
-    elseif type(d) == "function" then
-        d(tostring(message))
-    end
-end
-
 local function YesNo(value)
     return value and "yes" or "no"
+end
+
+local function IsAutomaticReportEnabled()
+    if not (EZO and type(EZO.IsDebugModeEnabled) == "function" and EZO.IsDebugModeEnabled()) then
+        return false
+    end
+    local settings = EZO.sv and EZO.sv.groupActivities
+    return not settings or settings.logGroupStatusOnAction ~= false
 end
 
 local function BuildSnapshot()
@@ -32,22 +32,12 @@ local function BuildSnapshot()
     }
 end
 
-local function BuildSummary(snapshot)
-    local group = snapshot.group or {}
-    local instance = snapshot.instance or {}
-    return zo_strformat(GetString(EZO_MSG_GROUP_STATUS_SUMMARY),
-        group.isGrouped and GetString(EZO_STATUS_YES) or GetString(EZO_STATUS_NO),
-        tostring(group.size or 0),
-        group.isLeader and GetString(EZO_STATUS_YES) or GetString(EZO_STATUS_NO),
-        instance.inInstance and GetString(EZO_STATUS_YES) or GetString(EZO_STATUS_NO),
-        tostring(instance.zoneName or ""))
-end
-
-local function BuildDebugLines(snapshot)
+local function BuildDebugLines(snapshot, actionKey)
     local group = snapshot.group or {}
     local instance = snapshot.instance or {}
     local lines = {
         "=== EZOTools group activity status ===",
+        "action=" .. tostring(actionKey or ""),
         "group.isGrouped=" .. YesNo(group.isGrouped),
         "group.isLeader=" .. YesNo(group.isLeader),
         "group.size=" .. tostring(group.size or 0),
@@ -79,12 +69,15 @@ local function BuildDebugLines(snapshot)
     return lines
 end
 
-function MOD.Show()
-    local snapshot = BuildSnapshot()
-    Print(BuildSummary(snapshot))
+function MOD.EmitForAction(actionKey)
+    if not IsAutomaticReportEnabled() then
+        return false
+    end
 
+    local snapshot = BuildSnapshot()
     if EZO and EZO.Debug and type(EZO.Debug.EmitReport) == "function" then
-        EZO.Debug.EmitReport(GetString(EZO_DEBUG_GROUP_STATUS_TITLE), BuildDebugLines(snapshot), { force = true })
+        EZO.Debug.EmitReport(GetString(EZO_DEBUG_GROUP_STATUS_TITLE), BuildDebugLines(snapshot, actionKey))
+        return true
     end
 
     return false
