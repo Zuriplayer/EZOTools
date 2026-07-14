@@ -13,6 +13,8 @@ local PANEL_WIDTH = 480
 local panel
 local currentLeaderState
 local currentLeaderUnitTag
+local simulatedSnapshot
+local simulationActive = false
 local initialized = false
 
 local function IsGrouped()
@@ -28,6 +30,10 @@ local function IsGroupLeader()
 end
 
 local function BuildSnapshot()
+    if simulationActive and type(simulatedSnapshot) == "table" then
+        return simulatedSnapshot
+    end
+
     local tools = EZO and EZO.RaidLeaderTools
     if tools and type(tools.BuildResetSnapshot) == "function" then
         local ok, snapshot = pcall(tools.BuildResetSnapshot)
@@ -62,6 +68,10 @@ local function GetLeaderUnitTag(snapshot)
 end
 
 local function GetTransportStatus()
+    if simulationActive then
+        return { reason = "active", simulated = true }
+    end
+
     local integration = EZO and EZO.EZOCoreIntegration
     if not (integration and type(integration.GetGroupPresenceStatus) == "function") then
         return { reason = "ezocoreMissing" }
@@ -91,6 +101,10 @@ local function GetTransportText(status)
 end
 
 local function GetLeaderCompatibility(leaderUnitTag)
+    if simulationActive then
+        return "compatible"
+    end
+
     local integration = EZO and EZO.EZOCoreIntegration
     if not (leaderUnitTag and integration and type(integration.GetPeerCompatibility) == "function") then
         return "unknown"
@@ -164,7 +178,12 @@ local function BuildModel()
         or GetString(EZO_GROUP_ACTIVITY_PEER_STATUS_WAITING)
 
     local alert = nil
-    if not hasLeaderState then
+    if simulationActive then
+        alert = {
+            text = GetString(EZO_GROUP_ACTIVITY_PEER_SIMULATION_ACTIVE),
+            tone = "info",
+        }
+    elseif not hasLeaderState then
         alert = {
             text = transportText,
             tone = transportTone,
@@ -250,7 +269,7 @@ function MOD.Show()
     end
 
     local integration = EZO and EZO.EZOCoreIntegration
-    if integration and type(integration.RequestGroupPresence) == "function" then
+    if not simulationActive and integration and type(integration.RequestGroupPresence) == "function" then
         pcall(integration.RequestGroupPresence)
     end
 
@@ -258,6 +277,86 @@ function MOD.Show()
     win:SetInteractionActive(true)
     win:SetHidden(false)
     return false
+end
+
+local function GetSimulatedModeName()
+    if type(GetString) == "function" and DUNGEON_DIFFICULTY_VETERAN ~= nil then
+        return GetString("SI_DUNGEONDIFFICULTY", DUNGEON_DIFFICULTY_VETERAN)
+    end
+    return "Veteran"
+end
+
+local function BuildSimulatedState(mode)
+    mode = tostring(mode or "")
+    local state = {
+        schemaVersion = 1,
+        sourceAddon = "ezotools",
+        activityType = "instanceReset",
+        runId = "debug-local-simulation",
+        targetKey = "aetherian_archive",
+        targetName = "Aetherian Archive",
+        modeName = GetSimulatedModeName(),
+        stage = "waiting-members",
+        statusText = GetString(EZO_INSTANCE_RESET_STAGE_WAITING_MEMBERS),
+        phaseIndex = 6,
+        totalPhases = 6,
+        resetComplete = false,
+        capturedMembers = 11,
+        pendingMembers = 3,
+        startedAtMs = 0,
+        updatedAtMs = 0,
+    }
+
+    if mode == "complete" or mode == "done" then
+        state.stage = "waiting-trial-entry"
+        state.statusText = GetString(EZO_INSTANCE_RESET_STAGE_READY_FOR_ENTRY)
+        state.resetComplete = true
+        state.pendingMembers = 0
+    elseif mode == "returning" then
+        state.stage = "returning"
+        state.statusText = GetString(EZO_INSTANCE_RESET_STAGE_RETURNING)
+        state.phaseIndex = 5
+        state.pendingMembers = 8
+    elseif mode == "staging" then
+        state.stage = "waiting-home"
+        state.statusText = GetString(EZO_INSTANCE_RESET_STAGE_WAITING_HOME)
+        state.phaseIndex = 3
+        state.pendingMembers = 10
+    end
+
+    return state
+end
+
+local function BuildSimulatedSnapshot()
+    return {
+        group = {
+            isGrouped = true,
+            isLeader = false,
+            size = 12,
+            members = {
+                { unitTag = "group1", displayName = "@RaidLeader", characterName = "Raid Leader", isLeader = true },
+                { unitTag = "player", displayName = GetPlayerDisplayName(), characterName = "Player", isLeader = false },
+            },
+        },
+        instance = {
+            inInstance = true,
+            zoneName = "Aetherian Archive",
+            difficultyName = GetSimulatedModeName(),
+            canChangeDifficulty = false,
+        },
+    }
+end
+
+function MOD.ShowSimulation(mode)
+    simulationActive = true
+    simulatedSnapshot = BuildSimulatedSnapshot()
+    currentLeaderUnitTag = "group1"
+    currentLeaderState = BuildSimulatedState(mode)
+    return MOD.Show()
+end
+
+function MOD.IsSimulationActive()
+    return simulationActive == true
 end
 
 function MOD.Hide()
@@ -291,7 +390,34 @@ end
 function MOD.ClearLeaderActivityState()
     currentLeaderState = nil
     currentLeaderUnitTag = nil
+    simulationActive = false
+    simulatedSnapshot = nil
     MOD.Refresh()
+    return true
+end
+
+function MOD.ExecuteDebug(argument)
+    argument = zo_strlower(zo_strtrim(tostring(argument or "")))
+    if argument == "off" then
+        MOD.ClearLeaderActivityState()
+        MOD.Hide()
+        if type(EZO.Print) == "function" then
+            EZO.Print(GetString(EZO_DEBUG_GROUP_ACTIVITY_PANEL_HIDDEN))
+        end
+        return true
+    end
+
+    if argument ~= "" and argument ~= "complete" and argument ~= "done" and argument ~= "returning" and argument ~= "staging" then
+        if type(EZO.Print) == "function" then
+            EZO.Print(GetString(EZO_CMD_DEBUG_GROUP_ACTIVITY_USAGE))
+        end
+        return false
+    end
+
+    MOD.ShowSimulation(argument)
+    if type(EZO.Print) == "function" then
+        EZO.Print(GetString(EZO_DEBUG_GROUP_ACTIVITY_PANEL_SHOWN))
+    end
     return true
 end
 

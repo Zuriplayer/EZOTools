@@ -354,6 +354,7 @@ local function MostrarAyudaDebug()
         GetString(EZO_CMD_DEBUG_DOTS),
         GetString(EZO_CMD_DEBUG_LAYOUT),
         GetString(EZO_CMD_DEBUG_RESET_PANEL),
+        GetString(EZO_CMD_DEBUG_GROUP_ACTIVITY),
         GetString(EZO_CMD_DEBUG_FOOD),
         GetString(EZO_CMD_DEBUG_HOUSE),
     })
@@ -525,6 +526,15 @@ function Debug.Execute(sub, arg)
         local preview = EZO.StatusPanelPreview
         if preview and type(preview.Execute) == "function" then
             preview.Execute(arg)
+        else
+            safeChat(GetString(EZO_CMD_LAYOUT_NA))
+        end
+        return true
+    end
+    if sub == "groupactivity" then
+        local preview = EZO.GroupActivityPeerPanel
+        if preview and type(preview.ExecuteDebug) == "function" then
+            preview.ExecuteDebug(arg)
         else
             safeChat(GetString(EZO_CMD_LAYOUT_NA))
         end

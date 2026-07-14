@@ -7,7 +7,7 @@ Support, bug reports, and suggestions: https://discord.gg/ekw8zUAcRm
 
 ## Status
 
-Current version: **2.0.74**.
+Current version: **2.0.75**.
 
 This addon is in public beta. The implemented features are usable, but some newer group and trial tools are still experimental and should be tested carefully before relying on them in organized runs.
 
@@ -144,7 +144,7 @@ Registered commands:
 - `/ezo about`
 - `/ezo debug ...` when debug mode is enabled.
 
-Diagnostic commands include runtime status, guild information, texture/icon checks, side icon layout preview, food debug state, current housing diagnostics, and an isolated 11-member reset-panel preview. With debug mode enabled, use `/ezo debug resetpanel` for the current 520 px layout, `/ezo debug resetpanel 460` to compare another width from 420 to 620 px, and `/ezo debug resetpanel off` to close it. This preview never starts or modifies a reset session. Changing the LAM move-window option also closes this standalone preview before showing, restoring, or hiding the real reset panel, so both instances cannot remain visible together. Technical reports use the native LibDebugLogger `Info`, `Warning`, `Error`, and `Debug` levels as appropriate and never fall back to normal chat automatically.
+Diagnostic commands include runtime status, guild information, texture/icon checks, side icon layout preview, food debug state, current housing diagnostics, an isolated 11-member reset-panel preview, and a simulated member-facing Group Activities panel. With debug mode enabled, use `/ezo debug resetpanel` for the current 520 px layout, `/ezo debug resetpanel 460` to compare another width from 420 to 620 px, and `/ezo debug resetpanel off` to close it. Use `/ezo debug groupactivity`, `/ezo debug groupactivity staging`, `/ezo debug groupactivity returning`, or `/ezo debug groupactivity complete` to preview local member-panel states without group traffic; `/ezo debug groupactivity off` closes it. These previews never start or modify a reset session. Changing the LAM move-window option also closes the standalone reset preview before showing, restoring, or hiding the real reset panel, so both reset-panel instances cannot remain visible together. Technical reports use the native LibDebugLogger `Info`, `Warning`, `Error`, and `Debug` levels as appropriate and never fall back to normal chat automatically.
 
 ## Safety Boundaries
 
@@ -228,6 +228,7 @@ After installing or updating:
 - Verify Leave group as both leader and non-leader, Leave instance where ESO allows immediate exit, and Leave group and instance when both conditions are true. Confirm that these entries appear in Group Activities rather than the main command panel in mouse, keyboard-menu, and gamepad-menu flows.
 - Confirm that `Group status` no longer appears in Group Activities. With debug mode and automatic group-status logging enabled, run each available group action and verify that Log Viewer receives one pre-action snapshot containing the corresponding `action` value; disable the LAM option and verify that these snapshots stop.
 - As a grouped non-leader, open Group Activities and select My Group Activity Status. Confirm that the panel shows only the current player's row plus the EZOCore/leader compatibility summary, and that closing it does not affect group, travel, or reset state.
+- With debug mode enabled, run `/ezo debug groupactivity`, `/ezo debug groupactivity returning`, `/ezo debug groupactivity complete`, and `/ezo debug groupactivity off`. Confirm that the simulated member panel clearly marks itself as debug data, shows no roster, and closes without changing group, travel, or reset state.
 - During that test, verify that the panel stays hidden in inventory/game menus, remains visible in the trial entrance hall, and normally clears after the leader leaves the raid staging area.
 - Verify the structured reset panel with one, four, and eleven captured members (the leader is not listed as a captured member). Enabling the LAM move option must show the complete eleven-member placement preview; disabling it must restore the real reset state or hide the panel. Check that metrics remain centered and aligned, member names do not overlap their invitation or location status, the six-phase bar and its centered counter remain readable, alerts expand the panel cleanly, and switching between keyboard and gamepad changes the native typography without moving or resizing unrelated UI. For grouped members, verify the green same-instance and yellow different-instance states; members without a current group unit tag must remain gray and unknown.
 - After a completed or retained reset session, form a controlled group and run standalone Disband Group. Verify that ESO confirms the disband, the panel closes, and Log Viewer reports `reset-session-cleared` when debug mode is enabled.
