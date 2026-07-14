@@ -322,6 +322,9 @@ function EZO:Initialize()
         EZOTools_QuickUtilityHouses.Init()
     end
     if EZOTools_Overlay   and EZOTools_Overlay.Init   then EZOTools_Overlay.Init()   end
+    if EZO.EZOCoreIntegration and type(EZO.EZOCoreIntegration.RegisterLayoutSurfaces) == "function" then
+        EZO.EZOCoreIntegration.RegisterLayoutSurfaces()
+    end
     if EZOTools_Keybinds  and EZOTools_Keybinds.Init  then EZOTools_Keybinds.Init()  end
     if EZOTools_KeyboardEnterOverride and EZOTools_KeyboardEnterOverride.Init then
         EZOTools_KeyboardEnterOverride.Init()

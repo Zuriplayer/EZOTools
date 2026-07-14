@@ -20,6 +20,7 @@ local overlaySideWidgetsLeft, overlaySideWidgetsRight = {}, {}
 local overlaySideWidgetTexturesLeft, overlaySideWidgetTexturesRight = {}, {}
 local overlayWidgetTooltipWin, overlayWidgetTooltipBackdrop, overlayWidgetTooltipLabel
 local overlaySceneFragment
+local layoutEditMode = false
 local overlayAllyTooltipActive = false
 local overlaySideWidgetTooltipActive = false
 local overlayFoodPulseLastRefreshMs = 0
@@ -128,7 +129,7 @@ end
 -- para que el clic derecho pueda abrir el menú contextual.
 local function AplicarEstadoBloqueo()
     if not overlayWin then return end
-    local bloqueado = EZO.sv.overlay.locked
+    local bloqueado = EZO.sv.overlay.locked and not layoutEditMode
     local enHUD     = EsEscenaHUD()
     overlayWin:SetMovable(enHUD and not bloqueado)
     overlayWin:SetMouseEnabled(enHUD)
@@ -1191,8 +1192,10 @@ end
 -- Actualiza la visibilidad del overlay según las opciones activas
 local function ActualizarVisibilidad()
     local enHUD = EsEscenaHUD()
-    local oculto = (not EZO.sv.overlay.enabled)
+    local oculto = not layoutEditMode and (
+        (not EZO.sv.overlay.enabled)
         or (EZO.sv.overlay.hideInCombat and enCombate)
+    )
     if not enHUD then
         oculto = true
     end
@@ -1211,6 +1214,22 @@ end
 function MOD.SetLocked(v)
     EZO.sv.overlay.locked = v and true or false
     AplicarEstadoBloqueo()
+end
+
+function MOD.IsLayoutEditMode()
+    return layoutEditMode == true
+end
+
+function MOD.SetLayoutEditMode(enabled)
+    layoutEditMode = enabled == true
+    if WIDGETS and type(WIDGETS.SetLayoutPreviewEnabled) == "function" then
+        WIDGETS.SetLayoutPreviewEnabled(layoutEditMode)
+    end
+    if not layoutEditMode then
+        OcultarTooltipWidget()
+    end
+    MOD.Refresh()
+    return layoutEditMode
 end
 
 -- API pública: reiniciar posición al centro
@@ -1471,6 +1490,7 @@ end
 -- Inicialización: crea controles, registra eventos
 function MOD.Init()
     AsegurarControles()
+    layoutEditMode = false
     DesactivarLayoutPreview()
     MOD.Refresh()
     if FOOD and type(FOOD.SyncBackpackCache) == "function" then
@@ -1504,7 +1524,7 @@ function MOD.Init()
         EVENT_MANAGER:RegisterForEvent("EZOTools_Overlay_Deactivated",
             EVENT_PLAYER_DEACTIVATED,
             function()
-                DesactivarLayoutPreview()
+                MOD.SetLayoutEditMode(false)
             end)
     end
 

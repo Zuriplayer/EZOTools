@@ -8,6 +8,7 @@ local MOD = EZO.EZOCoreIntegration
 
 local registered = false
 local languageCallbackRegistered = false
+local layoutSurfacesRegistered = false
 
 local function Debug(message)
     if EZO and type(EZO.DebugPrint) == "function" then
@@ -173,6 +174,7 @@ function MOD.RegisterLocalAddon()
                 "group.activityState.provider",
                 "group.activityState.consumer",
                 "family.language.consumer",
+                "family.layout.consumer",
             },
         })
     end)
@@ -186,4 +188,72 @@ function MOD.RegisterLocalAddon()
 
     Debug("EZOCore registration skipped or rejected: " .. tostring(result))
     return false
+end
+
+function MOD.RegisterLayoutSurfaces()
+    if layoutSurfacesRegistered then
+        return true
+    end
+
+    local core = GetEZOCore()
+    if not core or type(core.GetService) ~= "function" then
+        return false
+    end
+
+    local service = core:GetService("family.layout", 1)
+    if not service or type(service.RegisterSurface) ~= "function" then
+        return false
+    end
+
+    local definitions = {
+        {
+            id = "ezotools.overlay",
+            name = EZO_OPTION_OVERLAY,
+            tooltip = EZO_OPTION_OVERLAY_NOTE,
+            order = 10,
+            setEditMode = function(enabled)
+                EZOTools_Overlay.SetLayoutEditMode(enabled)
+                return EZOTools_Overlay.IsLayoutEditMode() == (enabled == true)
+            end,
+            isEditMode = function()
+                return EZOTools_Overlay.IsLayoutEditMode()
+            end,
+        },
+        {
+            id = "ezotools.reset-status",
+            name = EZO_OPTION_INSTANCE_RESET_MOVE_STATUS_WINDOW,
+            tooltip = EZO_OPTION_INSTANCE_RESET_MOVE_STATUS_WINDOW_TOOLTIP,
+            order = 20,
+            setEditMode = function(enabled)
+                EZOTools_RaidLeaderReset.SetStatusWindowUnlocked(enabled)
+                return EZOTools_RaidLeaderReset.IsStatusWindowUnlocked() == (enabled == true)
+            end,
+            isEditMode = function()
+                return EZOTools_RaidLeaderReset.IsStatusWindowUnlocked()
+            end,
+        },
+    }
+
+    for _, definition in ipairs(definitions) do
+        local nameStringId = definition.name
+        local tooltipStringId = definition.tooltip
+        local ok, result = pcall(function()
+            return service:RegisterSurface({
+                id = definition.id,
+                addonId = "ezotools",
+                addonName = "EZOTools",
+                name = function() return GetString(nameStringId) end,
+                tooltip = function() return GetString(tooltipStringId) end,
+                sortOrder = definition.order,
+                setEditMode = definition.setEditMode,
+                isEditMode = definition.isEditMode,
+            })
+        end)
+        if not ok or result ~= true then
+            return false
+        end
+    end
+
+    layoutSurfacesRegistered = true
+    return true
 end
