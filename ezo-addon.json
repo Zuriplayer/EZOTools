@@ -4,6 +4,7 @@
     "id": "ezotools",
     "name": "EZOTools",
     "version": "2.0.72",
+    "stage": "beta",
     "status": "beta",
     "phase": "public-beta",
     "visibility": "public",
