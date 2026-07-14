@@ -7,6 +7,7 @@ local MENU = EZOTools_Menu
 
 local ADDON_NAME   = "EZOTools"
 local DISPLAY_NAME = "E|cB040FFZ|rOTools"
+local PANEL_ID     = "EZOTools_Panel"
 -- VERSION viene de core.lua via EZOTools.ADDON_VERSION
 
 -- Garantiza que los valores por defecto de mantenimiento existen en sv
@@ -146,6 +147,7 @@ function MENU.Init()
         displayName       = DISPLAY_NAME,
         author            = "@Zuriplayer",
         version           = EZOTools.ADDON_VERSION,
+        ezoStage          = "beta",
         -- LAM muestra un icono en la cabecera del panel que abre esta URL
         -- con el diálogo oficial del juego.
         feedback          = EZOTools.CONTACT_DISCORD,
@@ -153,10 +155,38 @@ function MENU.Init()
         registerForDefaults = true,
     }
 
-    local panel = LAM:RegisterAddonPanel("EZOTools_Panel", panelData)
+    local options = ConstruirOpciones()
+    if EZOCore and type(EZOCore.RegisterSettingsPanel) == "function" then
+        local registered = EZOCore:RegisterSettingsPanel(ADDON_NAME, PANEL_ID, panelData, options)
+        if registered then
+            EZOTools.ezoSettingsRegistered = true
+            return
+        end
+    end
+
+    local panel = LAM:RegisterAddonPanel(PANEL_ID, panelData)
     -- Guardamos la referencia al panel para poder abrirlo programáticamente
     EZOTools._lamPanel  = panel
     _G.EZOTools_Panel   = panel
 
-    LAM:RegisterOptionControls("EZOTools_Panel", ConstruirOpciones())
+    LAM:RegisterOptionControls(PANEL_ID, options)
+end
+
+function MENU.Open()
+    if EZOTools.ezoSettingsRegistered
+        and EZOCore
+        and type(EZOCore.OpenSettingsPanel) == "function"
+        and type(EZOCore.OpenSettings) == "function"
+        and EZOCore:OpenSettingsPanel(ADDON_NAME)
+    then
+        return EZOCore.OpenSettings()
+    end
+
+    local LAM = LibAddonMenu2
+    if not (LAM and type(LAM.OpenToPanel) == "function") then
+        return false
+    end
+
+    LAM:OpenToPanel(EZOTools._lamPanel or _G.EZOTools_Panel or PANEL_ID)
+    return true
 end

@@ -7,7 +7,7 @@ Support, bug reports, and suggestions: https://discord.gg/ekw8zUAcRm
 
 ## Status
 
-Current version: **2.0.73**.
+Current version: **2.0.74**.
 
 This addon is in public beta. The implemented features are usable, but some newer group and trial tools are still experimental and should be tested carefully before relying on them in organized runs.
 
@@ -171,7 +171,7 @@ EZOTools is not an automation addon for combat or gameplay decisions.
 
 ## Settings
 
-Open the full settings panel through ESO's Add-Ons settings or from EZOTools itself. Every section heading uses the same purple information icon; hover the heading to read its general explanation without occupying permanent panel space. Help for an individual setting appears when hovering that setting itself. Current settings cover:
+With EZOCore enabled, open the complete panel under Settings > EZO > EZOTools or from EZOTools itself. The panel is not duplicated in ESO's standard Addons settings list. Without EZOCore, the same controls remain available through the standalone LibAddonMenu fallback. Every section heading uses the same purple information icon; hover the heading to read its general explanation without occupying permanent panel space. Help for an individual setting appears when hovering that setting itself. Current settings cover:
 
 - Language.
 - Overlay enabled/locked state.
@@ -209,7 +209,8 @@ After installing or updating:
 - Confirm the addon loads without Lua errors.
 - Run `/reloadui`.
 - Run `/ezo status`.
-- Open the full settings panel.
+- Open the full settings panel under Settings > EZO and confirm EZOTools is not duplicated in the standard Addons list.
+- Disable EZOCore and confirm the standalone LibAddonMenu fallback remains available.
 - Test the command panel with keyboard/gamepad.
 - Test the overlay mouse interactions separately from the side menus.
 - Test chat and `Enter`.

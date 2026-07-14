@@ -7,7 +7,7 @@ Soporte, errores y sugerencias: https://discord.gg/ekw8zUAcRm
 
 ## Estado
 
-Versión actual: **2.0.73**.
+Versión actual: **2.0.74**.
 
 Este addon está en beta pública. Las funciones implementadas son utilizables, pero algunas herramientas nuevas de grupo y trials siguen siendo experimentales y conviene probarlas con cuidado antes de depender de ellas en raids organizadas.
 
@@ -171,7 +171,7 @@ EZOTools no es un addon de automatización para combate ni decisiones de juego.
 
 ## Ajustes
 
-Abre el panel completo desde los ajustes de complementos de ESO o desde el propio EZOTools. Todas las cabeceras de sección usan el mismo icono de información morado; pasa el ratón sobre la cabecera para leer su explicación general sin ocupar espacio permanente en el panel. La ayuda de un ajuste concreto aparece al pasar el ratón sobre ese mismo ajuste. Los ajustes actuales cubren:
+Con EZOCore activo, abre el panel completo desde Ajustes > EZO > EZOTools o desde el propio EZOTools. El panel no se duplica en la lista estándar de Addons de ESO. Sin EZOCore, los mismos controles siguen disponibles mediante el fallback independiente de LibAddonMenu. Todas las cabeceras de sección usan el mismo icono de información morado; pasa el ratón sobre la cabecera para leer su explicación general sin ocupar espacio permanente en el panel. La ayuda de un ajuste concreto aparece al pasar el ratón sobre ese mismo ajuste. Los ajustes actuales cubren:
 
 - Idioma.
 - Activación y bloqueo del overlay.
@@ -209,7 +209,8 @@ Después de instalar o actualizar:
 - Confirmar que el addon carga sin errores Lua.
 - Ejecutar `/reloadui`.
 - Ejecutar `/ezo status`.
-- Abrir el panel completo de configuración.
+- Abrir el panel completo desde Ajustes > EZO y comprobar que EZOTools no aparece duplicado en la lista estándar de Addons.
+- Desactivar EZOCore y comprobar que el fallback independiente de LibAddonMenu sigue disponible.
 - Probar el panel de comandos con teclado/mando.
 - Probar las interacciones del overlay con ratón separadas de los menús laterales.
 - Probar chat y `Enter`.

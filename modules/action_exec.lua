@@ -97,37 +97,18 @@ function X.RegisterCore()
             return false
         end
 
-        local esGamepad = EZOTools_EsModoGamepadPreferido()
-
-        if _G.SCENE_MANAGER and type(_G.SCENE_MANAGER.Show) == "function" then
-            if esGamepad then
-                _G.SCENE_MANAGER:Show("gamepad_options_root")
-            else
-                if _G.SCENE_MANAGER:GetScene("gameMenuInGame") ~= nil then
-                    _G.SCENE_MANAGER:Show("gameMenuInGame")
-                else
-                    _G.SCENE_MANAGER:Show("options")
-                end
+        local function abrirPanelConfiguracion()
+            if EZOTools_Menu and type(EZOTools_Menu.Open) == "function" then
+                return EZOTools_Menu.Open()
             end
-        end
-
-        local function abrirPanelLAM()
-            local LAM = _G.LibAddonMenu2
-            if not (LAM and type(LAM.OpenToPanel) == "function") then return false end
-            local panel = (EZO and EZO._lamPanel) or _G.EZOTools_Panel
-            if panel ~= nil then
-                LAM:OpenToPanel(panel)
-                return true
-            end
-            LAM:OpenToPanel("EZOTools_Panel")
-            return true
+            return false
         end
 
         if type(zo_callLater) == "function" then
-            zo_callLater(function() pcall(abrirPanelLAM) end, 100)
+            zo_callLater(function() pcall(abrirPanelConfiguracion) end, 100)
             return true
         end
-        return pcall(abrirPanelLAM)
+        return pcall(abrirPanelConfiguracion)
     end)
 
     -- Viajes a casas
