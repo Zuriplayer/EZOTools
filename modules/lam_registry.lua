@@ -6,6 +6,20 @@ EZOTools_LAM = EZOTools_LAM or {}
 local REG = EZOTools_LAM
 REG._sections = REG._sections or {}
 
+local INFO_HEADER_TEXTURE = "EsoUI/Art/Miscellaneous/help_icon.dds"
+
+function REG.CreateInfoHeader(name, tooltip)
+    return {
+        type = "header",
+        name = zo_strformat(
+            "<<1>> |cB040FF|t26:26:<<2>>:inheritcolor|t|r",
+            tostring(name or ""),
+            INFO_HEADER_TEXTURE
+        ),
+        tooltip = tooltip,
+    }
+end
+
 -- Registra una sección de opciones.
 -- name:     identificador único de la sección
 -- order:    número de orden (menor = antes)
@@ -79,21 +93,40 @@ local function RegistrarSeccionesBase()
     REG.RegisterSection("general", 1, function()
         local EZO = EZOTools
         return {
-            { type = "header", name = GetString(EZO_OPTION_GENERAL) },
+            REG.CreateInfoHeader(GetString(EZO_OPTION_GENERAL), GetString(EZO_OPTION_GENERAL_NOTE)),
             {
                 type          = "dropdown",
                 name          = GetString(EZO_OPTION_LANGUAGE),
-                choices       = { GetString(EZO_OPTION_LANGUAGE_AUTO), "English", "Español" },
+                choices       = {
+                    GetString(EZO_OPTION_LANGUAGE_AUTO),
+                    "English",
+                    "Español",
+                },
                 choicesValues = { "auto", "en", "es" },
-                getFunc       = function() return EZO.sv.general.language or "auto" end,
+                getFunc       = function()
+                    local value = EZO.sv.general.language or (EZO.GetDefaultLanguage and EZO.GetDefaultLanguage()) or "auto"
+                    if value == "inherit" then value = "auto" end
+                    return value
+                end,
                 setFunc       = function(v)
-                    v = tostring(v or "auto")
+                    v = tostring(v or (EZO.GetDefaultLanguage and EZO.GetDefaultLanguage()) or "auto")
+                    if v == "inherit" then v = "auto" end
                     EZO.sv.general.language = v
-                    if EZO_Lang and EZO_Lang.Apply then EZO_Lang.Apply(v) end
+                    if EZO.ApplyLanguagePreference then
+                        EZO.ApplyLanguagePreference(v)
+                    elseif EZO_Lang and EZO_Lang.Apply then
+                        EZO_Lang.Apply(v)
+                    end
                     if EZO.IsForcedLanguage and EZO.IsForcedLanguage(v) then
                         AvisarIdiomaForzado()
                     end
                     RefrescarOverlay()
+                end,
+                disabled = function()
+                    local integration = EZO.EZOCoreIntegration
+                    return integration
+                        and type(integration.IsLanguageManagedByEZOCore) == "function"
+                        and integration.IsLanguageManagedByEZOCore()
                 end,
                 default = (EZO.GetDefaultLanguage and EZO.GetDefaultLanguage()) or "auto",
                 width   = "half",
@@ -105,7 +138,7 @@ local function RegistrarSeccionesBase()
     REG.RegisterSection("overlay", 10, function()
         local EZO = EZOTools
         return {
-            { type = "header", name = GetString(EZO_OPTION_OVERLAY) },
+            REG.CreateInfoHeader(GetString(EZO_OPTION_OVERLAY), GetString(EZO_OPTION_OVERLAY_NOTE)),
             {
                 type    = "checkbox",
                 name    = GetString(EZO_OPTION_OVERLAY_ENABLE),
@@ -213,16 +246,20 @@ local function RegistrarSeccionesBase()
 
     REG.RegisterSection("guild_overlay", 15, function()
         local EZO = EZOTools
-        local opciones = {
-            { type = "header", name = GetString(EZO_OPTION_GUILD_OVERLAY) },
-        }
-
         -- Huevo de pascua: la imagen personalizada por gremio solo se ofrece
         -- si el jugador pertenece a un gremio del guild pack. Para el resto
         -- de usuarios la opción no existe, pero sí una invitación a pedir
         -- su propio pack contactando con el autor.
         local pack = _G.EZOTools_GuildPack
-        if pack and type(pack.IsUnlocked) == "function" and pack.IsUnlocked() then
+        local packUnlocked = pack and type(pack.IsUnlocked) == "function" and pack.IsUnlocked()
+        local opciones = {
+            REG.CreateInfoHeader(
+                GetString(EZO_OPTION_GUILD_OVERLAY),
+                GetString(packUnlocked and EZO_CONTACT_GUILD_ACTIVE or EZO_CONTACT_GUILD_LOCKED)
+            ),
+        }
+
+        if packUnlocked then
             opciones[#opciones + 1] = {
                 type    = "checkbox",
                 name    = GetString(EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE),
@@ -234,17 +271,6 @@ local function RegistrarSeccionesBase()
                 end,
                 default = false,
                 width   = "full",
-            }
-            opciones[#opciones + 1] = {
-                type  = "description",
-                text  = GetString(EZO_CONTACT_GUILD_ACTIVE),
-                width = "full",
-            }
-        else
-            opciones[#opciones + 1] = {
-                type  = "description",
-                text  = GetString(EZO_CONTACT_GUILD_LOCKED),
-                width = "full",
             }
         end
 
@@ -286,8 +312,19 @@ local function RegistrarSeccionesBase()
         if EZO.RefreshActiveFriendHouses then
             EZO.RefreshActiveFriendHouses()
         end
+        if EZO.sv and EZO.sv.friends and EZO.sv.friends.autoAssignFriendHouses ~= true then
+            local manualKey = EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual"
+            if tostring(EZO.sv.friends.manualActiveFriendHouseProfileKey or "") == "" then
+                EZO.sv.friends.manualActiveFriendHouseProfileKey = manualKey
+            end
+        end
         return {
-            { type = "header", name = GetString(EZO_OPTION_FRIENDS) },
+            REG.CreateInfoHeader(GetString(EZO_OPTION_FRIENDS), function()
+                if EZO.GetActiveFriendHousesDescription then
+                    return EZO.GetActiveFriendHousesDescription()
+                end
+                return ""
+            end),
             {
                 type    = "checkbox",
                 name    = GetString(EZO_OPTION_FRIENDS_AUTO_ASSIGN),
@@ -308,22 +345,6 @@ local function RegistrarSeccionesBase()
                 end,
                 default = false,
                 width   = "full",
-            },
-            {
-                type = "description",
-                text = function()
-                    if EZO.sv and EZO.sv.friends and EZO.sv.friends.autoAssignFriendHouses ~= true then
-                        local manualKey = EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual"
-                        if tostring(EZO.sv.friends.manualActiveFriendHouseProfileKey or "") == "" then
-                            EZO.sv.friends.manualActiveFriendHouseProfileKey = manualKey
-                        end
-                    end
-                    if EZO.GetActiveFriendHousesDescription then
-                        return EZO.GetActiveFriendHousesDescription()
-                    end
-                    return ""
-                end,
-                width = "full",
             },
             {
                 type          = "dropdown",
@@ -354,10 +375,6 @@ local function RegistrarSeccionesBase()
                 disabled      = function()
                     return EZO.sv.friends.autoAssignFriendHouses == true
                 end,
-            },
-            {
-                type = "description",
-                text = GetString(EZO_OPTION_FRIENDS_EDIT_PROFILE_NOTE),
             },
             {
                 type          = "dropdown",
@@ -424,12 +441,10 @@ local function RegistrarSeccionesBase()
         EZO.sv = EZO.sv or {}
         EZO.sv.groupAutoinvite = EZO.sv.groupAutoinvite or {}
         return {
-            { type = "header", name = GetString(EZO_OPTION_GROUP_AUTOINVITE) },
-            {
-                type = "description",
-                text = GetString(EZO_OPTION_GROUP_AUTOINVITE_NOTE),
-                width = "full",
-            },
+            REG.CreateInfoHeader(
+                GetString(EZO_OPTION_GROUP_AUTOINVITE),
+                GetString(EZO_OPTION_GROUP_AUTOINVITE_NOTE)
+            ),
             {
                 type = "checkbox",
                 name = GetString(EZO_OPTION_GROUP_AUTOINVITE_ENABLED),
@@ -458,6 +473,9 @@ local function RegistrarSeccionesBase()
         EZO.sv.raidLeaderReset = EZO.sv.raidLeaderReset or {}
         EZO.sv.groupActivities = EZO.sv.groupActivities or {}
         local reset = EZO.RaidLeaderReset
+        local function IsResetDisabled()
+            return EZO.sv.raidLeaderReset.enabled == false
+        end
         local choices, values
         if reset and type(reset.GetDestinationChoices) == "function" then
             choices, values = reset.GetDestinationChoices()
@@ -471,7 +489,10 @@ local function RegistrarSeccionesBase()
             values = { "primary", "crafting", "secondary", "leave-instance" }
         end
         return {
-            { type = "header", name = GetString(EZO_OPTION_GROUP_ACTIVITIES_DIAGNOSTICS) },
+            REG.CreateInfoHeader(
+                GetString(EZO_OPTION_GROUP_ACTIVITIES_DIAGNOSTICS),
+                GetString(EZO_OPTION_GROUP_STATUS_AUTO_LOG_TOOLTIP)
+            ),
             {
                 type = "checkbox",
                 name = GetString(EZO_OPTION_GROUP_STATUS_AUTO_LOG),
@@ -484,18 +505,21 @@ local function RegistrarSeccionesBase()
                 default = true,
                 width = "full",
             },
-            { type = "header", name = GetString(EZO_OPTION_INSTANCE_RESET) },
-            {
-                type = "description",
-                text = GetString(EZO_OPTION_INSTANCE_RESET_NOTE),
-                width = "full",
-            },
+            REG.CreateInfoHeader(
+                GetString(EZO_OPTION_INSTANCE_RESET),
+                GetString(EZO_OPTION_INSTANCE_RESET_NOTE)
+            ),
             {
                 type = "checkbox",
-                name = GetString(EZO_OPTION_INSTANCE_RESET_INVITE_MEMBERS),
-                tooltip = GetString(EZO_OPTION_INSTANCE_RESET_INVITE_MEMBERS_TOOLTIP),
-                getFunc = function() return EZO.sv.raidLeaderReset.inviteMembers ~= false end,
-                setFunc = function(v) EZO.sv.raidLeaderReset.inviteMembers = v == true end,
+                name = GetString(EZO_OPTION_INSTANCE_RESET_ENABLED),
+                tooltip = GetString(EZO_OPTION_INSTANCE_RESET_ENABLED_TOOLTIP),
+                getFunc = function() return EZO.sv.raidLeaderReset.enabled ~= false end,
+                setFunc = function(v)
+                    EZO.sv.raidLeaderReset.enabled = v == true
+                    if v ~= true and reset and type(reset.SetStatusWindowUnlocked) == "function" then
+                        reset.SetStatusWindowUnlocked(false)
+                    end
+                end,
                 default = true,
                 width = "full",
             },
@@ -505,6 +529,7 @@ local function RegistrarSeccionesBase()
                 tooltip = GetString(EZO_OPTION_INSTANCE_RESET_CONFIRM_ACTIONS_TOOLTIP),
                 getFunc = function() return EZO.sv.raidLeaderReset.confirmDangerousActions ~= false end,
                 setFunc = function(v) EZO.sv.raidLeaderReset.confirmDangerousActions = v == true end,
+                disabled = IsResetDisabled,
                 default = true,
                 width = "full",
             },
@@ -523,6 +548,7 @@ local function RegistrarSeccionesBase()
                         reset.SetStatusWindowUnlocked(v)
                     end
                 end,
+                disabled = IsResetDisabled,
                 default = false,
                 width = "full",
             },
@@ -538,6 +564,7 @@ local function RegistrarSeccionesBase()
                 setFunc = function(v)
                     EZO.sv.raidLeaderReset.destination = tostring(v or "primary")
                 end,
+                disabled = IsResetDisabled,
                 default = "primary",
                 width = "full",
             },
@@ -548,6 +575,7 @@ local function RegistrarSeccionesBase()
                 min = 5, max = 300, step = 5,
                 getFunc = function() return tonumber(EZO.sv.raidLeaderReset.waitSeconds) or 30 end,
                 setFunc = function(v) EZO.sv.raidLeaderReset.waitSeconds = tonumber(v) or 30 end,
+                disabled = IsResetDisabled,
                 default = 30,
                 width = "half",
             },
@@ -558,6 +586,7 @@ local function RegistrarSeccionesBase()
                 min = 0, max = 120, step = 5,
                 getFunc = function() return tonumber(EZO.sv.raidLeaderReset.inviteDelaySeconds) or 10 end,
                 setFunc = function(v) EZO.sv.raidLeaderReset.inviteDelaySeconds = tonumber(v) or 10 end,
+                disabled = IsResetDisabled,
                 default = 10,
                 width = "half",
             },
@@ -568,6 +597,7 @@ local function RegistrarSeccionesBase()
                 min = 0, max = 5, step = 1,
                 getFunc = function() return tonumber(EZO.sv.raidLeaderReset.reinviteAttempts) or 1 end,
                 setFunc = function(v) EZO.sv.raidLeaderReset.reinviteAttempts = tonumber(v) or 1 end,
+                disabled = IsResetDisabled,
                 default = 1,
                 width = "half",
             },
@@ -578,6 +608,7 @@ local function RegistrarSeccionesBase()
                 min = 10, max = 300, step = 10,
                 getFunc = function() return tonumber(EZO.sv.raidLeaderReset.reinviteDelaySeconds) or 30 end,
                 setFunc = function(v) EZO.sv.raidLeaderReset.reinviteDelaySeconds = tonumber(v) or 30 end,
+                disabled = IsResetDisabled,
                 default = 30,
                 width = "half",
             },

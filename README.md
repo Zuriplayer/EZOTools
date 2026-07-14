@@ -7,9 +7,16 @@ Support, bug reports, and suggestions: https://discord.gg/ekw8zUAcRm
 
 ## Status
 
-Current version: **2.0.71**.
+Current version: **2.0.72**.
 
 This addon is in public beta. The implemented features are usable, but some newer group and trial tools are still experimental and should be tested carefully before relying on them in organized runs.
+
+## Downloads
+
+| Channel | Version | Recommended for |
+| --- | --- | --- |
+| Stable beta | [2.0.0](https://github.com/Zuriplayer/EZOTools/releases/tag/v2.0.0) | Regular use |
+| Early tester beta | [2.0.72-beta.1](https://github.com/Zuriplayer/EZOTools/releases/tag/v2.0.72-beta.1) | Testing the latest group, instance-reset, shared-language, and settings changes |
 
 ## Requirements
 
@@ -77,7 +84,7 @@ The Group Activities panel is a separate menu for dungeon, trial, and group-rela
 - When no captured member remains pending, the panel stops presenting phase timers and shows `RESET COMPLETE` with a final message that reset actions are complete and the leader is waiting to enter the trial. Only this completed post-return state can be replaced by an explicitly confirmed new reset from a valid grouped-leader trial context. Phases 1-5 and incomplete phase 6 are preserved for resume.
 - A reset may be ordered during combat. The group is disbanded first, then the staging phase waits for the leader to leave combat before requesting the selected house jump or immediate instance exit.
 - During an uninterrupted reset, loading the trial entrance hall does not close the session. The panel clears after ESO reports the trial in progress and the leader is no longer in the raid staging area; the raid-start event remains the fallback when the staging query is unavailable. A later standalone disband clears it separately.
-- Captured-member invitations are enabled by default. Their enabled/disabled state is captured at start, shown throughout the phases, and warned about in the confirmation dialog when disabled.
+- Instance Reset is enabled by default through a master LAM setting. Disabling it prevents new resets and retained resets from starting through the menu or keybind, while an existing session can still be cancelled safely. Captured members are always invited as part of the reset flow; invitations are no longer an independently optional step.
 - Reset phases are strict: disband, selected staging confirmation, wait, captured difficulty, target trial, and member joins are checked separately. With `Leave instance`, the wait starts only after the leader is no longer in the captured trial. A rejected jump, refused immediate exit, or unconfirmed difficulty interrupts the process instead of continuing with unsafe assumptions.
 - An interrupted reset remains resumable in the current UI session. Reset Instance remains visible in Group Activities for that saved session even after the internal disband leaves the original leader solo; this exception resumes only the captured run and does not expose other leader-only actions. Interrupted timers remain frozen until resume. Resume first checks whether the selected house has been reached, the captured trial has been left when `Leave instance` is selected, or the leader is back in the target trial before issuing another request. If the leader moves before or during the return request, EZOTools preserves phase 5 and asks the leader to stop moving and run Reset Instance again; this retries only the return phase instead of repeating snapshot, disband, staging, or the wait. The snapshot is not persisted through `/reloadui` or logout.
 - Snapshot phase 1 and disband phase 2 may complete within the same frame, so phase 3 can be the first visible state; the addon does not add artificial delays just to display short phases.
@@ -121,8 +128,9 @@ The trial list lives in `modules/raid_leader_activity_catalog.lua`. It centraliz
 ### Language
 
 - English and Spanish localization.
-- Automatic language follows the ESO client language.
-- Manual language override is available in settings.
+- When a compatible EZOCore version provides central EZO-family language management, EZOTools can inherit that shared setting.
+- Without EZOCore, the inherited mode falls back to the ESO client language.
+- Local automatic and manual language overrides remain available in settings.
 
 ### Slash Commands and Diagnostics
 
@@ -161,7 +169,7 @@ EZOTools is not an automation addon for combat or gameplay decisions.
 
 ## Settings
 
-Open the full settings panel through ESO's Add-Ons settings or from EZOTools itself. Current settings cover:
+Open the full settings panel through ESO's Add-Ons settings or from EZOTools itself. Every section heading uses the same purple information icon; hover the heading to read its general explanation without occupying permanent panel space. Help for an individual setting appears when hovering that setting itself. Current settings cover:
 
 - Language.
 - Overlay enabled/locked state.
@@ -174,7 +182,7 @@ Open the full settings panel through ESO's Add-Ons settings or from EZOTools its
 - Guild house profile selection and editing.
 - Automatic pre-action group-status diagnostics for Group Activities, available only while the global debug mode is enabled.
 - Chat autoinvite enable toggle and simultaneous alternative invitation words.
-- Instance reset settings place the captured-member invitation toggle first, followed by confirmation, staging destination, movable status window with a temporary full 11-member placement preview, wait timer, invite delay, and reinvite attempts.
+- Instance reset settings start with a master enable toggle. When disabled, the dependent controls are visibly unavailable. The section then provides confirmation (enabled by default), staging destination, movable status window with a temporary full 11-member placement preview, wait timer, invite delay, and reinvite attempts. The experimental explanation is available from the information icon beside the section heading.
 - Repair and recharge thresholds.
 - Low repair kit and Soul Gem alerts.
 - Debug mode.
@@ -206,6 +214,7 @@ After installing or updating:
 - Test `ESC` and normal game menus.
 - If testing group tools, use a controlled group first and review DebugLogViewer reports if anything does not behave as expected.
 - If testing instance reset, use a small controlled group first. Test both a configured house and `Leave instance`; verify combat waiting, staging confirmation, captured difficulty, return travel, invite requests, responses, member exits/removals, additional joins, and joined-state tracking before an organized raid.
+- Disable the Instance Reset master setting and verify that its dependent LAM controls are greyed out, Reset Instance disappears from Group Activities, and its direct keybind cannot start or resume the workflow. If a session already exists, verify that Cancel Instance Reset remains available; re-enable the setting before continuing reset tests. Hover every LAM section heading and its field-specific controls to verify that the information tooltips appear without persistent explanatory paragraphs.
 - In a pre-existing group, transfer leadership to the EZOTools player while Group Activities is open and confirm that leader actions appear after the delayed context refresh. Repeat the reset from the trial hall, the active interior, after a wipe, and after the final boss; every case must capture the current group and execute the complete staging/return flow without skipping phases.
 - During the return phase, test both starting while already moving and moving during the travel cast. Confirm that phase 5 is retained with a specific action message, then stop moving and verify that Reset Instance retries only the return trip.
 - Interrupt the phase 3 staging trip after the internal disband. Confirm that the panel timers stop, Group Activities still shows Reset Instance while solo, and selecting it resumes the retained staging phase without showing Disband Group or difficulty controls.

@@ -7,9 +7,16 @@ Soporte, errores y sugerencias: https://discord.gg/ekw8zUAcRm
 
 ## Estado
 
-Versión actual: **2.0.71**.
+Versión actual: **2.0.72**.
 
 Este addon está en beta pública. Las funciones implementadas son utilizables, pero algunas herramientas nuevas de grupo y trials siguen siendo experimentales y conviene probarlas con cuidado antes de depender de ellas en raids organizadas.
+
+## Descargas
+
+| Canal | Versión | Recomendado para |
+| --- | --- | --- |
+| Beta estable | [2.0.0](https://github.com/Zuriplayer/EZOTools/releases/tag/v2.0.0) | Uso habitual |
+| Beta temprana para testers | [2.0.72-beta.1](https://github.com/Zuriplayer/EZOTools/releases/tag/v2.0.72-beta.1) | Probar los últimos cambios de grupos, reset de instancia, idioma compartido y ajustes |
 
 ## Requisitos
 
@@ -77,7 +84,7 @@ El panel Actividades de grupo es un menú separado para acciones relacionadas co
 - Cuando no queda ningún miembro capturado pendiente, el panel deja de mostrar temporizadores de fase y presenta `RESET COMPLETADO` con un mensaje final que indica que las acciones del reset han terminado y el líder espera entrar en la trial. Solo este estado posterior al regreso ya completado puede sustituirse mediante un reset nuevo confirmado explícitamente desde un contexto válido de líder agrupado dentro de una trial. Las fases 1-5 y una fase 6 incompleta se conservan para reanudarlas.
 - Puede ordenarse un reset durante el combate. Primero se disbandea el grupo y después la fase puente espera a que el líder salga de combate antes de solicitar el salto a la casa elegida o la salida inmediata de la instancia.
 - Durante un reset no interrumpido, cargar el vestíbulo de la trial no cierra la sesión. El panel se limpia cuando ESO informa de que la trial está en curso y el líder ya no está en el área de preparación; el evento de inicio queda como fallback cuando la consulta del vestíbulo no está disponible. Un disband independiente posterior lo limpia por separado.
-- Las invitaciones a miembros capturados están activadas por defecto. Su estado se captura al iniciar, se muestra durante las fases y, si están desactivadas, se advierte en la confirmación.
+- Reset de instancia está habilitado por defecto mediante una opción maestra de LAM. Al desactivarla no pueden iniciarse resets nuevos ni retenidos desde el menú o el keybind, mientras que una sesión existente todavía puede cancelarse de forma segura. Los miembros capturados se invitan siempre como parte del flujo de reset; las invitaciones ya no son un paso opcional independiente.
 - Las fases son estrictas: disband, confirmación del destino puente elegido, espera, dificultad capturada, trial objetivo e incorporaciones se comprueban por separado. Con `Salir de instancia`, la espera solo empieza cuando el líder ya no está en la trial capturada. Un salto rechazado, una salida inmediata denegada o una dificultad no confirmada interrumpen el proceso en vez de continuar con supuestos inseguros.
 - Un reset interrumpido puede reanudarse durante la sesión actual de la interfaz. Resetear instancia permanece visible en Actividades de grupo para esa sesión guardada aunque el disband interno haya dejado solo al líder original; esta excepción solo reanuda la ejecución capturada y no muestra las demás acciones exclusivas de líder. Los cronómetros interrumpidos permanecen congelados hasta la reanudación. Primero se comprueba si se alcanzó la casa elegida, si se abandonó la trial capturada cuando está seleccionado `Salir de instancia`, o si el líder ya está de vuelta en la trial objetivo antes de solicitar otra acción. Si el líder se mueve antes o durante la solicitud de regreso, EZOTools conserva la fase 5 y pide al líder que se detenga y vuelva a ejecutar Resetear instancia; así se repite solo la fase de regreso, sin rehacer el snapshot, el disband, el destino puente ni la espera. El snapshot no persiste tras `/reloadui` o cerrar sesión.
 - La fase 1 de snapshot y la fase 2 de disband pueden completarse en el mismo frame, por lo que la fase 3 puede ser el primer estado visible; no se añaden retrasos artificiales para mostrar fases breves.
@@ -121,8 +128,9 @@ La lista de trials vive en `modules/raid_leader_activity_catalog.lua`. Centraliz
 ### Idioma
 
 - Localización en inglés y español.
-- El modo automático sigue el idioma del cliente de ESO.
-- Hay selección manual de idioma en ajustes.
+- Cuando una versión compatible de EZOCore ofrece gestión central del idioma de la familia EZO, EZOTools puede heredar ese ajuste compartido.
+- Sin EZOCore, el modo heredado cae al idioma del cliente de ESO.
+- Los modos local automático y manual siguen disponibles en ajustes.
 
 ### Comandos slash y diagnóstico
 
@@ -161,7 +169,7 @@ EZOTools no es un addon de automatización para combate ni decisiones de juego.
 
 ## Ajustes
 
-Abre el panel completo desde los ajustes de complementos de ESO o desde el propio EZOTools. Los ajustes actuales cubren:
+Abre el panel completo desde los ajustes de complementos de ESO o desde el propio EZOTools. Todas las cabeceras de sección usan el mismo icono de información morado; pasa el ratón sobre la cabecera para leer su explicación general sin ocupar espacio permanente en el panel. La ayuda de un ajuste concreto aparece al pasar el ratón sobre ese mismo ajuste. Los ajustes actuales cubren:
 
 - Idioma.
 - Activación y bloqueo del overlay.
@@ -174,7 +182,7 @@ Abre el panel completo desde los ajustes de complementos de ESO o desde el propi
 - Selección y edición de perfiles de casas de gremio.
 - Diagnóstico automático del estado del grupo antes de las acciones de Actividades de grupo, disponible solo mientras el modo debug global está activado.
 - Activación de autoinvitación por chat y palabras de invitación alternativas simultáneas.
-- Los ajustes de reset de instancia sitúan primero la activación de invitaciones a miembros capturados, seguida de confirmación, destino puente, movimiento de la ventana de estado con una vista temporal completa de colocación para 11 miembros, tiempo de espera, retraso de invitaciones y reintentos.
+- Los ajustes de reset de instancia comienzan con una opción maestra de habilitación. Cuando está desactivada, los controles dependientes aparecen visualmente inactivos. Después incluye confirmación (activada por defecto), destino puente, movimiento de la ventana de estado con una vista temporal completa de colocación para 11 miembros, tiempo de espera, retraso de invitaciones y reintentos. La explicación experimental está disponible en el icono de información situado junto al encabezado de la sección.
 - Umbrales de reparación y recarga.
 - Alertas de kits de reparación y Gemas de alma.
 - Modo debug.
@@ -206,6 +214,7 @@ Después de instalar o actualizar:
 - Probar `ESC` y los menús normales del juego.
 - Si pruebas herramientas de grupo, usa primero un grupo controlado y revisa los informes de DebugLogViewer si algo no se comporta como esperas.
 - Si pruebas reset de instancia, usa primero un grupo pequeño controlado. Prueba tanto una casa configurada como `Salir de instancia`; verifica espera en combate, confirmación del destino puente, dificultad capturada, vuelta, solicitudes, respuestas, salidas o expulsiones, entradas adicionales e incorporación al grupo antes de una raid organizada.
+- Desactiva la opción maestra de Reset de instancia y comprueba que sus controles LAM dependientes queden en gris, que Resetear instancia desaparezca de Actividades de grupo y que su keybind directo no pueda iniciar ni reanudar el flujo. Si ya existe una sesión, comprueba que Cancelar reset de instancia siga disponible; vuelve a habilitar la opción antes de continuar las pruebas. Pasa el ratón sobre todas las cabeceras LAM y sobre sus controles con ayuda específica para verificar que los tooltips aparezcan sin párrafos explicativos permanentes.
 - En un grupo ya formado, transfiere el liderazgo al jugador con EZOTools mientras Actividades de grupo está abierto y comprueba que las acciones de líder aparezcan tras el refresco diferido del contexto. Repite el reset desde el hall, el interior activo, después de un wipe y tras el último boss; todos los casos deben capturar el grupo actual y ejecutar el flujo completo de destino puente y regreso sin omitir fases.
 - Durante la fase de regreso, prueba tanto iniciar el viaje mientras ya te mueves como moverte durante el casteo. Comprueba que se conserva la fase 5 con un mensaje de acción específico; después detente y verifica que Resetear instancia repite solo el viaje de regreso.
 - Interrumpe el desplazamiento de la fase 3 después del disband interno. Comprueba que los cronómetros del panel se detengan, que Actividades de grupo siga mostrando Resetear instancia estando solo y que seleccionarlo reanude la fase puente retenida sin mostrar Disbandear grupo ni los controles de dificultad.

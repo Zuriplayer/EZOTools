@@ -23,7 +23,10 @@ local function ConstruirOpciones()
     end
 
     -- Sección de mantenimiento (umbrales de reparación y recarga)
-    opciones[#opciones + 1] = { type = "header", name = GetString(EZO_OPTION_MAINTENANCE) }
+    opciones[#opciones + 1] = EZOTools_LAM.CreateInfoHeader(
+        GetString(EZO_OPTION_MAINTENANCE),
+        GetString(EZO_OPTION_MAINTENANCE_NOTE)
+    )
 
     opciones[#opciones + 1] = {
         type    = "slider",
@@ -51,8 +54,10 @@ local function ConstruirOpciones()
         default = 25,
     }
 
-    opciones[#opciones + 1] = { type = "header", name = GetString(EZO_OPTION_STOCK_ALERTS) }
-    opciones[#opciones + 1] = { type = "description", text = GetString(EZO_OPTION_LOW_STOCK_ALERTS_NOTE), width = "full" }
+    opciones[#opciones + 1] = EZOTools_LAM.CreateInfoHeader(
+        GetString(EZO_OPTION_STOCK_ALERTS),
+        GetString(EZO_OPTION_LOW_STOCK_ALERTS_NOTE)
+    )
 
     opciones[#opciones + 1] = {
         type    = "checkbox",
@@ -106,7 +111,10 @@ local function ConstruirOpciones()
         disabled = function() return EZOTools.sv.general.soulGemAlertEnabled == false end,
     }
 
-    opciones[#opciones + 1] = { type = "header", name = GetString(EZO_OPTION_DEBUG) }
+    opciones[#opciones + 1] = EZOTools_LAM.CreateInfoHeader(
+        GetString(EZO_OPTION_DEBUG),
+        GetString(EZO_OPTION_DEBUG_MODE_TOOLTIP)
+    )
 
     opciones[#opciones + 1] = {
         type = "checkbox",

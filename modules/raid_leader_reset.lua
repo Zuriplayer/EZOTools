@@ -75,9 +75,14 @@ local function GetSettings()
     if settings.inviteDelaySeconds == nil then settings.inviteDelaySeconds = DEFAULT_INVITE_DELAY_SECONDS end
     if settings.reinviteDelaySeconds == nil then settings.reinviteDelaySeconds = DEFAULT_REINVITE_DELAY_SECONDS end
     if settings.reinviteAttempts == nil then settings.reinviteAttempts = DEFAULT_REINVITE_ATTEMPTS end
-    if settings.inviteMembers == nil then settings.inviteMembers = true end
+    if settings.enabled == nil then settings.enabled = true end
+    settings.inviteMembers = nil
     if settings.confirmDangerousActions == nil then settings.confirmDangerousActions = true end
     return settings
+end
+
+local function IsResetEnabled()
+    return GetSettings().enabled ~= false
 end
 
 local function ClampNumber(value, fallback, minValue, maxValue)
@@ -420,10 +425,6 @@ local function UpdateStatusWindow(run, stageText, phaseIndex)
         alertLines[#alertLines + 1] = run.resumeHintText or GetString(EZO_INSTANCE_RESET_STATUS_RESUME_HINT)
         alertTone = "warning"
     end
-    if run.invitesEnabled ~= true then
-        alertLines[#alertLines + 1] = GetString(EZO_INSTANCE_RESET_STATUS_INVITES_DISABLED_NOTICE)
-        alertTone = "warning"
-    end
     if #additional > 0 then
         alertLines[#alertLines + 1] = zo_strformat(
             GetString(EZO_INSTANCE_RESET_STATUS_ADDITIONAL),
@@ -501,9 +502,9 @@ local function UpdateStatusWindow(run, stageText, phaseIndex)
                 tone = #pending > 0 and "warning" or "success",
             },
             {
-                value = run.invitesEnabled == true and invitedTotal or GetString(EZO_INSTANCE_RESET_STATUS_METRIC_OFF),
+                value = invitedTotal,
                 label = GetString(EZO_INSTANCE_RESET_STATUS_METRIC_INVITES),
-                tone = run.invitesEnabled == true and "info" or "warning",
+                tone = "info",
             },
         },
         rowsTitle = zo_strformat(GetString(EZO_INSTANCE_RESET_STATUS_MEMBERS_COUNT), #memberStates),
@@ -761,7 +762,6 @@ EmitReport = function(stage, run, extra)
         "instance.zoneName=" .. tostring(instance.zoneName or ""),
         "instance.difficulty=" .. tostring(instance.difficulty or ""),
         "instance.difficultyName=" .. tostring(instance.difficultyName or ""),
-        "run.invitesEnabled=" .. tostring(run and run.invitesEnabled == true),
         "run.invitesSent=" .. tostring(run and run.invitedTotal or 0),
         "run.inviteAttempt=" .. tostring(run and run.inviteAttempt or 0),
         "events.total=" .. tostring(run and run.reportEventTotal or 0),
@@ -1172,11 +1172,6 @@ local function ScheduleInvites(run)
             GetString(EZO_INSTANCE_RESET_STAGE_TARGET_NOT_CONFIRMED),
             "returning"
         )
-        return
-    end
-    if run.invitesEnabled ~= true then
-        EmitReport("invites-disabled", run)
-        CompleteRun(run, false, GetString(EZO_INSTANCE_RESET_STAGE_INVITES_DISABLED))
         return
     end
     if type(zo_callLater) ~= "function" then
@@ -1794,6 +1789,10 @@ OnRaidTrialStarted = function(_, trialName)
 end
 
 function MOD.ResumeConfirmed()
+    if not IsResetEnabled() then
+        Print(GetString(EZO_MSG_INSTANCE_RESET_DISABLED))
+        return false
+    end
     if activeRun then
         Print(GetString(EZO_MSG_INSTANCE_RESET_ALREADY_RUNNING))
         return false
@@ -1965,6 +1964,9 @@ function MOD.Cancel()
 end
 
 function MOD.CanStart()
+    if not IsResetEnabled() then
+        return false
+    end
     if GetReplaceableRunForFreshStart() then
         return true
     end
@@ -1978,6 +1980,10 @@ function MOD.CanStart()
 end
 
 function MOD.StartConfirmed()
+    if not IsResetEnabled() then
+        Print(GetString(EZO_MSG_INSTANCE_RESET_DISABLED))
+        return false
+    end
     local replaceableRun = GetReplaceableRunForFreshStart()
     if activeRun and not replaceableRun then
         EmitReport("start-rejected", activeRun, {
@@ -2033,7 +2039,6 @@ function MOD.StartConfirmed()
         Print(GetString(EZO_MSG_INSTANCE_RESET_UNSUPPORTED_TARGET))
         return false
     end
-    local settings = GetSettings()
     local run = {
         id = tostring(type(GetFrameTimeMilliseconds) == "function" and GetFrameTimeMilliseconds() or math.random(1000000)),
         stage = "starting",
@@ -2050,7 +2055,6 @@ function MOD.StartConfirmed()
         startedAtMs = GetNowMilliseconds(),
         phaseStartedAtMs = GetNowMilliseconds(),
         waitEndsAtMs = nil,
-        invitesEnabled = settings.inviteMembers == true,
         interruptionCount = 0,
         internalDisbandExpected = false,
         internalDisbandConfirmed = false,
@@ -2143,6 +2147,10 @@ function MOD.StartConfirmed()
 end
 
 function MOD.Start()
+    if not IsResetEnabled() then
+        Print(GetString(EZO_MSG_INSTANCE_RESET_DISABLED))
+        return false
+    end
     local replaceableRun = GetReplaceableRunForFreshStart()
     if activeRun and not replaceableRun then
         Print(GetString(EZO_MSG_INSTANCE_RESET_ALREADY_RUNNING))
@@ -2171,13 +2179,9 @@ function MOD.Start()
     EmitAutomaticGroupStatus("instance-reset")
     local tools = EZO and EZO.RaidLeaderTools
     if tools and type(tools.ConfirmDangerousAction) == "function" then
-        local confirmationText = GetString(EZO_CONFIRM_INSTANCE_RESET_TEXT)
-        if GetSettings().inviteMembers ~= true then
-            confirmationText = GetString(EZO_CONFIRM_INSTANCE_RESET_TEXT_INVITES_DISABLED)
-        end
         return tools.ConfirmDangerousAction(
             GetString(EZO_CONFIRM_INSTANCE_RESET_TITLE),
-            confirmationText,
+            GetString(EZO_CONFIRM_INSTANCE_RESET_TEXT),
             GetString(EZO_CONFIRM_INSTANCE_RESET_CONFIRM),
             MOD.StartConfirmed,
             "instance-reset"

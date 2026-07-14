@@ -4,9 +4,12 @@
 EZOTools = EZOTools or {}
 local EZO = EZOTools
 local ADDON_NAME = "EZOTools"
+local LANGUAGE_INHERIT = "inherit"
 local LANGUAGE_AUTO = "auto"
 EZO.runtime = EZO.runtime or {}
 EZO.runtime.debugMode = EZO.runtime.debugMode == true
+EZO.LANGUAGE_INHERIT = LANGUAGE_INHERIT
+EZO.LANGUAGE_AUTO = LANGUAGE_AUTO
 
 -- Función de chat unificada: usa LibChatMessage si está disponible, si no d()
 local function safeChat(msg)
@@ -63,15 +66,41 @@ function EZO.GetClientLanguage()
 end
 
 function EZO.GetEffectiveLanguage(language)
-    language = tostring(language or LANGUAGE_AUTO)
+    language = tostring(language or EZO.GetDefaultLanguage())
+    local integration = EZO.EZOCoreIntegration
+    if integration
+        and type(integration.IsLanguageManagedByEZOCore) == "function"
+        and integration.IsLanguageManagedByEZOCore()
+        and type(integration.GetLanguage) == "function" then
+        local inherited = integration.GetLanguage()
+        if inherited == "es" or inherited == "en" then
+            return inherited
+        end
+    end
+    if language == LANGUAGE_INHERIT then
+        language = LANGUAGE_AUTO
+    end
     if language == "es" or language == "en" then
         return language
     end
     return ObtenerIdiomaPorDefectoCliente()
 end
 
+function EZO.ApplyLanguagePreference(language)
+    local configuredLanguage = tostring(language or EZO.GetDefaultLanguage())
+    if EZO_Lang and EZO_Lang.Apply then
+        EZO_Lang.Apply(configuredLanguage)
+    end
+end
+
 function EZO.IsForcedLanguage(language)
-    language = tostring(language or LANGUAGE_AUTO)
+    language = tostring(language or EZO.GetDefaultLanguage())
+    local integration = EZO.EZOCoreIntegration
+    if integration
+        and type(integration.IsLanguageManagedByEZOCore) == "function"
+        and integration.IsLanguageManagedByEZOCore() then
+        return false
+    end
     return language == "es" or language == "en"
 end
 
@@ -132,7 +161,7 @@ function EZO:Initialize()
     -- Valores por defecto de las variables guardadas (por cuenta y mundo)
     local defaults = {
         general = {
-            language          = LANGUAGE_AUTO,
+            language          = EZO.GetDefaultLanguage(),
             debugMode         = false,
             repairThreshold   = 25,
             rechargeThreshold = 25,
@@ -185,12 +214,12 @@ function EZO:Initialize()
             customGuildFriendHouses = {},
         },
         raidLeaderReset = {
+            enabled = true,
             destination = "primary",
             waitSeconds = 30,
             inviteDelaySeconds = 10,
             reinviteDelaySeconds = 30,
             reinviteAttempts = 1,
-            inviteMembers = true,
             confirmDangerousActions = true,
         },
         raidLeaderActivitySession = {
@@ -221,9 +250,7 @@ function EZO:Initialize()
     EZO.runtime.debugMode = self.sv and self.sv.general and self.sv.general.debugMode == true
 
     -- Aplicar idioma guardado
-    if EZO_Lang and EZO_Lang.Apply then
-        EZO_Lang.Apply(self.sv.general.language or LANGUAGE_AUTO)
-    end
+    EZO.ApplyLanguagePreference(self.sv.general.language or EZO.GetDefaultLanguage())
 
     -- Si el texto del overlay sigue siendo el placeholder de fábrica, usar el nombre de cuenta.
     -- GetDisplayName() devuelve "@NombreCuenta" del jugador — lo más útil como texto por defecto.
