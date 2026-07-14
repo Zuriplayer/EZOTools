@@ -75,6 +75,60 @@ function MOD.GetLanguage()
     return nil
 end
 
+function MOD.GetGroupPresenceService()
+    local core = GetEZOCore()
+    if not core or type(core.GetService) ~= "function" then
+        return nil
+    end
+
+    local ok, service = pcall(function()
+        return core:GetService("family.groupPresence", 1)
+    end)
+    if ok and type(service) == "table" then
+        return service
+    end
+    return nil
+end
+
+function MOD.GetGroupPresenceStatus()
+    local service = MOD.GetGroupPresenceService()
+    if not service or type(service.GetStatus) ~= "function" then
+        return nil
+    end
+
+    local ok, status = pcall(service.GetStatus)
+    if ok and type(status) == "table" then
+        return status
+    end
+    return nil
+end
+
+function MOD.RequestGroupPresence()
+    local service = MOD.GetGroupPresenceService()
+    if not service or type(service.RequestPresence) ~= "function" then
+        return false, "serviceMissing"
+    end
+
+    local ok, result, reason = pcall(service.RequestPresence)
+    if ok then
+        return result == true, reason
+    end
+    return false, tostring(result or "requestFailed")
+end
+
+function MOD.GetPeerCompatibility(unitTag, addonId, capability, minimumApiVersion)
+    local service = MOD.GetGroupPresenceService()
+    if not service or type(service.GetPeerCompatibility) ~= "function" then
+        return "unknown"
+    end
+
+    local ok, compatibility = pcall(service.GetPeerCompatibility, service, unitTag, addonId, capability, minimumApiVersion)
+    if ok and type(compatibility) == "string" then
+        return compatibility
+    end
+    return "unknown"
+end
+
 function MOD.RegisterLanguageCallback()
     if languageCallbackRegistered then
         return true

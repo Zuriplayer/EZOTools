@@ -7,7 +7,7 @@ Soporte, errores y sugerencias: https://discord.gg/ekw8zUAcRm
 
 ## Estado
 
-Versión actual: **2.0.72**.
+Versión actual: **2.0.73**.
 
 Este addon está en beta pública. Las funciones implementadas son utilizables, pero algunas herramientas nuevas de grupo y trials siguen siendo experimentales y conviene probarlas con cuidado antes de depender de ellas en raids organizadas.
 
@@ -74,6 +74,7 @@ El panel Actividades de grupo es un menú separado para acciones relacionadas co
 - Salir de instancia, disponible cuando `CanExitInstanceImmediately()` de ESO informa de que se permite la salida inmediata.
 - Abandonar grupo y salir de instancia, disponible cuando las dos acciones anteriores son válidas. Estas tres acciones son independientes de Resetear instancia y de las herramientas de líder.
 - `Estado del grupo` no es una entrada seleccionable del menú. Cuando están activados el modo debug y su opción específica en LAM, EZOTools escribe automáticamente en Log Viewer una captura previa del grupo y la instancia antes de ejecutar un comando de Actividades de grupo; el informe no se escribe en el chat.
+- Los miembros de grupo que no son líderes pueden abrir un panel local "Mi estado de actividad de grupo" desde Actividades de grupo. Reutiliza el mismo componente estructurado que la ventana de reset del líder, pero muestra solo la parte superior de actividad/transporte y la fila del propio jugador. Hasta que la presencia de grupo de EZOCore tenga IDs reservados de LibGroupBroadcast y tráfico activo, este panel informa de estado local y preparación del transporte, no de estado real del líder.
 - Submenú de viaje a trials en veterano, con "Última trial" y la lista centralizada actual de trials.
 - Cambio de dificultad de instancia entre Normal y Veterano cuando ESO lo permite.
 - El cambio de dificultad se oculta dentro de una instancia porque ESO no permite cambiarla ahí.
@@ -155,7 +156,8 @@ EZOTools no es un addon de automatización para combate ni decisiones de juego.
 - La ayuda de reset es una acción explícita del líder disponible solo dentro de una trial reconocida. Las mazmorras y zonas no compatibles no son objetivos de reset y la ayuda no se ejecuta pasivamente.
 - Los keybinds de reset de instancia y disband de grupo son comandos explícitos y respetan las mismas comprobaciones de líder/API que las entradas del menú.
 - La confirmación de reset y disband está activada por defecto, solo permite una acción peligrosa pendiente y puede desactivarse en ajustes.
-- La ventana de estado del reset es local para el líder que inició el proceso. Todavía no envía estado a otros jugadores.
+- La ventana de estado del reset es local para el líder que inició el proceso. EZOTools ya expone internamente una captura pública reducida del estado de reset para el futuro transporte de EZOCore, pero todavía no envía ese estado a otros jugadores.
+- El panel de actividad de grupo para miembros es informativo. No acepta órdenes remotas, no viaja automáticamente y no muestra el roster completo.
 - La plantilla de última actividad es información local de cuenta y contiene nombres de usuario de ESO guardados. Solo se actualiza desde un snapshot verificado del reset y únicamente se utiliza tras confirmar expresamente `Iniciar último grupo e instancia`; nunca invita ni viaja automáticamente al iniciar sesión o recargar.
 - El viaje de vuelta solo funciona para una trial emparejada con el catálogo verificado. El modo Normal/Veterano capturado debe confirmarse antes de viajar o el proceso se interrumpe.
 - El viaje de regreso no se reintenta automáticamente mientras el líder se mueve. La fase conservada debe reanudarse de forma explícita mediante la acción Resetear instancia existente cuando el líder se haya detenido.
@@ -224,6 +226,7 @@ Después de instalar o actualizar:
 - Mientras la fase 6 aún tenga miembros pendientes, ejecuta otra vez Resetear instancia y comprueba que la confirmación de reanudación reinicia las invitaciones sin sustituir el snapshot. Cuando todos los miembros capturados estén agrupados, verifica que el panel muestre `RESET COMPLETADO` sin temporizadores de fase y que un reset posterior confirmado explícitamente pueda crear un snapshot nuevo.
 - Prueba Abandonar grupo tanto como líder como sin serlo, Salir de instancia cuando ESO permita la salida inmediata y Abandonar grupo y salir de instancia cuando se cumplan ambas condiciones. Comprueba que estas entradas aparezcan en Actividades de grupo y no en el panel principal, usando ratón, menú de teclado y menú de mando.
 - Comprueba que `Estado del grupo` ya no aparezca en Actividades de grupo. Con el modo debug y el registro automático del estado activados, ejecuta cada acción de grupo disponible y verifica que Log Viewer reciba una única captura previa con el valor `action` correspondiente; desactiva la opción LAM y comprueba que dejen de generarse esas capturas.
+- Como miembro agrupado no líder, abre Actividades de grupo y selecciona Mi estado de actividad de grupo. Comprueba que el panel muestre solo la fila del jugador actual junto con el resumen de EZOCore/compatibilidad del líder, y que cerrarlo no afecte al grupo, viajes ni reset.
 - Durante esa prueba, verifica que el panel se oculte en inventario/menús, permanezca visible en el vestíbulo y se limpie normalmente cuando el líder abandone el área de preparación.
 - Verifica el panel estructurado del reset con uno, cuatro y once miembros capturados (el líder no figura como miembro capturado). Al activar en LAM la opción de mover, debe aparecer la vista completa de colocación con once miembros; al desactivarla debe restaurarse el estado real del reset u ocultarse el panel. Comprueba que las métricas queden centradas y alineadas, que los nombres no se superpongan al estado de invitación ni de ubicación, que la barra de seis fases y su contador central sean legibles, que los avisos amplíen limpiamente el panel y que cambiar entre teclado y mando adapte la tipografía nativa sin mover ni redimensionar otras interfaces. Para miembros agrupados, verifica los estados verde de misma instancia y amarillo de instancia distinta; los miembros sin `unitTag` actual deben permanecer en gris y con ubicación desconocida.
 - Después de una sesión de reset completada o conservada, forma un grupo controlado y ejecuta Disbandear grupo de manera independiente. Verifica que ESO confirme el disband, que el panel se cierre y que Log Viewer registre `reset-session-cleared` con el modo debug activado.

@@ -3,7 +3,7 @@
 
 -- Constantes accesibles desde cualquier módulo
 EZOTools.ADDON_NAME    = "EZOTools"
-EZOTools.ADDON_VERSION = "2.0.72"
-EZOTools.ADDON_VERSION_NUMERIC = 10142
+EZOTools.ADDON_VERSION = "2.0.73"
+EZOTools.ADDON_VERSION_NUMERIC = 10143
 EZOTools.AUTHOR        = "@Zuriplayer"
 EZOTools.CONTACT_DISCORD = "https://discord.gg/ekw8zUAcRm"

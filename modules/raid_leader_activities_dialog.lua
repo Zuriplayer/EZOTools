@@ -171,6 +171,14 @@ local function PuedeIniciarUltimaActividad()
         and type(EZO.RaidLeaderActivitySession.StartLastActivity) == "function"
 end
 
+local function PuedeMostrarEstadoJugadorActividad()
+    return EZO
+        and EZO.GroupActivityPeerPanel
+        and type(EZO.GroupActivityPeerPanel.CanShowInMenu) == "function"
+        and EZO.GroupActivityPeerPanel.CanShowInMenu()
+        and type(EZO.GroupActivityPeerPanel.Toggle) == "function"
+end
+
 local function PuedeDisbandearGrupo()
     return EsLiderDeGrupo()
         and EZO.RaidLeaderTools
@@ -216,6 +224,16 @@ local function ConstruirEntradas()
             text = GetString(EZO_MENU_START_LAST_GROUP_ACTIVITY),
             callback = EZO.RaidLeaderActivitySession.StartLastActivity,
             key = "startLastGroupActivity",
+        }
+    end
+
+    if PuedeMostrarEstadoJugadorActividad() then
+        entradas[#entradas + 1] = {
+            text = GetString(EZO_MENU_GROUP_ACTIVITY_PLAYER_STATUS),
+            callback = function()
+                return EZO.GroupActivityPeerPanel.Toggle()
+            end,
+            key = "playerGroupActivityStatus",
         }
     end
 
@@ -296,7 +314,8 @@ if Core and type(Core.CreateDialog) == "function" then
             if entry and (entry.key == "instanceReset"
                 or entry.key == "disbandGroup"
                 or entry.key == "cancelInstanceReset"
-                or entry.key == "startLastGroupActivity")
+                or entry.key == "startLastGroupActivity"
+                or entry.key == "playerGroupActivityStatus")
                 and type(cb) == "function" then
                 return function()
                     EmitirDiagnosticoAccionLateral("selected", entry.key, "closing-parent")
@@ -436,6 +455,12 @@ function Dialog.OpenMouse(anchor)
     if PuedeIniciarUltimaActividad() then
         AddMenuItem(GetString(EZO_MENU_START_LAST_GROUP_ACTIVITY), function()
             return RunConfirmedAction(EZO.RaidLeaderActivitySession.StartLastActivity)
+        end)
+    end
+
+    if PuedeMostrarEstadoJugadorActividad() then
+        AddMenuItem(GetString(EZO_MENU_GROUP_ACTIVITY_PLAYER_STATUS), function()
+            return RunConfirmedAction(EZO.GroupActivityPeerPanel.Toggle)
         end)
     end
 

@@ -1937,6 +1937,36 @@ function MOD.HasSession()
     return activeRun ~= nil or statusRun ~= nil
 end
 
+function MOD.GetPublicActivityState()
+    local run = activeRun or statusRun
+    if not run then
+        return nil
+    end
+
+    local pending = GetPendingNames(run)
+    local captured = #GetCapturedNames(run)
+    local instance = run.snapshot and run.snapshot.instance or {}
+    local resetComplete = run.stage == "waiting-trial-entry" and #pending == 0
+    return {
+        schemaVersion = 1,
+        sourceAddon = "ezotools",
+        activityType = "instanceReset",
+        runId = tostring(run.id or ""),
+        targetKey = tostring(run.targetTrialKey or ""),
+        targetName = tostring(run.targetTrialName or ""),
+        modeName = tostring(instance.difficultyName or ""),
+        stage = tostring(run.stage or ""),
+        statusText = tostring(run.statusText or ""),
+        phaseIndex = tonumber(run.phaseIndex) or 0,
+        totalPhases = TOTAL_PHASES,
+        resetComplete = resetComplete,
+        capturedMembers = captured,
+        pendingMembers = #pending,
+        startedAtMs = tonumber(run.startedAtMs) or 0,
+        updatedAtMs = GetNowMilliseconds(),
+    }
+end
+
 function MOD.CancelConfirmed()
     local run = activeRun or statusRun
     if not run then

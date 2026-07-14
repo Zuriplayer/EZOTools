@@ -7,7 +7,7 @@ Support, bug reports, and suggestions: https://discord.gg/ekw8zUAcRm
 
 ## Status
 
-Current version: **2.0.72**.
+Current version: **2.0.73**.
 
 This addon is in public beta. The implemented features are usable, but some newer group and trial tools are still experimental and should be tested carefully before relying on them in organized runs.
 
@@ -74,6 +74,7 @@ The Group Activities panel is a separate menu for dungeon, trial, and group-rela
 - Leave instance, available whenever ESO's `CanExitInstanceImmediately()` reports that immediate exit is allowed.
 - Leave group and instance, available when both preceding actions are valid. These three actions are independent from Instance Reset and leader tools.
 - `Group status` is not a selectable menu entry. When debug mode and the dedicated LAM option are enabled, EZOTools automatically writes a pre-action group and instance snapshot to Log Viewer before a Group Activities command runs; it does not write the report to chat.
+- Non-leader group members can open a local "My group activity status" panel from Group Activities. It reuses the same structured status-panel component as the leader reset window, but only shows the top activity/transport area and the local player's own row. Until EZOCore group presence has reserved LibGroupBroadcast IDs and active traffic, this panel reports local status and transport readiness rather than real leader state.
 - Trial Travel submenu for veteran trial travel, including "Last trial" and the current centralized trial list.
 - Instance difficulty switch between Normal and Veteran when ESO allows it.
 - Difficulty switching is hidden while inside an instance because ESO does not allow changing it there.
@@ -155,7 +156,8 @@ EZOTools is not an automation addon for combat or gameplay decisions.
 - The instance reset helper is an explicit leader action available only inside a recognized trial. Dungeons and unsupported zones are not reset targets, and the helper does not run passively.
 - Instance reset and group disband keybinds are explicit commands and still respect the same leader/API checks as the menu entries.
 - Confirmation for instance reset and group disband is enabled by default, allows only one pending dangerous action, and can be disabled in settings.
-- The reset status window is local to the leader who started the process. It does not send state to other players yet.
+- The reset status window is local to the leader who started the process. EZOTools now exposes a reduced public reset-state snapshot internally for the future EZOCore transport, but it does not send that state to other players yet.
+- The member-facing group activity panel is informational. It does not accept remote commands, does not travel automatically, and does not show the full roster.
 - The last-activity template is local account data and contains saved ESO display names. It is updated only from a verified reset snapshot and is used only after the explicit `Start last group and instance` confirmation; it does not invite or travel automatically on login or reload.
 - Reset return travel only works for a trial matched to the verified catalog. The captured Normal/Veteran mode must be confirmed before travel or the process is interrupted.
 - Return travel is not retried automatically while the leader is moving. The retained phase must be resumed explicitly with the existing Reset Instance action after the leader stops.
@@ -224,6 +226,7 @@ After installing or updating:
 - While phase 6 still has pending members, run Reset Instance again and confirm that the resume dialog restarts invitations without replacing the snapshot. Once every captured member is grouped, confirm that the panel shows `RESET COMPLETE` without phase timers and that a later explicitly confirmed reset can create a new snapshot.
 - Verify Leave group as both leader and non-leader, Leave instance where ESO allows immediate exit, and Leave group and instance when both conditions are true. Confirm that these entries appear in Group Activities rather than the main command panel in mouse, keyboard-menu, and gamepad-menu flows.
 - Confirm that `Group status` no longer appears in Group Activities. With debug mode and automatic group-status logging enabled, run each available group action and verify that Log Viewer receives one pre-action snapshot containing the corresponding `action` value; disable the LAM option and verify that these snapshots stop.
+- As a grouped non-leader, open Group Activities and select My Group Activity Status. Confirm that the panel shows only the current player's row plus the EZOCore/leader compatibility summary, and that closing it does not affect group, travel, or reset state.
 - During that test, verify that the panel stays hidden in inventory/game menus, remains visible in the trial entrance hall, and normally clears after the leader leaves the raid staging area.
 - Verify the structured reset panel with one, four, and eleven captured members (the leader is not listed as a captured member). Enabling the LAM move option must show the complete eleven-member placement preview; disabling it must restore the real reset state or hide the panel. Check that metrics remain centered and aligned, member names do not overlap their invitation or location status, the six-phase bar and its centered counter remain readable, alerts expand the panel cleanly, and switching between keyboard and gamepad changes the native typography without moving or resizing unrelated UI. For grouped members, verify the green same-instance and yellow different-instance states; members without a current group unit tag must remain gray and unknown.
 - After a completed or retained reset session, form a controlled group and run standalone Disband Group. Verify that ESO confirms the disband, the panel closes, and Log Viewer reports `reset-session-cleared` when debug mode is enabled.

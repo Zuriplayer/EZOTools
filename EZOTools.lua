@@ -312,6 +312,10 @@ function EZO:Initialize()
         EZO.EZOCoreIntegration.RegisterLocalAddon()
     end
 
+    if EZO.GroupActivityPeerPanel and type(EZO.GroupActivityPeerPanel.Initialize) == "function" then
+        EZO.GroupActivityPeerPanel.Initialize()
+    end
+
     -- Inicializar submódulos en orden
     if EZOTools_Menu      and EZOTools_Menu.Init      then EZOTools_Menu.Init()      end
     if EZOTools_QuickUtilityHouses and EZOTools_QuickUtilityHouses.Init then
