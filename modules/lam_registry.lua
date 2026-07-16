@@ -467,6 +467,35 @@ local function RegistrarSeccionesBase()
         }
     end)
 
+    REG.RegisterSection("group_activity_member_travel", 24, function()
+        local EZO = EZOTools
+        EZO.sv = EZO.sv or {}
+        EZO.sv.groupActivities = EZO.sv.groupActivities or {}
+        return {
+            REG.CreateInfoHeader(
+                GetString(EZO_OPTION_GROUP_MEMBER_TRAVEL),
+                GetString(EZO_OPTION_GROUP_MEMBER_TRAVEL_NOTE)
+            ),
+            {
+                type = "checkbox",
+                name = GetString(EZO_OPTION_GROUP_MEMBER_TRAVEL_ENABLED),
+                tooltip = GetString(EZO_OPTION_GROUP_MEMBER_TRAVEL_ENABLED_TOOLTIP),
+                getFunc = function()
+                    return EZO.sv.groupActivities.autoTravelToLeaderAfterRegroup == true
+                end,
+                setFunc = function(value)
+                    EZO.sv.groupActivities.autoTravelToLeaderAfterRegroup = value == true
+                    local memberTravel = EZO.GroupActivityMemberTravel
+                    if memberTravel and type(memberTravel.OnSettingChanged) == "function" then
+                        memberTravel.OnSettingChanged(value == true)
+                    end
+                end,
+                default = false,
+                width = "full",
+            },
+        }
+    end)
+
     REG.RegisterSection("raid_leader_reset", 25, function()
         local EZO = EZOTools
         EZO.sv = EZO.sv or {}

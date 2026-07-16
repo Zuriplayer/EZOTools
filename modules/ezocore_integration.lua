@@ -5,10 +5,13 @@ EZOTools = EZOTools or {}
 local EZO = EZOTools
 EZO.EZOCoreIntegration = EZO.EZOCoreIntegration or {}
 local MOD = EZO.EZOCoreIntegration
+MOD.GROUP_ACTIVITY_API_VERSION = 2
 
 local registered = false
 local languageCallbackRegistered = false
 local layoutSurfacesRegistered = false
+local activityCallbackRegistered = false
+local presenceRequestCallbackRegistered = false
 
 local function Debug(message)
     if EZO and type(EZO.DebugPrint) == "function" then
@@ -117,6 +120,32 @@ function MOD.RequestGroupPresence()
     return false, tostring(result or "requestFailed")
 end
 
+function MOD.PublishGroupActivityState(state)
+    local service = MOD.GetGroupPresenceService()
+    if not service or type(service.PublishActivityState) ~= "function" then
+        return false, "serviceMissing"
+    end
+
+    local ok, published, reason = pcall(service.PublishActivityState, service, state)
+    if ok then
+        return published == true, reason
+    end
+    return false, tostring(published or "publishFailed")
+end
+
+function MOD.GetPeerActivityState(unitTag)
+    local service = MOD.GetGroupPresenceService()
+    if not service or type(service.GetPeerActivityState) ~= "function" then
+        return nil
+    end
+
+    local ok, state = pcall(service.GetPeerActivityState, service, unitTag)
+    if ok and type(state) == "table" then
+        return state
+    end
+    return nil
+end
+
 function MOD.GetPeerCompatibility(unitTag, addonId, capability, minimumApiVersion)
     local service = MOD.GetGroupPresenceService()
     if not service or type(service.GetPeerCompatibility) ~= "function" then
@@ -151,8 +180,69 @@ function MOD.RegisterLanguageCallback()
     return false
 end
 
+local function OnGroupActivityStateUpdated(unitTag, state)
+    if type(state) ~= "table" or tostring(state.sourceAddonId or "") ~= "ezotools" then
+        return
+    end
+    if type(EZO.IsDebugModeEnabled) == "function"
+        and EZO.IsDebugModeEnabled()
+        and EZO._debugLoggerUnavailable ~= true then
+        Debug(string.format(
+            "Activity state received: leader=%s session=%s target=%s stage=%s result=%s difficulty=%s progress=%s/%s pending=%s/%s ttl=%s",
+            tostring(unitTag or ""),
+            tostring(state.sessionId or ""),
+            tostring(state.targetKey or ""),
+            tostring(state.stage or ""),
+            tostring(state.result or ""),
+            tostring(state.difficulty or "unknown"),
+            tostring(state.progressCurrent or 0),
+            tostring(state.progressTotal or 0),
+            tostring(state.pendingCount or 0),
+            tostring(state.expectedCount or 0),
+            tostring(state.ttlSeconds or 0)))
+    end
+    local peerPanel = EZO and EZO.GroupActivityPeerPanel
+    if peerPanel and type(peerPanel.SetLeaderActivityState) == "function" then
+        peerPanel.SetLeaderActivityState(unitTag, state)
+    end
+    local memberTravel = EZO and EZO.GroupActivityMemberTravel
+    if memberTravel and type(memberTravel.OnLeaderActivityState) == "function" then
+        memberTravel.OnLeaderActivityState(unitTag, state)
+    end
+end
+
+local function OnGroupPresenceRequested()
+    local sharing = EZO and EZO.GroupActivitySharing
+    if sharing and type(sharing.RepublishCurrentResetState) == "function" then
+        sharing.RepublishCurrentResetState(1000)
+    end
+end
+
+function MOD.RegisterGroupActivityCallbacks()
+    local core = GetEZOCore()
+    if not core or type(core.RegisterCallback) ~= "function" then
+        return false
+    end
+
+    if not activityCallbackRegistered then
+        local ok, result = pcall(function()
+            return core:RegisterCallback("EZO_CORE_GROUP_ACTIVITY_STATE_UPDATED", OnGroupActivityStateUpdated)
+        end)
+        activityCallbackRegistered = ok and result == true
+    end
+
+    if not presenceRequestCallbackRegistered then
+        local ok, result = pcall(function()
+            return core:RegisterCallback("EZO_CORE_GROUP_PRESENCE_REQUESTED", OnGroupPresenceRequested)
+        end)
+        presenceRequestCallbackRegistered = ok and result == true
+    end
+    return activityCallbackRegistered
+end
+
 function MOD.RegisterLocalAddon()
     if registered then
+        MOD.RegisterGroupActivityCallbacks()
         return true
     end
 
@@ -168,7 +258,7 @@ function MOD.RegisterLocalAddon()
             name = EZO.ADDON_NAME or "EZOTools",
             version = EZO.ADDON_VERSION or "0.0.0",
             addOnVersion = tonumber(EZO.ADDON_VERSION_NUMERIC) or 0,
-            apiVersion = 1,
+            apiVersion = MOD.GROUP_ACTIVITY_API_VERSION,
             capabilities = {
                 "group.activities",
                 "group.activityState.provider",
@@ -182,6 +272,7 @@ function MOD.RegisterLocalAddon()
     if ok and result == true then
         registered = true
         MOD.RegisterLanguageCallback()
+        MOD.RegisterGroupActivityCallbacks()
         Debug("Registered EZOTools with EZOCore.")
         return true
     end

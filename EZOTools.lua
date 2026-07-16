@@ -227,6 +227,7 @@ function EZO:Initialize()
         },
         groupActivities = {
             logGroupStatusOnAction = true,
+            autoTravelToLeaderAfterRegroup = false,
         },
         groupAutoinvite = {
             enabled = false,
@@ -310,6 +311,10 @@ function EZO:Initialize()
 
     if EZO.EZOCoreIntegration and type(EZO.EZOCoreIntegration.RegisterLocalAddon) == "function" then
         EZO.EZOCoreIntegration.RegisterLocalAddon()
+    end
+
+    if EZO.GroupActivityMemberTravel and type(EZO.GroupActivityMemberTravel.Initialize) == "function" then
+        EZO.GroupActivityMemberTravel.Initialize()
     end
 
     if EZO.GroupActivityPeerPanel and type(EZO.GroupActivityPeerPanel.Initialize) == "function" then

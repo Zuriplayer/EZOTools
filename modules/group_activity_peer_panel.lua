@@ -1,6 +1,4 @@
--- Member-facing group activity status panel.
--- It is local-only for now; future EZOCore group transport can feed it with
--- leader state without exposing the full roster.
+-- Member-facing informational group activity panel.
 EZOTools = EZOTools or {}
 
 local EZO = EZOTools
@@ -8,11 +6,13 @@ EZO.GroupActivityPeerPanel = EZO.GroupActivityPeerPanel or {}
 local MOD = EZO.GroupActivityPeerPanel
 
 local EVENT_NAMESPACE = "EZOTools_GroupActivityPeerPanel"
+local UPDATE_NAMESPACE = EVENT_NAMESPACE .. "_Expiry"
 local PANEL_WIDTH = 480
 
 local panel
 local currentLeaderState
 local currentLeaderUnitTag
+local leaderStateExpired = false
 local simulatedSnapshot
 local simulationActive = false
 local initialized = false
@@ -67,6 +67,89 @@ local function GetLeaderUnitTag(snapshot)
     return nil
 end
 
+local function ResolveTargetName(targetKey)
+    targetKey = tostring(targetKey or "")
+    local catalog = EZO and EZO.RaidLeaderActivityCatalog
+    if catalog and type(catalog.GetTrialByKey) == "function" then
+        local ok, activity = pcall(catalog.GetTrialByKey, targetKey)
+        if ok and type(activity) == "table" and tostring(activity.name or "") ~= "" then
+            return tostring(activity.name)
+        end
+    end
+    return targetKey
+end
+
+local function GetActivityTypeText(activityType)
+    if activityType == "trial" then
+        return GetString(EZO_GROUP_ACTIVITY_PEER_TYPE_TRIAL)
+    elseif activityType == "dungeon" then
+        return GetString(EZO_GROUP_ACTIVITY_PEER_TYPE_DUNGEON)
+    elseif activityType == "arena" then
+        return GetString(EZO_GROUP_ACTIVITY_PEER_TYPE_ARENA)
+    end
+    return GetString(EZO_MENU_GROUP_ACTIVITIES_TITLE)
+end
+
+local function GetDifficultyText(difficulty)
+    local difficultyId
+    if difficulty == "normal" then
+        difficultyId = DUNGEON_DIFFICULTY_NORMAL
+    elseif difficulty == "veteran" then
+        difficultyId = DUNGEON_DIFFICULTY_VETERAN
+    end
+    if difficultyId ~= nil and type(GetString) == "function" then
+        local text = GetString("SI_DUNGEONDIFFICULTY", difficultyId)
+        if type(text) == "string" and text ~= "" then
+            return text
+        end
+    end
+    return GetString(EZO_GROUP_ACTIVITY_PEER_DIFFICULTY_UNKNOWN)
+end
+
+local function GetRemoteStageText(stage)
+    local stringIds = {
+        idle = EZO_GROUP_ACTIVITY_PEER_STAGE_IDLE,
+        staging = EZO_GROUP_ACTIVITY_PEER_STAGE_STAGING,
+        returning = EZO_GROUP_ACTIVITY_PEER_STAGE_RETURNING,
+        waitingMembers = EZO_GROUP_ACTIVITY_PEER_STAGE_WAITING_MEMBERS,
+        complete = EZO_GROUP_ACTIVITY_PEER_STAGE_COMPLETE,
+        failed = EZO_GROUP_ACTIVITY_PEER_STAGE_FAILED,
+    }
+    return GetString(stringIds[stage] or EZO_GROUP_ACTIVITY_PEER_PHASE_REMOTE)
+end
+
+local function GetRemoteResultText(result)
+    local stringIds = {
+        unknown = EZO_GROUP_ACTIVITY_PEER_RESULT_UNKNOWN,
+        active = EZO_GROUP_ACTIVITY_PEER_RESULT_ACTIVE,
+        complete = EZO_GROUP_ACTIVITY_PEER_RESULT_COMPLETE,
+        cancelled = EZO_GROUP_ACTIVITY_PEER_RESULT_CANCELLED,
+        failed = EZO_GROUP_ACTIVITY_PEER_RESULT_FAILED,
+        interrupted = EZO_GROUP_ACTIVITY_PEER_RESULT_INTERRUPTED,
+    }
+    return GetString(stringIds[result] or EZO_GROUP_ACTIVITY_PEER_RESULT_UNKNOWN)
+end
+
+local function GetCurrentLeaderState(leaderUnitTag)
+    if type(currentLeaderState) ~= "table" then
+        return nil
+    end
+    if leaderUnitTag and currentLeaderUnitTag and leaderUnitTag ~= currentLeaderUnitTag then
+        currentLeaderState = nil
+        currentLeaderUnitTag = leaderUnitTag
+        leaderStateExpired = false
+        return nil
+    end
+    local expiresAt = tonumber(currentLeaderState.expiresAt)
+    local now = type(GetFrameTimeSeconds) == "function" and tonumber(GetFrameTimeSeconds()) or 0
+    if expiresAt and expiresAt <= now then
+        currentLeaderState = nil
+        leaderStateExpired = true
+        return nil
+    end
+    return currentLeaderState
+end
+
 local function GetTransportStatus()
     if simulationActive then
         return { reason = "active", simulated = true }
@@ -109,7 +192,11 @@ local function GetLeaderCompatibility(leaderUnitTag)
     if not (leaderUnitTag and integration and type(integration.GetPeerCompatibility) == "function") then
         return "unknown"
     end
-    return integration.GetPeerCompatibility(leaderUnitTag, "ezotools", "group.activityState.provider", 1)
+    return integration.GetPeerCompatibility(
+        leaderUnitTag,
+        "ezotools",
+        "group.activityState.provider",
+        tonumber(integration.GROUP_ACTIVITY_API_VERSION) or 2)
 end
 
 local function GetCompatibilityText(compatibility)
@@ -121,60 +208,161 @@ local function GetCompatibilityText(compatibility)
     return GetString(EZO_GROUP_ACTIVITY_PEER_UNKNOWN), "muted", "?"
 end
 
-local function BuildPlayerRow(snapshot)
+local function GetUnitDisplayNameSafe(unitTag)
+    if type(unitTag) == "string" and unitTag ~= "" and type(GetUnitDisplayName) == "function" then
+        local ok, displayName = pcall(GetUnitDisplayName, unitTag)
+        if ok and type(displayName) == "string" and displayName ~= "" then
+            return displayName
+        end
+    end
+    return nil
+end
+
+local function GetSnapshotMemberName(snapshot, unitTag)
+    for _, member in ipairs(snapshot and snapshot.group and snapshot.group.members or {}) do
+        if member.unitTag == unitTag then
+            return tostring(member.displayName or member.characterName or "")
+        end
+    end
+    return ""
+end
+
+local function GetUnitZoneName(unitTag)
+    if type(unitTag) ~= "string" or unitTag == ""
+        or type(GetUnitZoneIndex) ~= "function"
+        or type(GetZoneNameByIndex) ~= "function" then
+        return ""
+    end
+    local okIndex, zoneIndex = pcall(GetUnitZoneIndex, unitTag)
+    if not okIndex or not zoneIndex then
+        return ""
+    end
+    local okName, zoneName = pcall(GetZoneNameByIndex, zoneIndex)
+    return okName and tostring(zoneName or "") or ""
+end
+
+local function BuildLeaderRow(snapshot, leaderUnitTag, leaderState)
+    if type(leaderUnitTag) ~= "string" or leaderUnitTag == "" then
+        return nil
+    end
+    local name = GetUnitDisplayNameSafe(leaderUnitTag) or GetSnapshotMemberName(snapshot, leaderUnitTag)
+    if name == "" then
+        name = GetString(EZO_GROUP_ACTIVITY_PEER_LEADER_UNKNOWN)
+    end
+    local zoneName = simulationActive and ResolveTargetName(leaderState and leaderState.targetKey)
+        or GetUnitZoneName(leaderUnitTag)
+    local zoneKnown = zoneName ~= ""
+    if zoneName == "" then
+        zoneName = GetString(EZO_GROUP_ACTIVITY_PEER_LOCATION_UNKNOWN)
+    end
+    return {
+        id = "leader",
+        name = name,
+        status = GetString(EZO_GROUP_ACTIVITY_PEER_ROLE_LEADER),
+        tone = "normal",
+        iconType = "pending",
+        location = zoneName,
+        locationTone = zoneKnown and "info" or "muted",
+    }
+end
+
+local function BuildPlayerRow(snapshot, leaderUnitTag)
     local group = snapshot.group or {}
-    local instance = snapshot.instance or {}
-    local inInstance = instance.inInstance == true
-    local location = inInstance
-        and (tostring(instance.zoneName or "") ~= "" and tostring(instance.zoneName) or GetString(EZO_GROUP_ACTIVITY_PEER_LOCATION_INSTANCE))
-        or GetString(EZO_GROUP_ACTIVITY_PEER_LOCATION_NOT_INSTANCE)
+    local sameInstance
+    if simulationActive then
+        sameInstance = true
+    elseif type(leaderUnitTag) == "string" and leaderUnitTag ~= ""
+        and type(IsGroupMemberInSameInstanceAsPlayer) == "function" then
+        local ok, value = pcall(IsGroupMemberInSameInstanceAsPlayer, leaderUnitTag)
+        if ok and type(value) == "boolean" then
+            sameInstance = value == true
+        end
+    end
+
+    local location = GetString(EZO_GROUP_ACTIVITY_PEER_LOCATION_UNKNOWN)
+    local tone = "muted"
+    local iconType = "pending"
+    if sameInstance == true then
+        location = GetString(EZO_GROUP_ACTIVITY_PEER_LOCATION_SAME_LEADER)
+        tone = "success"
+        iconType = "success"
+    elseif sameInstance == false then
+        location = GetString(EZO_GROUP_ACTIVITY_PEER_LOCATION_DIFFERENT_LEADER)
+        tone = "warning"
+        iconType = "pending"
+    end
 
     return {
         id = "player",
         name = GetPlayerDisplayName(),
         status = group.isLeader and GetString(EZO_GROUP_ACTIVITY_PEER_ROLE_LEADER) or GetString(EZO_GROUP_ACTIVITY_PEER_ROLE_MEMBER),
-        tone = inInstance and "info" or "muted",
-        iconType = inInstance and "pending" or "success",
+        tone = tone,
+        iconType = iconType,
         location = location,
-        locationTone = inInstance and "info" or "muted",
+        locationTone = tone,
     }
+end
+
+local function BuildLocationRows(snapshot, leaderUnitTag, leaderState)
+    local rows = {}
+    local leaderRow = BuildLeaderRow(snapshot, leaderUnitTag, leaderState)
+    if leaderRow then
+        rows[#rows + 1] = leaderRow
+    end
+    rows[#rows + 1] = BuildPlayerRow(snapshot, leaderUnitTag)
+    return rows
 end
 
 local function BuildModel()
     local snapshot = BuildSnapshot()
     local group = snapshot.group or {}
-    local instance = snapshot.instance or {}
-    local leaderUnitTag = currentLeaderUnitTag or GetLeaderUnitTag(snapshot)
+    local leaderUnitTag = GetLeaderUnitTag(snapshot) or currentLeaderUnitTag
     local transportStatus = GetTransportStatus()
     local transportText, transportTone, transportShort = GetTransportText(transportStatus)
-    local _, compatibilityTone, compatibilityShort = GetCompatibilityText(GetLeaderCompatibility(leaderUnitTag))
-    local leaderState = currentLeaderState
+    local compatibility = GetLeaderCompatibility(leaderUnitTag)
+    local _, compatibilityTone, compatibilityShort = GetCompatibilityText(compatibility)
+    local leaderState = GetCurrentLeaderState(leaderUnitTag)
+    local isRemoteState = leaderState and leaderState.remoteProtocol == true
 
     local target = leaderState and tostring(leaderState.targetName or "") or ""
+    if target == "" and leaderState then
+        target = ResolveTargetName(leaderState.targetKey)
+    end
     if target == "" then
         target = GetString(EZO_GROUP_ACTIVITY_PEER_PANEL_TITLE)
     end
 
     local mode = leaderState and tostring(leaderState.modeName or "") or ""
-    if mode == "" then
-        mode = tostring(instance.difficultyName or "")
-    end
-    if mode == "" then
-        mode = GetString(EZO_INSTANCE_RESET_STATUS_TARGET_UNKNOWN)
+    if isRemoteState then
+        mode = string.format(
+            "%s | %s",
+            GetActivityTypeText(leaderState.activityType),
+            GetDifficultyText(leaderState.difficulty))
+    elseif mode == "" then
+        mode = GetString(EZO_GROUP_ACTIVITY_PEER_DIFFICULTY_UNKNOWN)
     end
 
-    local phaseIndex = tonumber(leaderState and leaderState.phaseIndex)
-    local totalPhases = tonumber(leaderState and leaderState.totalPhases) or 1
+    local phaseIndex = tonumber(leaderState and (isRemoteState and leaderState.progressCurrent or leaderState.phaseIndex)) or 0
+    local totalPhases = tonumber(leaderState and (isRemoteState and leaderState.progressTotal or leaderState.totalPhases)) or 0
     local hasLeaderState = type(leaderState) == "table"
-    local progressValue = hasLeaderState and (phaseIndex or 0) or 0
-    local progressMax = hasLeaderState and math.max(1, totalPhases) or 1
+    local pendingCount = tonumber(leaderState and (leaderState.pendingCount or leaderState.pendingMembers))
+    local expectedCount = tonumber(leaderState and (leaderState.expectedCount or leaderState.capturedMembers))
+    local pendingValue = pendingCount
+    if pendingCount ~= nil and expectedCount ~= nil then
+        pendingValue = string.format("%d/%d", pendingCount, expectedCount)
+    end
+    local hasProgress = hasLeaderState and totalPhases > 0
+    local progressValue = hasProgress and math.min(phaseIndex, totalPhases) or 0
+    local progressMax = hasProgress and totalPhases or 1
     local phaseText = hasLeaderState
-        and (leaderState.resetComplete and GetString(EZO_INSTANCE_RESET_STATUS_COMPLETE)
-            or (phaseIndex and zo_strformat(GetString(EZO_INSTANCE_RESET_STATUS_PHASE_SHORT), phaseIndex, progressMax)
+        and (isRemoteState and GetRemoteStageText(leaderState.stage)
+            or leaderState.resetComplete and GetString(EZO_INSTANCE_RESET_STATUS_COMPLETE)
+            or (hasProgress and zo_strformat(GetString(EZO_INSTANCE_RESET_STATUS_PHASE_SHORT), phaseIndex, progressMax)
                 or GetString(EZO_GROUP_ACTIVITY_PEER_PHASE_REMOTE)))
         or GetString(EZO_GROUP_ACTIVITY_PEER_PHASE_LOCAL)
     local statusText = hasLeaderState
-        and tostring(leaderState.statusText or GetString(EZO_GROUP_ACTIVITY_PEER_STATUS_REMOTE))
+        and (isRemoteState and GetRemoteResultText(leaderState.result)
+            or tostring(leaderState.statusText or GetString(EZO_GROUP_ACTIVITY_PEER_STATUS_REMOTE)))
         or GetString(EZO_GROUP_ACTIVITY_PEER_STATUS_WAITING)
 
     local alert = nil
@@ -184,9 +372,26 @@ local function BuildModel()
             tone = "info",
         }
     elseif not hasLeaderState then
+        local text = transportText
+        local tone = transportTone
+        if tostring(transportStatus.reason or "") == "active" then
+            if compatibility == "incompatible" then
+                text = GetString(EZO_GROUP_ACTIVITY_PEER_LEADER_INCOMPATIBLE)
+                tone = "error"
+            elseif compatibility == "compatible" and leaderStateExpired then
+                text = GetString(EZO_GROUP_ACTIVITY_PEER_STATE_EXPIRED)
+                tone = "muted"
+            elseif compatibility == "compatible" then
+                text = GetString(EZO_GROUP_ACTIVITY_PEER_NO_ACTIVE_STATE)
+                tone = "info"
+            else
+                text = GetString(EZO_GROUP_ACTIVITY_PEER_WAITING_LEADER)
+                tone = "muted"
+            end
+        end
         alert = {
-            text = transportText,
-            tone = transportTone,
+            text = text,
+            tone = tone,
         }
     end
 
@@ -201,7 +406,7 @@ local function BuildModel()
             min = 0,
             max = progressMax,
             value = progressValue,
-            text = hasLeaderState
+            text = hasProgress
                 and zo_strformat(GetString(EZO_INSTANCE_RESET_STATUS_PROGRESS), progressValue, progressMax)
                 or GetString(EZO_GROUP_ACTIVITY_PEER_PROGRESS_WAITING),
         },
@@ -215,6 +420,11 @@ local function BuildModel()
                 tone = group.isGrouped and "normal" or "muted",
             },
             {
+                value = hasLeaderState and (pendingValue or "-") or "-",
+                label = GetString(EZO_GROUP_ACTIVITY_PEER_METRIC_PENDING),
+                tone = pendingCount ~= nil and (pendingCount == 0 and "success" or "warning") or "muted",
+            },
+            {
                 value = transportShort,
                 label = GetString(EZO_GROUP_ACTIVITY_PEER_METRIC_EZOCORE),
                 tone = transportTone,
@@ -226,9 +436,7 @@ local function BuildModel()
             },
         },
         rowsTitle = GetString(EZO_GROUP_ACTIVITY_PEER_ROWS_TITLE),
-        rows = {
-            BuildPlayerRow(snapshot),
-        },
+        rows = BuildLocationRows(snapshot, leaderUnitTag, leaderState),
         actions = {
             {
                 id = "close",
@@ -269,13 +477,27 @@ function MOD.Show()
     end
 
     local integration = EZO and EZO.EZOCoreIntegration
-    if not simulationActive and integration and type(integration.RequestGroupPresence) == "function" then
-        pcall(integration.RequestGroupPresence)
+    if not simulationActive and integration then
+        local snapshot = BuildSnapshot()
+        local leaderUnitTag = GetLeaderUnitTag(snapshot)
+        if leaderUnitTag and type(integration.GetPeerActivityState) == "function" then
+            local cachedState = integration.GetPeerActivityState(leaderUnitTag)
+            if type(cachedState) == "table" then
+                MOD.SetLeaderActivityState(leaderUnitTag, cachedState)
+            end
+        end
+        if type(integration.RequestGroupPresence) == "function" then
+            pcall(integration.RequestGroupPresence)
+        end
     end
 
     win:SetModel(BuildModel())
     win:SetInteractionActive(true)
     win:SetHidden(false)
+    if EVENT_MANAGER and type(EVENT_MANAGER.RegisterForUpdate) == "function" then
+        EVENT_MANAGER:UnregisterForUpdate(UPDATE_NAMESPACE)
+        EVENT_MANAGER:RegisterForUpdate(UPDATE_NAMESPACE, 1000, MOD.Refresh)
+    end
     return false
 end
 
@@ -289,39 +511,33 @@ end
 local function BuildSimulatedState(mode)
     mode = tostring(mode or "")
     local state = {
-        schemaVersion = 1,
-        sourceAddon = "ezotools",
-        activityType = "instanceReset",
-        runId = "debug-local-simulation",
+        remoteProtocol = true,
+        sourceAddonId = "ezotools",
+        activityType = "trial",
+        difficulty = "veteran",
+        sessionId = 1,
         targetKey = "aetherian_archive",
         targetName = "Aetherian Archive",
-        modeName = GetSimulatedModeName(),
-        stage = "waiting-members",
-        statusText = GetString(EZO_INSTANCE_RESET_STAGE_WAITING_MEMBERS),
-        phaseIndex = 6,
-        totalPhases = 6,
-        resetComplete = false,
-        capturedMembers = 11,
-        pendingMembers = 3,
-        startedAtMs = 0,
-        updatedAtMs = 0,
+        stage = "waitingMembers",
+        result = "active",
+        progressCurrent = 6,
+        progressTotal = 6,
+        expectedCount = 11,
+        pendingCount = 3,
     }
 
     if mode == "complete" or mode == "done" then
-        state.stage = "waiting-trial-entry"
-        state.statusText = GetString(EZO_INSTANCE_RESET_STAGE_READY_FOR_ENTRY)
-        state.resetComplete = true
-        state.pendingMembers = 0
+        state.stage = "complete"
+        state.result = "complete"
+        state.pendingCount = 0
     elseif mode == "returning" then
         state.stage = "returning"
-        state.statusText = GetString(EZO_INSTANCE_RESET_STAGE_RETURNING)
-        state.phaseIndex = 5
-        state.pendingMembers = 8
+        state.progressCurrent = 5
+        state.pendingCount = 8
     elseif mode == "staging" then
-        state.stage = "waiting-home"
-        state.statusText = GetString(EZO_INSTANCE_RESET_STAGE_WAITING_HOME)
-        state.phaseIndex = 3
-        state.pendingMembers = 10
+        state.stage = "staging"
+        state.progressCurrent = 3
+        state.pendingCount = 10
     end
 
     return state
@@ -352,6 +568,7 @@ function MOD.ShowSimulation(mode)
     simulatedSnapshot = BuildSimulatedSnapshot()
     currentLeaderUnitTag = "group1"
     currentLeaderState = BuildSimulatedState(mode)
+    leaderStateExpired = false
     return MOD.Show()
 end
 
@@ -360,6 +577,9 @@ function MOD.IsSimulationActive()
 end
 
 function MOD.Hide()
+    if EVENT_MANAGER and type(EVENT_MANAGER.UnregisterForUpdate) == "function" then
+        EVENT_MANAGER:UnregisterForUpdate(UPDATE_NAMESPACE)
+    end
     if panel then
         panel:SetHidden(true)
     end
@@ -382,7 +602,31 @@ end
 
 function MOD.SetLeaderActivityState(unitTag, state)
     currentLeaderUnitTag = type(unitTag) == "string" and unitTag ~= "" and unitTag or currentLeaderUnitTag
-    currentLeaderState = type(state) == "table" and state or nil
+    if type(state) == "table" then
+        local receivedAt = tonumber(state.receivedAt)
+            or (type(GetFrameTimeSeconds) == "function" and tonumber(GetFrameTimeSeconds()))
+            or 0
+        currentLeaderState = {
+            remoteProtocol = true,
+            sourceAddonId = state.sourceAddonId,
+            activityType = state.activityType,
+            stage = state.stage,
+            result = state.result,
+            difficulty = state.difficulty,
+            sessionId = state.sessionId,
+            progressCurrent = state.progressCurrent,
+            progressTotal = state.progressTotal,
+            pendingCount = state.pendingCount,
+            expectedCount = state.expectedCount,
+            targetKey = state.targetKey,
+            ttlSeconds = state.ttlSeconds,
+            receivedAt = receivedAt,
+            expiresAt = tonumber(state.expiresAt) or (receivedAt + (tonumber(state.ttlSeconds) or 0)),
+        }
+        leaderStateExpired = false
+    else
+        currentLeaderState = nil
+    end
     MOD.Refresh()
     return currentLeaderState ~= nil
 end
@@ -390,6 +634,7 @@ end
 function MOD.ClearLeaderActivityState()
     currentLeaderState = nil
     currentLeaderUnitTag = nil
+    leaderStateExpired = false
     simulationActive = false
     simulatedSnapshot = nil
     MOD.Refresh()

@@ -371,12 +371,44 @@ local function GetMemberLocation(currentNames, displayName)
     return GetString(EZO_INSTANCE_RESET_MEMBER_LOCATION_DIFFERENT), "warning"
 end
 
+local function BuildPublicActivityState(run)
+    if not run then
+        return nil
+    end
+    local pending = GetPendingNames(run)
+    local instance = run.snapshot and run.snapshot.instance or {}
+    return {
+        schemaVersion = 1,
+        sourceAddon = "ezotools",
+        activityType = "trial",
+        sessionId = tonumber(run.id) or 0,
+        runId = tostring(run.id or ""),
+        targetKey = tostring(run.targetTrialKey or ""),
+        targetName = tostring(run.targetTrialName or ""),
+        difficulty = tonumber(instance.difficulty),
+        modeName = tostring(instance.difficultyName or ""),
+        stage = tostring(run.stage or ""),
+        resumeStage = tostring(run.resumeStage or ""),
+        statusText = tostring(run.statusText or ""),
+        phaseIndex = tonumber(run.phaseIndex) or 0,
+        totalPhases = TOTAL_PHASES,
+        resetComplete = run.stage == "waiting-trial-entry" and #pending == 0,
+        capturedMembers = #GetCapturedNames(run),
+        pendingMembers = #pending,
+        startedAtMs = tonumber(run.startedAtMs) or 0,
+        updatedAtMs = GetNowMilliseconds(),
+    }
+end
+
+local function PublishRunActivityState(run, overrides, force)
+    local sharing = EZO and EZO.GroupActivitySharing
+    if sharing and type(sharing.PublishResetState) == "function" then
+        SafeCall(sharing.PublishResetState, BuildPublicActivityState(run), overrides, force)
+    end
+end
+
 local function UpdateStatusWindow(run, stageText, phaseIndex)
     if not run then
-        return
-    end
-    local win = EnsureStatusWindow()
-    if not win then
         return
     end
 
@@ -388,6 +420,12 @@ local function UpdateStatusWindow(run, stageText, phaseIndex)
             run.phaseStartedAtMs = GetNowMilliseconds()
         end
         run.phaseIndex = nextPhaseIndex
+    end
+    PublishRunActivityState(run)
+
+    local win = EnsureStatusWindow()
+    if not win then
+        return
     end
 
     local currentNames = GetCurrentGroupDisplayNames()
@@ -796,6 +834,15 @@ ClearResetSession = function(run, source)
         "clear.source=" .. tostring(source or ""),
         "clear.previousStage=" .. tostring(run.stage or ""),
     })
+    local sourceText = tostring(source or "")
+    local cancelled = sourceText == "user-cancelled"
+        or string.find(sourceText, "standalone", 1, true) ~= nil
+        or string.find(sourceText, "leave", 1, true) ~= nil
+        or string.find(sourceText, "new-reset", 1, true) ~= nil
+    PublishRunActivityState(run, {
+        stage = cancelled and "idle" or "failed",
+        result = cancelled and "cancelled" or "failed",
+    }, true)
     if activeRun and activeRun.id == run.id then activeRun = nil end
     if statusRun and statusRun.id == run.id then statusRun = nil end
     run.stage = "cleared"
@@ -1763,6 +1810,7 @@ CheckTrialEntryCompletion = function(run, source)
     run.resumeStage = nil
     run.resumeHintText = nil
     run.interruptionReason = nil
+    PublishRunActivityState(run, { stage = "complete", result = "complete" }, true)
     EmitReport("trial-entered", run, {
         "source=" .. tostring(source or ""),
     })
@@ -1939,32 +1987,7 @@ end
 
 function MOD.GetPublicActivityState()
     local run = activeRun or statusRun
-    if not run then
-        return nil
-    end
-
-    local pending = GetPendingNames(run)
-    local captured = #GetCapturedNames(run)
-    local instance = run.snapshot and run.snapshot.instance or {}
-    local resetComplete = run.stage == "waiting-trial-entry" and #pending == 0
-    return {
-        schemaVersion = 1,
-        sourceAddon = "ezotools",
-        activityType = "instanceReset",
-        runId = tostring(run.id or ""),
-        targetKey = tostring(run.targetTrialKey or ""),
-        targetName = tostring(run.targetTrialName or ""),
-        modeName = tostring(instance.difficultyName or ""),
-        stage = tostring(run.stage or ""),
-        statusText = tostring(run.statusText or ""),
-        phaseIndex = tonumber(run.phaseIndex) or 0,
-        totalPhases = TOTAL_PHASES,
-        resetComplete = resetComplete,
-        capturedMembers = captured,
-        pendingMembers = #pending,
-        startedAtMs = tonumber(run.startedAtMs) or 0,
-        updatedAtMs = GetNowMilliseconds(),
-    }
+    return BuildPublicActivityState(run)
 end
 
 function MOD.CancelConfirmed()

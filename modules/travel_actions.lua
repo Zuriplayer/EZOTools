@@ -104,34 +104,48 @@ function EZO.GetLeaderJumpMenuText()
     return baseText
 end
 
-function EZO.JumpToLeader()
+function EZO.JumpToLeader(options)
+    options = type(options) == "table" and options or {}
+    local function Fail(message, reason)
+        if options.silent ~= true then
+            Print(message)
+        end
+        return false, reason
+    end
+
     if not IsUnitGrouped or not IsUnitGrouped("player") then
-        Print(GetString(EZO_MSG_NOT_IN_GROUP))
-        return
+        return Fail(GetString(EZO_MSG_NOT_IN_GROUP), "not-grouped")
     end
     if type(IsUnitGroupLeader) == "function" and IsUnitGroupLeader("player") then
-        Print(GetString(EZO_MSG_CANT_JUMP_LEADER))
-        return
+        return Fail(GetString(EZO_MSG_CANT_JUMP_LEADER), "player-is-leader")
     end
 
     local leaderTag = (GetGroupLeaderUnitTag and GetGroupLeaderUnitTag()) or nil
     if leaderTag and leaderTag ~= "" and CanJumpToGroupMember and JumpToGroupMember then
         if CanJumpToGroupMember(leaderTag) then
-            -- CanJumpToGroupMember acepta unitTag; JumpToGroupMember necesita @Cuenta.
-            local displayName = (GetUnitDisplayName and GetUnitDisplayName(leaderTag)) or ""
-            if displayName ~= "" then
-                JumpToGroupMember(displayName)
-                return
+            local targetName = (GetUnitName and GetUnitName(leaderTag)) or ""
+            if targetName == "" then
+                targetName = (GetUnitDisplayName and GetUnitDisplayName(leaderTag)) or ""
+            end
+            if targetName ~= "" then
+                local ok = pcall(JumpToGroupMember, targetName)
+                if ok then
+                    return true, "requested"
+                end
+                return Fail(GetString(EZO_MSG_CANT_JUMP_LEADER), "jump-call-failed")
             end
         end
     end
 
-    if JumpToGroupLeader then
-        JumpToGroupLeader("")
-        return
+    if options.allowFallback ~= false and JumpToGroupLeader then
+        local ok = pcall(JumpToGroupLeader, "")
+        if ok then
+            return true, "requested-fallback"
+        end
+        return Fail(GetString(EZO_MSG_CANT_JUMP_LEADER), "leader-jump-call-failed")
     end
 
-    Print(GetString(EZO_MSG_CANT_JUMP_LEADER))
+    return Fail(GetString(EZO_MSG_CANT_JUMP_LEADER), "jump-api-unavailable")
 end
 
 function EZO.CanLeaveGroup()
