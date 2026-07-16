@@ -12,7 +12,6 @@ local PANEL_WIDTH = 480
 local panel
 local currentLeaderState
 local currentLeaderUnitTag
-local leaderStateExpired = false
 local simulatedSnapshot
 local simulationActive = false
 local initialized = false
@@ -137,14 +136,12 @@ local function GetCurrentLeaderState(leaderUnitTag)
     if leaderUnitTag and currentLeaderUnitTag and leaderUnitTag ~= currentLeaderUnitTag then
         currentLeaderState = nil
         currentLeaderUnitTag = leaderUnitTag
-        leaderStateExpired = false
         return nil
     end
     local expiresAt = tonumber(currentLeaderState.expiresAt)
     local now = type(GetFrameTimeSeconds) == "function" and tonumber(GetFrameTimeSeconds()) or 0
     if expiresAt and expiresAt <= now then
         currentLeaderState = nil
-        leaderStateExpired = true
         return nil
     end
     return currentLeaderState
@@ -185,6 +182,9 @@ end
 
 local function GetLeaderCompatibility(leaderUnitTag)
     if simulationActive then
+        return "compatible"
+    end
+    if IsGroupLeader() then
         return "compatible"
     end
 
@@ -238,7 +238,11 @@ local function GetUnitZoneName(unitTag)
         return ""
     end
     local okName, zoneName = pcall(GetZoneNameByIndex, zoneIndex)
-    return okName and tostring(zoneName or "") or ""
+    zoneName = okName and tostring(zoneName or "") or ""
+    if zoneName ~= "" and type(zo_strformat) == "function" then
+        zoneName = zo_strformat("<<1>>", zoneName)
+    end
+    return zoneName
 end
 
 local function BuildLeaderRow(snapshot, leaderUnitTag, leaderState)
@@ -282,7 +286,18 @@ local function BuildPlayerRow(snapshot, leaderUnitTag)
     local location = GetString(EZO_GROUP_ACTIVITY_PEER_LOCATION_UNKNOWN)
     local tone = "muted"
     local iconType = "pending"
-    if sameInstance == true then
+    if group.isLeader then
+        location = tostring(snapshot.instance and snapshot.instance.zoneName or "")
+        if location ~= "" and type(zo_strformat) == "function" then
+            location = zo_strformat("<<1>>", location)
+        end
+        if location == "" then
+            location = GetString(EZO_GROUP_ACTIVITY_PEER_LOCATION_UNKNOWN)
+        else
+            tone = "info"
+            iconType = "success"
+        end
+    elseif sameInstance == true then
         location = GetString(EZO_GROUP_ACTIVITY_PEER_LOCATION_SAME_LEADER)
         tone = "success"
         iconType = "success"
@@ -303,14 +318,76 @@ local function BuildPlayerRow(snapshot, leaderUnitTag)
     }
 end
 
+local function BuildRosterRow(member)
+    local unitTag = tostring(member and member.unitTag or "")
+    local name = tostring(member and (member.displayName or member.characterName) or "")
+    if name == "" then
+        name = GetUnitDisplayNameSafe(unitTag) or unitTag
+    end
+    local zoneName = GetUnitZoneName(unitTag)
+    if zoneName == "" then
+        zoneName = GetString(EZO_GROUP_ACTIVITY_PEER_LOCATION_UNKNOWN)
+    end
+
+    local sameInstance = name == GetPlayerDisplayName() and true or nil
+    if sameInstance == nil and type(IsGroupMemberInSameInstanceAsPlayer) == "function" and unitTag ~= "" then
+        local ok, value = pcall(IsGroupMemberInSameInstanceAsPlayer, unitTag)
+        if ok and type(value) == "boolean" then
+            sameInstance = value
+        end
+    end
+
+    local tone = sameInstance == true and "success" or sameInstance == false and "warning" or "muted"
+    return {
+        id = unitTag,
+        name = name,
+        status = member and member.isLeader == true
+            and GetString(EZO_GROUP_ACTIVITY_PEER_ROLE_LEADER)
+            or GetString(EZO_GROUP_ACTIVITY_PEER_ROLE_MEMBER),
+        tone = tone,
+        iconType = sameInstance == true and "success" or "pending",
+        location = zoneName,
+        locationTone = zoneName == GetString(EZO_GROUP_ACTIVITY_PEER_LOCATION_UNKNOWN) and "muted" or tone,
+    }
+end
+
 local function BuildLocationRows(snapshot, leaderUnitTag, leaderState)
     local rows = {}
-    local leaderRow = BuildLeaderRow(snapshot, leaderUnitTag, leaderState)
-    if leaderRow then
-        rows[#rows + 1] = leaderRow
+    local members = snapshot.group and snapshot.group.members or {}
+    for _, member in ipairs(members) do
+        if member.isLeader == true then
+            rows[#rows + 1] = BuildRosterRow(member)
+        end
+    end
+    for _, member in ipairs(members) do
+        if member.isLeader ~= true then
+            rows[#rows + 1] = BuildRosterRow(member)
+        end
+    end
+    if #rows > 0 then
+        return rows
+    end
+
+    if not (snapshot.group and snapshot.group.isLeader) then
+        local leaderRow = BuildLeaderRow(snapshot, leaderUnitTag, leaderState)
+        if leaderRow then
+            rows[#rows + 1] = leaderRow
+        end
     end
     rows[#rows + 1] = BuildPlayerRow(snapshot, leaderUnitTag)
     return rows
+end
+
+local function GetLocalLeaderActivityState()
+    if not IsGroupLeader() then
+        return nil
+    end
+    local reset = EZO and EZO.RaidLeaderReset
+    if not (reset and type(reset.GetPublicActivityState) == "function") then
+        return nil
+    end
+    local ok, state = pcall(reset.GetPublicActivityState)
+    return ok and type(state) == "table" and state or nil
 end
 
 local function BuildModel()
@@ -318,10 +395,10 @@ local function BuildModel()
     local group = snapshot.group or {}
     local leaderUnitTag = GetLeaderUnitTag(snapshot) or currentLeaderUnitTag
     local transportStatus = GetTransportStatus()
-    local transportText, transportTone, transportShort = GetTransportText(transportStatus)
+    local _, transportTone, transportShort = GetTransportText(transportStatus)
     local compatibility = GetLeaderCompatibility(leaderUnitTag)
     local _, compatibilityTone, compatibilityShort = GetCompatibilityText(compatibility)
-    local leaderState = GetCurrentLeaderState(leaderUnitTag)
+    local leaderState = GetLocalLeaderActivityState() or GetCurrentLeaderState(leaderUnitTag)
     local isRemoteState = leaderState and leaderState.remoteProtocol == true
 
     local target = leaderState and tostring(leaderState.targetName or "") or ""
@@ -352,15 +429,20 @@ local function BuildModel()
         pendingValue = string.format("%d/%d", pendingCount, expectedCount)
     end
     local hasProgress = hasLeaderState and totalPhases > 0
+    local isGroupIdle = not hasLeaderState
     local progressValue = hasProgress and math.min(phaseIndex, totalPhases) or 0
     local progressMax = hasProgress and totalPhases or 1
-    local phaseText = hasLeaderState
+    local phaseText = isGroupIdle
+        and GetString(EZO_GROUP_INFORMATION_PHASE)
+        or hasLeaderState
         and (isRemoteState and GetRemoteStageText(leaderState.stage)
             or leaderState.resetComplete and GetString(EZO_INSTANCE_RESET_STATUS_COMPLETE)
             or (hasProgress and zo_strformat(GetString(EZO_INSTANCE_RESET_STATUS_PHASE_SHORT), phaseIndex, progressMax)
                 or GetString(EZO_GROUP_ACTIVITY_PEER_PHASE_REMOTE)))
         or GetString(EZO_GROUP_ACTIVITY_PEER_PHASE_LOCAL)
-    local statusText = hasLeaderState
+    local statusText = isGroupIdle
+        and GetString(EZO_GROUP_INFORMATION_STATUS_READY)
+        or hasLeaderState
         and (isRemoteState and GetRemoteResultText(leaderState.result)
             or tostring(leaderState.statusText or GetString(EZO_GROUP_ACTIVITY_PEER_STATUS_REMOTE)))
         or GetString(EZO_GROUP_ACTIVITY_PEER_STATUS_WAITING)
@@ -371,27 +453,50 @@ local function BuildModel()
             text = GetString(EZO_GROUP_ACTIVITY_PEER_SIMULATION_ACTIVE),
             tone = "info",
         }
-    elseif not hasLeaderState then
-        local text = transportText
-        local tone = transportTone
-        if tostring(transportStatus.reason or "") == "active" then
-            if compatibility == "incompatible" then
-                text = GetString(EZO_GROUP_ACTIVITY_PEER_LEADER_INCOMPATIBLE)
-                tone = "error"
-            elseif compatibility == "compatible" and leaderStateExpired then
-                text = GetString(EZO_GROUP_ACTIVITY_PEER_STATE_EXPIRED)
-                tone = "muted"
-            elseif compatibility == "compatible" then
-                text = GetString(EZO_GROUP_ACTIVITY_PEER_NO_ACTIVE_STATE)
-                tone = "info"
-            else
-                text = GetString(EZO_GROUP_ACTIVITY_PEER_WAITING_LEADER)
-                tone = "muted"
+    end
+
+    local contextText
+    if isGroupIdle then
+        local zoneName = GetUnitZoneName(leaderUnitTag)
+        if zoneName == "" then
+            zoneName = tostring(snapshot.instance and snapshot.instance.zoneName or "")
+            if zoneName ~= "" and type(zo_strformat) == "function" then
+                zoneName = zo_strformat("<<1>>", zoneName)
             end
         end
-        alert = {
-            text = text,
-            tone = tone,
+        local difficultyName = tostring(snapshot.instance and snapshot.instance.difficultyName or "")
+        if difficultyName == "" then
+            difficultyName = GetString(EZO_GROUP_ACTIVITY_PEER_DIFFICULTY_UNKNOWN)
+        end
+        contextText = zoneName ~= "" and string.format("%s | %s", zoneName, difficultyName) or difficultyName
+    else
+        contextText = zo_strformat(GetString(EZO_INSTANCE_RESET_STATUS_ACTIVITY), GetString(EZO_MENU_GROUP_ACTIVITIES_TITLE), mode)
+    end
+
+    local metrics = {
+        {
+            value = group.size or 0,
+            label = GetString(EZO_GROUP_ACTIVITY_PEER_METRIC_GROUP),
+            tone = group.isGrouped and "normal" or "muted",
+        },
+    }
+    if not isGroupIdle then
+        metrics[#metrics + 1] = {
+            value = hasLeaderState and (pendingValue or "-") or "-",
+            label = GetString(EZO_GROUP_ACTIVITY_PEER_METRIC_PENDING),
+            tone = pendingCount ~= nil and (pendingCount == 0 and "success" or "warning") or "muted",
+        }
+    end
+    metrics[#metrics + 1] = {
+        value = transportShort,
+        label = GetString(EZO_GROUP_ACTIVITY_PEER_METRIC_EZOCORE),
+        tone = transportTone,
+    }
+    if not isGroupIdle then
+        metrics[#metrics + 1] = {
+            value = compatibilityShort,
+            label = GetString(EZO_GROUP_ACTIVITY_PEER_METRIC_LEADER),
+            tone = compatibilityTone,
         }
     end
 
@@ -400,9 +505,10 @@ local function BuildModel()
         density = "comfortable",
         title = target,
         phaseText = phaseText,
-        contextText = zo_strformat(GetString(EZO_INSTANCE_RESET_STATUS_ACTIVITY), GetString(EZO_MENU_GROUP_ACTIVITIES_TITLE), mode),
+        contextText = contextText,
         totalTimeText = "",
         progress = {
+            hidden = isGroupIdle,
             min = 0,
             max = progressMax,
             value = progressValue,
@@ -413,28 +519,7 @@ local function BuildModel()
         statusText = statusText,
         statusTimeText = "",
         alert = alert,
-        metrics = {
-            {
-                value = group.size or 0,
-                label = GetString(EZO_GROUP_ACTIVITY_PEER_METRIC_GROUP),
-                tone = group.isGrouped and "normal" or "muted",
-            },
-            {
-                value = hasLeaderState and (pendingValue or "-") or "-",
-                label = GetString(EZO_GROUP_ACTIVITY_PEER_METRIC_PENDING),
-                tone = pendingCount ~= nil and (pendingCount == 0 and "success" or "warning") or "muted",
-            },
-            {
-                value = transportShort,
-                label = GetString(EZO_GROUP_ACTIVITY_PEER_METRIC_EZOCORE),
-                tone = transportTone,
-            },
-            {
-                value = compatibilityShort,
-                label = GetString(EZO_GROUP_ACTIVITY_PEER_METRIC_LEADER),
-                tone = compatibilityTone,
-            },
-        },
+        metrics = metrics,
         rowsTitle = GetString(EZO_GROUP_ACTIVITY_PEER_ROWS_TITLE),
         rows = BuildLocationRows(snapshot, leaderUnitTag, leaderState),
         actions = {
@@ -467,7 +552,7 @@ local function EnsurePanel()
 end
 
 function MOD.CanShowInMenu()
-    return IsGrouped() and not IsGroupLeader()
+    return IsGrouped()
 end
 
 function MOD.Show()
@@ -568,7 +653,6 @@ function MOD.ShowSimulation(mode)
     simulatedSnapshot = BuildSimulatedSnapshot()
     currentLeaderUnitTag = "group1"
     currentLeaderState = BuildSimulatedState(mode)
-    leaderStateExpired = false
     return MOD.Show()
 end
 
@@ -623,7 +707,6 @@ function MOD.SetLeaderActivityState(unitTag, state)
             receivedAt = receivedAt,
             expiresAt = tonumber(state.expiresAt) or (receivedAt + (tonumber(state.ttlSeconds) or 0)),
         }
-        leaderStateExpired = false
     else
         currentLeaderState = nil
     end
@@ -634,7 +717,6 @@ end
 function MOD.ClearLeaderActivityState()
     currentLeaderState = nil
     currentLeaderUnitTag = nil
-    leaderStateExpired = false
     simulationActive = false
     simulatedSnapshot = nil
     MOD.Refresh()

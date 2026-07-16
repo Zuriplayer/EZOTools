@@ -10,8 +10,10 @@ MOD.GROUP_ACTIVITY_API_VERSION = 2
 local registered = false
 local languageCallbackRegistered = false
 local layoutSurfacesRegistered = false
+local debugControllerRegistered = false
 local activityCallbackRegistered = false
 local presenceRequestCallbackRegistered = false
+local GetEZOCore
 
 local function Debug(message)
     if EZO and type(EZO.DebugPrint) == "function" then
@@ -19,7 +21,44 @@ local function Debug(message)
     end
 end
 
-local function GetEZOCore()
+function MOD.RegisterDebugController()
+    if debugControllerRegistered then
+        return true
+    end
+
+    local core = GetEZOCore()
+    if not core or type(core.GetService) ~= "function" then
+        return false
+    end
+
+    local service = core:GetService("family.debug", 1)
+    if not service or type(service.RegisterController) ~= "function" then
+        return false
+    end
+
+    local ok, result = pcall(function()
+        return service:RegisterController({
+            id = "ezotools.debug",
+            addonId = "ezotools",
+            addonName = "EZOTools",
+            name = function() return GetString(EZO_OPTION_DEBUG_MODE) end,
+            isEnabled = function()
+                return EZO.IsDebugModeEnabled and EZO.IsDebugModeEnabled() == true
+            end,
+            setEnabled = function(enabled)
+                if EZO.SetDebugModeEnabled then
+                    EZO.SetDebugModeEnabled(enabled == true)
+                end
+                return EZO.IsDebugModeEnabled and EZO.IsDebugModeEnabled() == (enabled == true)
+            end,
+        })
+    end)
+
+    debugControllerRegistered = ok and result == true
+    return debugControllerRegistered
+end
+
+GetEZOCore = function()
     local core = _G.EZOCore
     if type(core) ~= "table" or type(core.RegisterAddon) ~= "function" then
         return nil
@@ -242,6 +281,7 @@ end
 
 function MOD.RegisterLocalAddon()
     if registered then
+        MOD.RegisterDebugController()
         MOD.RegisterGroupActivityCallbacks()
         return true
     end
@@ -263,6 +303,7 @@ function MOD.RegisterLocalAddon()
                 "group.activities",
                 "group.activityState.provider",
                 "group.activityState.consumer",
+                "family.debug.controller",
                 "family.language.consumer",
                 "family.layout.consumer",
             },
@@ -271,6 +312,7 @@ function MOD.RegisterLocalAddon()
 
     if ok and result == true then
         registered = true
+        MOD.RegisterDebugController()
         MOD.RegisterLanguageCallback()
         MOD.RegisterGroupActivityCallbacks()
         Debug("Registered EZOTools with EZOCore.")
@@ -316,11 +358,22 @@ function MOD.RegisterLayoutSurfaces()
             tooltip = EZO_OPTION_INSTANCE_RESET_MOVE_STATUS_WINDOW_TOOLTIP,
             order = 20,
             setEditMode = function(enabled)
-                EZOTools_RaidLeaderReset.SetStatusWindowUnlocked(enabled)
-                return EZOTools_RaidLeaderReset.IsStatusWindowUnlocked() == (enabled == true)
+                local reset = EZO and EZO.RaidLeaderReset
+                if not reset
+                    or type(reset.SetStatusWindowUnlocked) ~= "function"
+                    or type(reset.IsStatusWindowUnlocked) ~= "function"
+                then
+                    return false
+                end
+                reset.SetStatusWindowUnlocked(enabled)
+                return reset.IsStatusWindowUnlocked() == (enabled == true)
             end,
             isEditMode = function()
-                return EZOTools_RaidLeaderReset.IsStatusWindowUnlocked()
+                local reset = EZO and EZO.RaidLeaderReset
+                if not reset or type(reset.IsStatusWindowUnlocked) ~= "function" then
+                    return false
+                end
+                return reset.IsStatusWindowUnlocked() == true
             end,
         },
     }

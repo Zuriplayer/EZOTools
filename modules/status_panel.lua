@@ -119,7 +119,11 @@ local function RegisterPlatformEvent()
 end
 
 function Panel:RefreshMouseState()
-    self.control:SetMovable(self.movable == true)
+    if self.dragActive and self.movable ~= true then
+        self.control:StopMovingOrResizing()
+        self.dragActive = false
+    end
+    self.control:SetMovable(false)
     self.control:SetMouseEnabled(self.movable == true or self.interactionActive == true)
 end
 
@@ -406,6 +410,8 @@ function Panel:Render()
     self.stageTime:SetText(tostring(model.statusTimeText or ""))
 
     local progress = model.progress or {}
+    local showProgress = progress.hidden ~= true
+    self.progress:SetHidden(not showProgress)
     self.progress:SetMinMax(tonumber(progress.min) or 0, tonumber(progress.max) or 1)
     self.progress:SetValue(tonumber(progress.value) or 0)
     self.progress:GetNamedChild("Progress"):SetText("")
@@ -421,9 +427,11 @@ function Panel:Render()
     y = y + layout.afterContext
 
     self.progress:ClearAnchors()
-    self.progress:SetAnchor(TOPLEFT, self.control, TOPLEFT, CONTENT_LEFT, y)
-    self.progress:SetAnchor(TOPRIGHT, self.control, TOPRIGHT, CONTENT_RIGHT, y)
-    y = y + layout.afterProgress
+    if showProgress then
+        self.progress:SetAnchor(TOPLEFT, self.control, TOPLEFT, CONTENT_LEFT, y)
+        self.progress:SetAnchor(TOPRIGHT, self.control, TOPRIGHT, CONTENT_RIGHT, y)
+        y = y + layout.afterProgress
+    end
 
     self.stage:ClearAnchors()
     self.stage:SetAnchor(TOPLEFT, self.control, TOPLEFT, CONTENT_LEFT, y)
@@ -529,7 +537,7 @@ end
 
 function MOD.Create(id, options)
     if not WINDOW_MANAGER
-        or type(CreateControlFromVirtual) ~= "function"
+        or type(WINDOW_MANAGER.CreateControlFromVirtual) ~= "function"
         or not ZO_ControlPool then
         return nil
     end
@@ -538,12 +546,17 @@ function MOD.Create(id, options)
         return panels[id]
     end
     options = options or {}
-    local control = CreateControlFromVirtual("EZOToolsStatusPanel" .. id, GuiRoot, "EZOToolsStatusPanelTemplate")
+    local control = WINDOW_MANAGER:CreateControlFromVirtual(
+        "EZOToolsStatusPanel" .. id,
+        GuiRoot,
+        "EZOToolsStatusPanelTemplate"
+    )
     local self = setmetatable({
         id = id,
         control = control,
         width = tonumber(options.width) or PANEL_WIDTH,
         movable = false,
+        dragActive = false,
         interactionActive = false,
         actions = {},
         requestedHidden = true,
@@ -579,7 +592,25 @@ function MOD.Create(id, options)
     self.actionPool = ZO_ControlPool:New("EZOToolsStatusPanelActionTemplate", self.actionsControl, id .. "Action")
 
     control:SetDimensions(self.width, PANEL_MIN_HEIGHT)
+    control:SetHandler("OnMouseDown", function(_, button)
+        if button ~= MOUSE_BUTTON_INDEX_LEFT or self.movable ~= true then
+            return
+        end
+        self.dragActive = true
+        control:SetMovable(true)
+        control:StartMoving()
+    end)
+    control:SetHandler("OnMouseUp", function(_, button)
+        if button ~= MOUSE_BUTTON_INDEX_LEFT or self.dragActive ~= true then
+            return
+        end
+        control:StopMovingOrResizing()
+        self.dragActive = false
+        control:SetMovable(false)
+    end)
     control:SetHandler("OnMoveStop", function()
+        self.dragActive = false
+        control:SetMovable(false)
         if self.onMoveStop then
             local left, top = self:GetPosition()
             SafeInvoke(self.onMoveStop, left, top, self)

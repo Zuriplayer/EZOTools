@@ -12,7 +12,9 @@ local TRIALS = {
         key = "aetherian_archive",
         kind = "trial",
         name = "Aetherian Archive",
-        aliases = { "Aetherian Archive", "Archivo Aetheriano" },
+        aliases = { "Aetherian Archive", "Archivo Aetérico" },
+        zoneId = 638,
+        fastTravelNodeId = 231,
     },
     {
         key = "hel_ra_citadel",

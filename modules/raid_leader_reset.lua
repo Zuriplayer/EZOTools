@@ -2282,14 +2282,14 @@ function MOD.SetStatusWindowUnlocked(enabled)
         return false
     end
     if statusWindowUnlocked and ApplyStatusWindowPlacementPreview() then
-        return false
+        return true
     end
     if realRun then
         UpdateStatusWindow(realRun)
     elseif not statusWindowUnlocked then
         statusPanel:SetHidden(true)
     end
-    return false
+    return MOD.IsStatusWindowUnlocked() == (enabled == true)
 end
 
 function MOD.HandleExternalDisbandConfirmed(source)

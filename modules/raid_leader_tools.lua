@@ -503,6 +503,14 @@ local function FindFastTravelNodeForTrial(trial)
         return nil, nil
     end
 
+    local configuredNodeIndex = tonumber(trial and trial.fastTravelNodeId)
+    if configuredNodeIndex then
+        local okNode, known, nodeName = SafeCall(GetFastTravelNodeInfo, configuredNodeIndex)
+        if okNode and IsKnownFastTravelNode(known) then
+            return configuredNodeIndex, tostring(nodeName or trial.name)
+        end
+    end
+
     local okCount, count = SafeCall(GetNumFastTravelNodes)
     count = okCount and tonumber(count) or 0
     for nodeIndex = 1, count do

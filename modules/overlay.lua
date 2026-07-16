@@ -21,6 +21,8 @@ local overlaySideWidgetTexturesLeft, overlaySideWidgetTexturesRight = {}, {}
 local overlayWidgetTooltipWin, overlayWidgetTooltipBackdrop, overlayWidgetTooltipLabel
 local overlaySceneFragment
 local layoutEditMode = false
+local overlayMoveEnabled = false
+local overlayDragActive = false
 local overlayAllyTooltipActive = false
 local overlaySideWidgetTooltipActive = false
 local overlayFoodPulseLastRefreshMs = 0
@@ -131,7 +133,14 @@ local function AplicarEstadoBloqueo()
     if not overlayWin then return end
     local bloqueado = EZO.sv.overlay.locked and not layoutEditMode
     local enHUD     = EsEscenaHUD()
-    overlayWin:SetMovable(enHUD and not bloqueado)
+    overlayMoveEnabled = enHUD and not bloqueado
+    if overlayDragActive and not overlayMoveEnabled then
+        overlayWin:StopMovingOrResizing()
+        overlayDragActive = false
+    end
+    -- The control stays non-movable until a primary-button drag is started.
+    -- This preserves right-click context actions without allowing right drag.
+    overlayWin:SetMovable(false)
     overlayWin:SetMouseEnabled(enHUD)
 end
 
@@ -1044,6 +1053,8 @@ local function AsegurarControles()
 
     -- Guardar posición al terminar de mover
     overlayWin:SetHandler("OnMoveStop", function()
+        overlayDragActive = false
+        overlayWin:SetMovable(false)
         EZO.sv.overlay.x = math.floor(overlayWin:GetLeft() + 0.5)
         EZO.sv.overlay.y = math.floor(overlayWin:GetTop() + 0.5)
     end)
@@ -1136,6 +1147,14 @@ local function AsegurarControles()
         end
     end
 
+    overlayWin:SetHandler("OnMouseDown", function(control, button)
+        if button ~= MOUSE_BUTTON_INDEX_LEFT or not overlayMoveEnabled then
+            return
+        end
+        overlayDragActive = true
+        control:SetMovable(true)
+        control:StartMoving()
+    end)
     overlayWin:SetHandler("OnMouseMove", function()
         RefrescarTooltipAliados(true)
     end)
@@ -1158,7 +1177,13 @@ local function AsegurarControles()
         AplicarPulsoWidgetComida()
     end)
 
-    overlayWin:SetHandler("OnMouseUp", function(_, button, upInside)
+    overlayWin:SetHandler("OnMouseUp", function(control, button, upInside)
+        if button == MOUSE_BUTTON_INDEX_LEFT and overlayDragActive then
+            control:StopMovingOrResizing()
+            overlayDragActive = false
+            control:SetMovable(false)
+            return
+        end
         if upInside and type(MouseIsOver) == "function" then
             for _, icono in ipairs(ObtenerDefinicionesIconosAliados()) do
                 if icono.ctrl and not icono.ctrl:IsHidden() and MouseIsOver(icono.ctrl) then
