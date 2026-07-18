@@ -4,9 +4,12 @@
 EZOTools = EZOTools or {}
 local EZO = EZOTools
 local ADDON_NAME = "EZOTools"
+local LANGUAGE_INHERIT = "inherit"
 local LANGUAGE_AUTO = "auto"
 EZO.runtime = EZO.runtime or {}
 EZO.runtime.debugMode = EZO.runtime.debugMode == true
+EZO.LANGUAGE_INHERIT = LANGUAGE_INHERIT
+EZO.LANGUAGE_AUTO = LANGUAGE_AUTO
 
 -- Función de chat unificada: usa LibChatMessage si está disponible, si no d()
 local function safeChat(msg)
@@ -63,15 +66,41 @@ function EZO.GetClientLanguage()
 end
 
 function EZO.GetEffectiveLanguage(language)
-    language = tostring(language or LANGUAGE_AUTO)
+    language = tostring(language or EZO.GetDefaultLanguage())
+    local integration = EZO.EZOCoreIntegration
+    if integration
+        and type(integration.IsLanguageManagedByEZOCore) == "function"
+        and integration.IsLanguageManagedByEZOCore()
+        and type(integration.GetLanguage) == "function" then
+        local inherited = integration.GetLanguage()
+        if inherited == "es" or inherited == "en" then
+            return inherited
+        end
+    end
+    if language == LANGUAGE_INHERIT then
+        language = LANGUAGE_AUTO
+    end
     if language == "es" or language == "en" then
         return language
     end
     return ObtenerIdiomaPorDefectoCliente()
 end
 
+function EZO.ApplyLanguagePreference(language)
+    local configuredLanguage = tostring(language or EZO.GetDefaultLanguage())
+    if EZO_Lang and EZO_Lang.Apply then
+        EZO_Lang.Apply(configuredLanguage)
+    end
+end
+
 function EZO.IsForcedLanguage(language)
-    language = tostring(language or LANGUAGE_AUTO)
+    language = tostring(language or EZO.GetDefaultLanguage())
+    local integration = EZO.EZOCoreIntegration
+    if integration
+        and type(integration.IsLanguageManagedByEZOCore) == "function"
+        and integration.IsLanguageManagedByEZOCore() then
+        return false
+    end
     return language == "es" or language == "en"
 end
 
@@ -132,7 +161,7 @@ function EZO:Initialize()
     -- Valores por defecto de las variables guardadas (por cuenta y mundo)
     local defaults = {
         general = {
-            language          = LANGUAGE_AUTO,
+            language          = EZO.GetDefaultLanguage(),
             debugMode         = false,
             repairThreshold   = 25,
             rechargeThreshold = 25,
@@ -184,6 +213,26 @@ function EZO:Initialize()
             fuegoFriendHouseDefaultMigrated = false,
             customGuildFriendHouses = {},
         },
+        raidLeaderReset = {
+            enabled = true,
+            destination = "primary",
+            waitSeconds = 30,
+            inviteDelaySeconds = 10,
+            reinviteDelaySeconds = 30,
+            reinviteAttempts = 1,
+            confirmDangerousActions = true,
+        },
+        raidLeaderActivitySession = {
+            lastActivity = nil,
+        },
+        groupActivities = {
+            logGroupStatusOnAction = true,
+            autoTravelToLeaderAfterRegroup = false,
+        },
+        groupAutoinvite = {
+            enabled = false,
+            keywords = "",
+        },
     }
 
     local charDefaults = {
@@ -202,9 +251,7 @@ function EZO:Initialize()
     EZO.runtime.debugMode = self.sv and self.sv.general and self.sv.general.debugMode == true
 
     -- Aplicar idioma guardado
-    if EZO_Lang and EZO_Lang.Apply then
-        EZO_Lang.Apply(self.sv.general.language or LANGUAGE_AUTO)
-    end
+    EZO.ApplyLanguagePreference(self.sv.general.language or EZO.GetDefaultLanguage())
 
     -- Si el texto del overlay sigue siendo el placeholder de fábrica, usar el nombre de cuenta.
     -- GetDisplayName() devuelve "@NombreCuenta" del jugador — lo más útil como texto por defecto.
@@ -254,12 +301,39 @@ function EZO:Initialize()
         self.RefreshActiveFriendHouses()
     end
 
+    if EZO.GroupAutoinvite and type(EZO.GroupAutoinvite.Initialize) == "function" then
+        EZO.GroupAutoinvite.Initialize()
+    end
+
+    if EZO.RaidLeaderActivitiesDialog and type(EZO.RaidLeaderActivitiesDialog.Initialize) == "function" then
+        EZO.RaidLeaderActivitiesDialog.Initialize()
+    end
+
+    if EZO.EZOCoreIntegration and type(EZO.EZOCoreIntegration.RegisterLocalAddon) == "function" then
+        EZO.EZOCoreIntegration.RegisterLocalAddon()
+    end
+
+    if EZO.GroupActivityMemberTravel and type(EZO.GroupActivityMemberTravel.Initialize) == "function" then
+        EZO.GroupActivityMemberTravel.Initialize()
+    end
+
+    if EZO.GroupActivityParticipantSession and type(EZO.GroupActivityParticipantSession.Initialize) == "function" then
+        EZO.GroupActivityParticipantSession.Initialize()
+    end
+
+    if EZO.GroupActivityPeerPanel and type(EZO.GroupActivityPeerPanel.Initialize) == "function" then
+        EZO.GroupActivityPeerPanel.Initialize()
+    end
+
     -- Inicializar submódulos en orden
     if EZOTools_Menu      and EZOTools_Menu.Init      then EZOTools_Menu.Init()      end
     if EZOTools_QuickUtilityHouses and EZOTools_QuickUtilityHouses.Init then
         EZOTools_QuickUtilityHouses.Init()
     end
     if EZOTools_Overlay   and EZOTools_Overlay.Init   then EZOTools_Overlay.Init()   end
+    if EZO.EZOCoreIntegration and type(EZO.EZOCoreIntegration.RegisterLayoutSurfaces) == "function" then
+        EZO.EZOCoreIntegration.RegisterLayoutSurfaces()
+    end
     if EZOTools_Keybinds  and EZOTools_Keybinds.Init  then EZOTools_Keybinds.Init()  end
     if EZOTools_KeyboardEnterOverride and EZOTools_KeyboardEnterOverride.Init then
         EZOTools_KeyboardEnterOverride.Init()
@@ -287,12 +361,19 @@ end)
 -- Se mantiene registrado permanentemente porque el overlay puede necesitar actualizarse
 -- al volver de una instancia, cambiar de zona, etc.
 EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_PLAYER_ACTIVATED, function()
-    if EZOTools_Overlay and EZOTools_Overlay.Refresh then
-        EZOTools_Overlay.Refresh()
+    local function refrescarOverlay()
+        if EZOTools_Overlay and EZOTools_Overlay.Refresh then
+            EZOTools_Overlay.Refresh()
+        end
+        -- Refrescar dot al activar — EVENT_INVENTORY_SINGLE_SLOT_UPDATE cubre cambios en tiempo real
+        if EZOTools_Overlay and EZOTools_Overlay.RefreshDot then
+            EZOTools_Overlay.RefreshDot()
+        end
     end
-    -- Refrescar dot al activar — EVENT_INVENTORY_SINGLE_SLOT_UPDATE cubre cambios en tiempo real
-    if EZOTools_Overlay and EZOTools_Overlay.RefreshDot then
-        EZOTools_Overlay.RefreshDot()
+    refrescarOverlay()
+    if type(zo_callLater) == "function" then
+        zo_callLater(refrescarOverlay, 500)
+        zo_callLater(refrescarOverlay, 1500)
     end
 end)
 
@@ -414,4 +495,36 @@ function EZOTools_ToggleUtilityPanel()
         return ezo.ToggleUtilityPanel()
     end
     safeChat(GetString(EZO_MSG_UTILITY_PANEL_MISSING))
+end
+
+function EZOTools_ToggleGroupActivitiesPanel()
+    local ezo = _G.EZOTools
+    if type(ezo) == "table" and type(ezo.ToggleGroupActivitiesPanel) == "function" then
+        return ezo.ToggleGroupActivitiesPanel()
+    end
+    safeChat(GetString(EZO_MSG_GROUP_ACTIVITIES_PANEL_MISSING))
+end
+
+function EZOTools_ToggleTrialTravelPanel()
+    return EZOTools_ToggleGroupActivitiesPanel()
+end
+
+function EZOTools_ResetInstance()
+    local ezo = _G.EZOTools
+    local reset = type(ezo) == "table" and ezo.RaidLeaderReset or nil
+    if reset and type(reset.Start) == "function" then
+        return reset.Start()
+    end
+    safeChat(GetString(EZO_MSG_GROUP_ACTIVITIES_PANEL_MISSING))
+    return false
+end
+
+function EZOTools_DisbandGroup()
+    local ezo = _G.EZOTools
+    local tools = type(ezo) == "table" and ezo.RaidLeaderTools or nil
+    if tools and type(tools.DisbandGroup) == "function" then
+        return tools.DisbandGroup()
+    end
+    safeChat(GetString(EZO_MSG_GROUP_DISBAND_UNAVAILABLE))
+    return false
 end

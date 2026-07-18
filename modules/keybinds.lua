@@ -26,6 +26,21 @@ local DEFAULT_BINDS = {
         modifiers = { "KEY_CTRL", "KEY_ALT" },
     },
     {
+        action = "EZO_TOGGLE_GROUP_ACTIVITIES_PANEL",
+        key = "KEY_NUMPAD2",
+        modifiers = { "KEY_CTRL", "KEY_ALT" },
+    },
+    {
+        action = "EZO_RESET_INSTANCE",
+        key = "KEY_NUMPAD3",
+        modifiers = { "KEY_CTRL", "KEY_ALT" },
+    },
+    {
+        action = "EZO_DISBAND_GROUP",
+        key = "KEY_NUMPAD4",
+        modifiers = { "KEY_CTRL", "KEY_ALT" },
+    },
+    {
         action = "EZO_TRAVEL_PRIMARY_HOUSE",
         key = "KEY_H",
         modifiers = { "KEY_ALT" },

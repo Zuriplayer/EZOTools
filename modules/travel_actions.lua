@@ -12,6 +12,13 @@ local function Print(message)
     end
 end
 
+local function EmitAutomaticGroupStatus(actionKey)
+    local status = EZO and EZO.RaidLeaderStatus
+    if status and type(status.EmitForAction) == "function" then
+        pcall(status.EmitForAction, actionKey)
+    end
+end
+
 function EZO.JumpPrimaryHouse()
     local id = GetHousingPrimaryHouse()
     if id and id > 0 then
@@ -45,6 +52,7 @@ end
 
 function EZO.CanJumpToLeader()
     if not IsUnitGrouped or not IsUnitGrouped("player") then return false end
+    if type(IsUnitGroupLeader) == "function" and IsUnitGroupLeader("player") then return false end
     if GetGroupLeaderUnitTag and CanJumpToGroupMember then
         local leaderTag = GetGroupLeaderUnitTag()
         if leaderTag and leaderTag ~= "" then
@@ -96,57 +104,89 @@ function EZO.GetLeaderJumpMenuText()
     return baseText
 end
 
-function EZO.JumpToLeader()
-    if not IsUnitGrouped or not IsUnitGrouped("player") then
-        Print(GetString(EZO_MSG_NOT_IN_GROUP))
-        return
+function EZO.JumpToLeader(options)
+    options = type(options) == "table" and options or {}
+    local function Fail(message, reason)
+        if options.silent ~= true then
+            Print(message)
+        end
+        return false, reason
     end
 
-    local leaderTag = (GetGroupLeaderUnitTag and GetGroupLeaderUnitTag()) or nil
+    if not IsUnitGrouped or not IsUnitGrouped("player") then
+        return Fail(GetString(EZO_MSG_NOT_IN_GROUP), "not-grouped")
+    end
+    if type(IsUnitGroupLeader) == "function" and IsUnitGroupLeader("player") then
+        return Fail(GetString(EZO_MSG_CANT_JUMP_LEADER), "player-is-leader")
+    end
+
+    local leaderTag = tostring(options.leaderUnitTag or "")
+    if leaderTag == "" then
+        leaderTag = (GetGroupLeaderUnitTag and GetGroupLeaderUnitTag()) or nil
+    end
     if leaderTag and leaderTag ~= "" and CanJumpToGroupMember and JumpToGroupMember then
         if CanJumpToGroupMember(leaderTag) then
-            -- CanJumpToGroupMember acepta unitTag; JumpToGroupMember necesita @Cuenta.
-            local displayName = (GetUnitDisplayName and GetUnitDisplayName(leaderTag)) or ""
-            if displayName ~= "" then
-                JumpToGroupMember(displayName)
-                return
+            local targetName = (GetUnitName and GetUnitName(leaderTag)) or ""
+            if targetName == "" then
+                targetName = (GetUnitDisplayName and GetUnitDisplayName(leaderTag)) or ""
+            end
+            if targetName ~= "" then
+                local ok = pcall(JumpToGroupMember, targetName)
+                if ok then
+                    return true, "requested"
+                end
+                return Fail(GetString(EZO_MSG_CANT_JUMP_LEADER), "jump-call-failed")
             end
         end
     end
 
-    if JumpToGroupLeader then
-        JumpToGroupLeader("")
-        return
+    if options.allowFallback ~= false and JumpToGroupLeader then
+        local ok = pcall(JumpToGroupLeader, "")
+        if ok then
+            return true, "requested-fallback"
+        end
+        return Fail(GetString(EZO_MSG_CANT_JUMP_LEADER), "leader-jump-call-failed")
     end
 
-    Print(GetString(EZO_MSG_CANT_JUMP_LEADER))
+    return Fail(GetString(EZO_MSG_CANT_JUMP_LEADER), "jump-api-unavailable")
+end
+
+function EZO.CanLeaveGroup()
+    if type(IsUnitGrouped) ~= "function" then return false end
+    local ok, grouped = pcall(IsUnitGrouped, "player")
+    return ok and grouped == true and type(GroupLeave) == "function"
+end
+
+function EZO.CanLeaveInstance()
+    if type(CanExitInstanceImmediately) ~= "function" or type(ExitInstanceImmediately) ~= "function" then
+        return false
+    end
+    local ok, canExit = pcall(CanExitInstanceImmediately)
+    return ok and canExit == true
+end
+
+function EZO.CanLeaveGroupAndInstance()
+    return EZO.CanLeaveGroup() and EZO.CanLeaveInstance()
 end
 
 function EZO.LeaveGroup()
-    if type(GroupLeave) == "function" then
-        GroupLeave()
-        return true
-    end
-    return false
+    if not EZO.CanLeaveGroup() then return false end
+    EmitAutomaticGroupStatus("leave-group")
+    GroupLeave()
+    return true
 end
 
 function EZO.LeaveInstance()
-    if type(ExitInstanceImmediately) == "function" then
-        ExitInstanceImmediately()
-        return true
-    end
-    return false
+    if not EZO.CanLeaveInstance() then return false end
+    EmitAutomaticGroupStatus("leave-instance")
+    ExitInstanceImmediately()
+    return true
 end
 
 function EZO.LeaveGroupAndInstance()
-    local done = false
-    if type(GroupLeave) == "function" then
-        GroupLeave()
-        done = true
-    end
-    if type(ExitInstanceImmediately) == "function" then
-        ExitInstanceImmediately()
-        done = true
-    end
-    return done
+    if not EZO.CanLeaveGroupAndInstance() then return false end
+    EmitAutomaticGroupStatus("leave-group-and-instance")
+    GroupLeave()
+    ExitInstanceImmediately()
+    return true
 end

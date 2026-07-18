@@ -15,12 +15,42 @@ local function safeChat(msg)
     end
 end
 
-function EZO.DebugLog(msg)
-    if not EZO.IsDebugModeEnabled() then
+local LOG_LEVEL_METHODS = {
+    debug = "Debug",
+    info = "Info",
+    warning = "Warn",
+    error = "Error",
+}
+
+local LOG_LEVEL_CONSTANTS = {
+    debug = "LOG_LEVEL_DEBUG",
+    info = "LOG_LEVEL_INFO",
+    warning = "LOG_LEVEL_WARNING",
+    error = "LOG_LEVEL_ERROR",
+}
+
+local function NormalizeLogLevel(level)
+    level = string.lower(tostring(level or "debug"))
+    if level == "warn" then
+        level = "warning"
+    end
+    if LOG_LEVEL_METHODS[level] == nil then
+        return "debug"
+    end
+    return level
+end
+
+function EZO.LogViewer(msg, level, force)
+    if not force and not EZO.IsDebugModeEnabled() then
         return false
     end
+    if EZO._debugLoggerUnavailable == true then
+        return false
+    end
+
     local lib = _G.LibDebugLogger
     if type(lib) ~= "function" and type(lib) ~= "table" then
+        EZO._debugLoggerUnavailable = true
         return false
     end
 
@@ -41,43 +71,60 @@ function EZO.DebugLog(msg)
         if ok and created ~= nil then
             logger = created
             EZO._debugLogger = logger
+            EZO._debugLoggerUnavailable = false
         end
     end
 
     if not logger then
+        EZO._debugLoggerUnavailable = true
         return false
     end
 
-    if type(logger.SetMinLevelOverride) == "function" and type(lib) == "table" and lib.LOG_LEVEL_DEBUG ~= nil then
+    level = NormalizeLogLevel(level)
+    local constantName = LOG_LEVEL_CONSTANTS[level]
+    local levelConstant = type(lib) == "table" and lib[constantName] or nil
+
+    if type(logger.SetMinLevelOverride) == "function" and levelConstant ~= nil then
         pcall(function()
-            logger:SetMinLevelOverride(lib.LOG_LEVEL_DEBUG)
+            logger:SetMinLevelOverride(levelConstant)
         end)
     end
 
-    if type(logger.Debug) == "function" then
-        return pcall(function()
-            logger:Debug(tostring(msg))
+    if type(logger.SetLogTracesOverride) == "function" then
+        pcall(function()
+            logger:SetLogTracesOverride(false)
         end)
     end
 
-    if type(logger.Log) == "function" and type(lib) == "table" and lib.LOG_LEVEL_DEBUG ~= nil then
+    local methodName = LOG_LEVEL_METHODS[level]
+    if type(logger[methodName]) == "function" then
         return pcall(function()
-            logger:Log(lib.LOG_LEVEL_DEBUG, tostring(msg))
+            logger[methodName](logger, "%s", tostring(msg))
+        end)
+    end
+
+    if type(logger.Log) == "function" and levelConstant ~= nil then
+        return pcall(function()
+            logger:Log(levelConstant, "%s", tostring(msg))
         end)
     end
 
     return false
 end
 
-function EZO.DebugPrint(msg)
-    if EZO.DebugLog(msg) then
+function EZO.DebugLog(msg, force)
+    return EZO.LogViewer(msg, "debug", force)
+end
+
+function EZO.DebugPrint(msg, force)
+    if EZO.DebugLog(msg, force) then
         return true
     end
     return false
 end
 
-function EZO.CanOpenDebugLogViewer()
-    if not EZO.IsDebugModeEnabled() then
+function EZO.CanOpenDebugLogViewer(force)
+    if not force and not EZO.IsDebugModeEnabled() then
         return false
     end
     local viewer = _G.DebugLogViewer
@@ -88,8 +135,8 @@ function EZO.CanOpenDebugLogViewer()
         or type(viewer.ToggleWindow) == "function"
 end
 
-function EZO.OpenDebugLogViewer()
-    if not EZO.CanOpenDebugLogViewer() then
+function EZO.OpenDebugLogViewer(force)
+    if not EZO.CanOpenDebugLogViewer(force) then
         safeChat(GetString(EZO_MSG_DEBUG_VIEWER_UNAVAILABLE))
         return false
     end
@@ -262,7 +309,11 @@ local function ConstruirReporteHouse()
     return lineas
 end
 
-function Debug.EmitReport(titulo, lineas)
+function Debug.EmitReport(titulo, lineas, options)
+    local force = options == true
+        or (type(options) == "table" and options.force == true)
+    local notify = type(options) == "table" and options.notify == true
+    local level = type(options) == "table" and options.level or "debug"
     local reporte = {}
     local tituloFinal = tostring(titulo or "EZOTools debug")
     reporte[#reporte + 1] = tituloFinal
@@ -273,15 +324,21 @@ function Debug.EmitReport(titulo, lineas)
     elseif lineas ~= nil then
         reporte[#reporte + 1] = tostring(lineas)
     end
-    if EZO.DebugPrint(table.concat(reporte, "\n")) then
-        if EZO.CanOpenDebugLogViewer() then
+    local logged = EZO.LogViewer(table.concat(reporte, "\n"), level, force)
+    if notify then
+        if logged and EZO.CanOpenDebugLogViewer(force) then
             safeChat(zo_strformat(GetString(EZO_MSG_DEBUG_REPORT_SENT), tituloFinal))
-        else
+        elseif logged then
             safeChat(zo_strformat(GetString(EZO_MSG_DEBUG_REPORT_LOGGED_VIEWER_MISSING), tituloFinal))
+        else
+            safeChat(GetString(EZO_MSG_DEBUG_LOGGER_UNAVAILABLE))
         end
-    else
-        safeChat(GetString(EZO_MSG_DEBUG_LOGGER_UNAVAILABLE))
     end
+    return logged == true
+end
+
+local function EmitRequestedReport(titulo, lineas)
+    return Debug.EmitReport(titulo, lineas, { notify = true })
 end
 
 local function MostrarAyudaDebug()
@@ -289,13 +346,15 @@ local function MostrarAyudaDebug()
         safeChat(GetString(EZO_MSG_DEBUG_MODE_DISABLED))
         return
     end
-    Debug.EmitReport(GetString(EZO_CMD_DEBUG_TITLE), {
+    EmitRequestedReport(GetString(EZO_CMD_DEBUG_TITLE), {
         GetString(EZO_CMD_DEBUG_INFO),
         GetString(EZO_CMD_DEBUG_GUILDS),
         GetString(EZO_CMD_DEBUG_TEX),
         GetString(EZO_CMD_DEBUG_TEXLOAD),
         GetString(EZO_CMD_DEBUG_DOTS),
         GetString(EZO_CMD_DEBUG_LAYOUT),
+        GetString(EZO_CMD_DEBUG_RESET_PANEL),
+        GetString(EZO_CMD_DEBUG_GROUP_ACTIVITY),
         GetString(EZO_CMD_DEBUG_FOOD),
         GetString(EZO_CMD_DEBUG_HOUSE),
     })
@@ -303,19 +362,19 @@ end
 
 local function EjecutarDebugFood(modo)
     if not (EZOTools_Overlay and EZOTools_Overlay.SetFoodDebugState) then
-        Debug.EmitReport("EZOTools debug food", GetString(EZO_CMD_LAYOUT_NA))
+        EmitRequestedReport("EZOTools debug food", GetString(EZO_CMD_LAYOUT_NA))
         return
     end
     modo = zo_strlower(tostring(modo or ""))
     if modo == "" then
-        Debug.EmitReport("EZOTools debug food", GetString(EZO_CMD_DEBUG_FOOD_USAGE))
+        EmitRequestedReport("EZOTools debug food", GetString(EZO_CMD_DEBUG_FOOD_USAGE))
         return
     end
     if not EZOTools_Overlay.SetFoodDebugState(modo) then
-        Debug.EmitReport("EZOTools debug food", GetString(EZO_CMD_DEBUG_FOOD_USAGE))
+        EmitRequestedReport("EZOTools debug food", GetString(EZO_CMD_DEBUG_FOOD_USAGE))
         return
     end
-    Debug.EmitReport("EZOTools debug food", zo_strformat(GetString(EZO_CMD_DEBUG_FOOD_SET), modo))
+    EmitRequestedReport("EZOTools debug food", zo_strformat(GetString(EZO_CMD_DEBUG_FOOD_SET), modo))
 end
 
 local function EjecutarDebugTexload()
@@ -356,7 +415,7 @@ local function EjecutarDebugTexload()
         lineas[#lineas + 1] = string.format("[%d] %s = %s", i, ruta:match("[^/]+$"), tostring(ok))
     end
     ventana:SetHidden(true)
-    Debug.EmitReport("EZOTools debug texload", lineas)
+    EmitRequestedReport("EZOTools debug texload", lineas)
 end
 
 local function EjecutarDebugTex()
@@ -377,22 +436,22 @@ local function EjecutarDebugTex()
             lineas[#lineas + 1] = v.nombre .. ": NO EXISTE"
         end
     end
-    Debug.EmitReport("EZOTools debug tex", lineas)
+    EmitRequestedReport("EZOTools debug tex", lineas)
 end
 
 local function EjecutarDebugLayout()
     if not (EZOTools_Overlay and EZOTools_Overlay.ToggleLayoutPreview) then
-        Debug.EmitReport("EZOTools debug layout", GetString(EZO_CMD_LAYOUT_NA))
+        EmitRequestedReport("EZOTools debug layout", GetString(EZO_CMD_LAYOUT_NA))
         return
     end
     local activo = EZOTools_Overlay.ToggleLayoutPreview()
-    Debug.EmitReport("EZOTools debug layout", activo and GetString(EZO_CMD_LAYOUT_ON) or GetString(EZO_CMD_LAYOUT_OFF))
+    EmitRequestedReport("EZOTools debug layout", activo and GetString(EZO_CMD_LAYOUT_ON) or GetString(EZO_CMD_LAYOUT_OFF))
 end
 
 local function EjecutarDebugDots()
     local EZO_Overlay = EZOTools_Overlay
     if not EZO_Overlay then
-        Debug.EmitReport("EZOTools debug dots", "EZOTools_Overlay no existe")
+        EmitRequestedReport("EZOTools debug dots", "EZOTools_Overlay no existe")
         return
     end
     local lineas = {}
@@ -426,7 +485,7 @@ local function EjecutarDebugDots()
         " petId=" .. tostring(petId) ..
         " assistId=" .. tostring(assistId)
     lineas[#lineas + 1] = "buffs=" .. tostring(numBuffs)
-    Debug.EmitReport("EZOTools debug dots", lineas)
+    EmitRequestedReport("EZOTools debug dots", lineas)
 end
 
 function Debug.Execute(sub, arg)
@@ -440,11 +499,11 @@ function Debug.Execute(sub, arg)
         return true
     end
     if sub == "info" then
-        Debug.EmitReport("EZOTools debug info", ConstruirReporteInfo())
+        EmitRequestedReport("EZOTools debug info", ConstruirReporteInfo())
         return true
     end
     if sub == "guilds" then
-        Debug.EmitReport("EZOTools debug guilds", ConstruirReporteGuilds())
+        EmitRequestedReport("EZOTools debug guilds", ConstruirReporteGuilds())
         return true
     end
     if sub == "tex" then
@@ -463,12 +522,30 @@ function Debug.Execute(sub, arg)
         EjecutarDebugLayout()
         return true
     end
+    if sub == "resetpanel" then
+        local preview = EZO.StatusPanelPreview
+        if preview and type(preview.Execute) == "function" then
+            preview.Execute(arg)
+        else
+            safeChat(GetString(EZO_CMD_LAYOUT_NA))
+        end
+        return true
+    end
+    if sub == "groupactivity" then
+        local preview = EZO.GroupActivityPeerPanel
+        if preview and type(preview.ExecuteDebug) == "function" then
+            preview.ExecuteDebug(arg)
+        else
+            safeChat(GetString(EZO_CMD_LAYOUT_NA))
+        end
+        return true
+    end
     if sub == "food" then
         EjecutarDebugFood(arg)
         return true
     end
     if sub == "house" then
-        Debug.EmitReport("EZOTools debug house", ConstruirReporteHouse())
+        EmitRequestedReport("EZOTools debug house", ConstruirReporteHouse())
         return true
     end
     MostrarAyudaDebug()

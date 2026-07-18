@@ -23,7 +23,7 @@ local function RecopilarAcciones()
                     and (type(e.text) == "string" or type(e.text) == "function")
                     and type(e.callback) == "function"
                 then
-                    acciones[#acciones + 1] = { name = e.text, callback = e.callback }
+                    acciones[#acciones + 1] = { name = e.text, callback = e.callback, key = e.key }
                 end
             end
         end
@@ -60,7 +60,7 @@ local function RecopilarAcciones()
 end
 
 local function PrepararCallback(entry, cb, _dialog, closeCurrent)
-    if type(entry.name) == "string" and entry.name == GetString(EZO_MENU_SETTINGS)
+    if (entry.key == "settings" or entry.key == "groupActivities")
         and type(cb) == "function" then
         local cbOriginal = cb
         return function()

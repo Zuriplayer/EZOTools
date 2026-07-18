@@ -19,14 +19,6 @@ local function JugadorEnCombate()
     return false
 end
 
-local function JugadorEnInstancia()
-    local ok, dentro = LlamadaSegura(IsInInstance)
-    if ok then return dentro == true end
-    ok, dentro = LlamadaSegura(IsUnitInDungeon, "player")
-    if ok then return dentro == true end
-    return false
-end
-
 local function JugadorEnGrupo()
     local ok, enGrupo = LlamadaSegura(IsUnitGrouped, "player")
     if ok then return enGrupo == true end
@@ -60,6 +52,32 @@ end
 function A.BuildEntries()
     local entradas = {}
     local enCombate = JugadorEnCombate()
+    local enGrupo = JugadorEnGrupo()
+
+    -- Actividades de grupo/trial/dungeon: disponible fuera de combate.
+    if not enCombate
+        and EZO
+        and EZO.RaidLeaderActivitiesDialog
+        and type(EZO.RaidLeaderActivitiesDialog.OpenGamepad) == "function" then
+        AgregarEntrada(entradas,
+            GetString(EZO_MENU_GROUP_ACTIVITIES),
+            function() return Trigger("OPEN_GROUP_ACTIVITIES") end,
+            "groupActivities")
+    end
+
+    -- Salir de instancia es una acción general y no depende de pertenecer a un grupo.
+    if not enCombate
+        and EZO
+        and type(EZO.CanLeaveInstance) == "function"
+        and type(EZO.LeaveInstance) == "function" then
+        local ok, puede = LlamadaSegura(EZO.CanLeaveInstance)
+        if ok and puede == true then
+            AgregarEntrada(entradas,
+                GetString(EZO_MENU_LEAVE_INSTANCE),
+                function() return Trigger("LEAVE_INSTANCE") end,
+                "leaveInstance")
+        end
+    end
 
     -- Viaje: casa principal del jugador (oculto en combate — el juego rechaza el viaje)
     if not enCombate then
@@ -95,7 +113,7 @@ function A.BuildEntries()
 
     -- Salto al líder (requiere estar en grupo Y que el salto sea posible)
     if not enCombate
-        and JugadorEnGrupo()
+        and enGrupo
         and EZO and type(EZO.CanJumpToLeader) == "function"
         and type(EZO.JumpToLeader) == "function" then
         local ok, puede = LlamadaSegura(EZO.CanJumpToLeader)
@@ -111,26 +129,6 @@ function A.BuildEntries()
                 leaderText,
                 function() return Trigger("JUMP_TO_LEADER") end)
         end
-    end
-
-    -- Acciones de grupo e instancia
-    local enGrupo     = JugadorEnGrupo()
-    local enInstancia = JugadorEnInstancia()
-
-    if enGrupo and type(EZO.LeaveGroup) == "function" then
-        AgregarEntrada(entradas,
-            GetString(EZO_MENU_LEAVE_GROUP),
-            function() return Trigger("LEAVE_GROUP") end)
-    end
-    if enInstancia and type(EZO.LeaveInstance) == "function" then
-        AgregarEntrada(entradas,
-            GetString(EZO_MENU_LEAVE_INSTANCE),
-            function() return Trigger("LEAVE_INSTANCE") end)
-    end
-    if enGrupo and enInstancia and type(EZO.LeaveGroupAndInstance) == "function" then
-        AgregarEntrada(entradas,
-            GetString(EZO_MENU_LEAVE_GROUP_INSTANCE),
-            function() return Trigger("LEAVE_GROUP_AND_INSTANCE") end)
     end
 
     -- Mantenimiento: reparar equipo (solo si hay piezas por debajo del umbral)

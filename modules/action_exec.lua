@@ -56,6 +56,40 @@ function X.RegisterCore()
         return false
     end)
 
+    -- Actividades de grupo/trial/dungeon (submenú)
+    X.Register("OPEN_GROUP_ACTIVITIES", function(ctx)
+        local activitiesDialog = EZO and EZO.RaidLeaderActivitiesDialog
+        if type(activitiesDialog) ~= "table" then return false end
+
+        if ctx and ctx.source == "MOUSE" and type(activitiesDialog.OpenMouse) == "function" then
+            return activitiesDialog.OpenMouse(ctx.anchor)
+        end
+        if type(activitiesDialog.OpenGamepad) == "function" then
+            return activitiesDialog.OpenGamepad()
+        end
+        if type(activitiesDialog.Open) == "function" then
+            return activitiesDialog.Open()
+        end
+        return false
+    end)
+
+    -- Viajes a trials en veterano (submenú hijo)
+    X.Register("OPEN_TRIAL_TRAVEL", function(ctx)
+        local trialDialog = EZO and EZO.RaidLeaderTrialsDialog
+        if type(trialDialog) ~= "table" then return false end
+
+        if ctx and ctx.source == "MOUSE" and type(trialDialog.OpenMouse) == "function" then
+            return trialDialog.OpenMouse(ctx.anchor)
+        end
+        if type(trialDialog.OpenGamepad) == "function" then
+            return trialDialog.OpenGamepad()
+        end
+        if type(trialDialog.Open) == "function" then
+            return trialDialog.Open()
+        end
+        return false
+    end)
+
     -- Ajustes completos del addon via LibAddonMenu
     X.Register("OPEN_ADDON_SETTINGS", function()
         if type(IsUnitInCombat) == "function" and IsUnitInCombat("player") then
@@ -63,37 +97,18 @@ function X.RegisterCore()
             return false
         end
 
-        local esGamepad = EZOTools_EsModoGamepadPreferido()
-
-        if _G.SCENE_MANAGER and type(_G.SCENE_MANAGER.Show) == "function" then
-            if esGamepad then
-                _G.SCENE_MANAGER:Show("gamepad_options_root")
-            else
-                if _G.SCENE_MANAGER:GetScene("gameMenuInGame") ~= nil then
-                    _G.SCENE_MANAGER:Show("gameMenuInGame")
-                else
-                    _G.SCENE_MANAGER:Show("options")
-                end
+        local function abrirPanelConfiguracion()
+            if EZOTools_Menu and type(EZOTools_Menu.Open) == "function" then
+                return EZOTools_Menu.Open()
             end
-        end
-
-        local function abrirPanelLAM()
-            local LAM = _G.LibAddonMenu2
-            if not (LAM and type(LAM.OpenToPanel) == "function") then return false end
-            local panel = (EZO and EZO._lamPanel) or _G.EZOTools_Panel
-            if panel ~= nil then
-                LAM:OpenToPanel(panel)
-                return true
-            end
-            LAM:OpenToPanel("EZOTools_Panel")
-            return true
+            return false
         end
 
         if type(zo_callLater) == "function" then
-            zo_callLater(function() pcall(abrirPanelLAM) end, 100)
+            zo_callLater(function() pcall(abrirPanelConfiguracion) end, 100)
             return true
         end
-        return pcall(abrirPanelLAM)
+        return pcall(abrirPanelConfiguracion)
     end)
 
     -- Viajes a casas

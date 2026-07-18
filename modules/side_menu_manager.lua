@@ -245,7 +245,7 @@ local MENU_DEFINITIONS = {
         id = "command",
         dialogKey = "GamepadDialog",
         legacyGlobal = "EZOTools_GamepadDialog",
-        prioritizes = { "settings" },
+        prioritizes = { "settings", "trialTravel", "groupActivities" },
         closes = { "utility", "utilityRecent" },
         missingStringId = EZO_MSG_CMD_PANEL_MISSING,
     },
@@ -253,8 +253,15 @@ local MENU_DEFINITIONS = {
         id = "utility",
         dialogKey = "GamepadUtilityDialog",
         prioritizes = { "settings", "utilityRecent" },
-        closes = { "command" },
+        closes = { "command", "groupActivities", "trialTravel" },
         missingStringId = EZO_MSG_UTILITY_PANEL_MISSING,
+    },
+    {
+        id = "groupActivities",
+        dialogKey = "RaidLeaderActivitiesDialog",
+        prioritizes = { "trialTravel" },
+        closes = { "command", "settings", "utility", "utilityRecent" },
+        missingStringId = EZO_MSG_GROUP_ACTIVITIES_PANEL_MISSING,
     },
 }
 
@@ -269,6 +276,11 @@ local CHILD_DEFINITIONS = {
         dialogKey = "GamepadUtilityRecentDialog",
         parent = "utility",
     },
+    {
+        id = "trialTravel",
+        dialogKey = "RaidLeaderTrialsDialog",
+        parent = "groupActivities",
+    },
 }
 
 for _, def in ipairs(MENU_DEFINITIONS) do
@@ -281,6 +293,8 @@ end
 
 Manager.SetActivationOrder({
     "settings",
+    "trialTravel",
+    "groupActivities",
     "utilityRecent",
     "utility",
     "command",
