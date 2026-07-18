@@ -120,7 +120,10 @@ function EZO.JumpToLeader(options)
         return Fail(GetString(EZO_MSG_CANT_JUMP_LEADER), "player-is-leader")
     end
 
-    local leaderTag = (GetGroupLeaderUnitTag and GetGroupLeaderUnitTag()) or nil
+    local leaderTag = tostring(options.leaderUnitTag or "")
+    if leaderTag == "" then
+        leaderTag = (GetGroupLeaderUnitTag and GetGroupLeaderUnitTag()) or nil
+    end
     if leaderTag and leaderTag ~= "" and CanJumpToGroupMember and JumpToGroupMember then
         if CanJumpToGroupMember(leaderTag) then
             local targetName = (GetUnitName and GetUnitName(leaderTag)) or ""

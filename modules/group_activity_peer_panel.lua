@@ -28,6 +28,10 @@ local function IsGroupLeader()
     return type(IsUnitGroupLeader) == "function" and IsUnitGroupLeader("player") == true
 end
 
+local function GetParticipantSessionModule()
+    return EZO and EZO.GroupActivityParticipantSession
+end
+
 local function BuildSnapshot()
     if simulationActive and type(simulatedSnapshot) == "table" then
         return simulatedSnapshot
@@ -90,17 +94,10 @@ local function GetActivityTypeText(activityType)
 end
 
 local function GetDifficultyText(difficulty)
-    local difficultyId
-    if difficulty == "normal" then
-        difficultyId = DUNGEON_DIFFICULTY_NORMAL
-    elseif difficulty == "veteran" then
-        difficultyId = DUNGEON_DIFFICULTY_VETERAN
-    end
-    if difficultyId ~= nil and type(GetString) == "function" then
-        local text = GetString("SI_DUNGEONDIFFICULTY", difficultyId)
-        if type(text) == "string" and text ~= "" then
-            return text
-        end
+    if difficulty == "normal" or difficulty == DUNGEON_DIFFICULTY_NORMAL then
+        return GetString(EZO_GROUP_INFORMATION_MODE_NORMAL)
+    elseif difficulty == "veteran" or difficulty == DUNGEON_DIFFICULTY_VETERAN then
+        return GetString(EZO_GROUP_INFORMATION_MODE_VETERAN)
     end
     return GetString(EZO_GROUP_ACTIVITY_PEER_DIFFICULTY_UNKNOWN)
 end
@@ -130,6 +127,13 @@ local function GetRemoteResultText(result)
 end
 
 local function GetCurrentLeaderState(leaderUnitTag)
+    local participantSession = GetParticipantSessionModule()
+    if not IsGrouped() and participantSession and type(participantSession.GetLeaderState) == "function" then
+        local retainedState = participantSession.GetLeaderState()
+        if type(retainedState) == "table" then
+            return retainedState
+        end
+    end
     if type(currentLeaderState) ~= "table" then
         return nil
     end
@@ -141,6 +145,13 @@ local function GetCurrentLeaderState(leaderUnitTag)
     local expiresAt = tonumber(currentLeaderState.expiresAt)
     local now = type(GetFrameTimeSeconds) == "function" and tonumber(GetFrameTimeSeconds()) or 0
     if expiresAt and expiresAt <= now then
+        if not IsGrouped() and participantSession and type(participantSession.GetLeaderState) == "function" then
+            local retainedState = participantSession.GetLeaderState()
+            if type(retainedState) == "table"
+                and tonumber(retainedState.sessionId) == tonumber(currentLeaderState.sessionId) then
+                return retainedState
+            end
+        end
         currentLeaderState = nil
         return nil
     end
@@ -227,6 +238,17 @@ local function GetSnapshotMemberName(snapshot, unitTag)
     return ""
 end
 
+local function FormatZoneName(zoneName)
+    zoneName = tostring(zoneName or "")
+    if zoneName == "" or type(zo_strformat) ~= "function" then
+        return zoneName
+    end
+    if SI_ZONE_NAME ~= nil then
+        return zo_strformat(SI_ZONE_NAME, zoneName)
+    end
+    return zo_strformat("<<1>>", zoneName)
+end
+
 local function GetUnitZoneName(unitTag)
     if type(unitTag) ~= "string" or unitTag == ""
         or type(GetUnitZoneIndex) ~= "function"
@@ -238,11 +260,7 @@ local function GetUnitZoneName(unitTag)
         return ""
     end
     local okName, zoneName = pcall(GetZoneNameByIndex, zoneIndex)
-    zoneName = okName and tostring(zoneName or "") or ""
-    if zoneName ~= "" and type(zo_strformat) == "function" then
-        zoneName = zo_strformat("<<1>>", zoneName)
-    end
-    return zoneName
+    return FormatZoneName(okName and zoneName or "")
 end
 
 local function BuildLeaderRow(snapshot, leaderUnitTag, leaderState)
@@ -287,10 +305,7 @@ local function BuildPlayerRow(snapshot, leaderUnitTag)
     local tone = "muted"
     local iconType = "pending"
     if group.isLeader then
-        location = tostring(snapshot.instance and snapshot.instance.zoneName or "")
-        if location ~= "" and type(zo_strformat) == "function" then
-            location = zo_strformat("<<1>>", location)
-        end
+        location = FormatZoneName(snapshot.instance and snapshot.instance.zoneName)
         if location == "" then
             location = GetString(EZO_GROUP_ACTIVITY_PEER_LOCATION_UNKNOWN)
         else
@@ -351,7 +366,71 @@ local function BuildRosterRow(member)
     }
 end
 
+local function BuildRetainedRosterRows(snapshot, retainedSession)
+    local currentByName = {}
+    for _, member in ipairs(snapshot and snapshot.group and snapshot.group.members or {}) do
+        local displayName = tostring(member.displayName or "")
+        if displayName ~= "" then
+            currentByName[displayName] = member
+        end
+    end
+
+    local playerName = GetPlayerDisplayName()
+    local participantSession = GetParticipantSessionModule()
+    local inviteStatus = participantSession and type(participantSession.GetLocalInviteStatus) == "function"
+        and participantSession.GetLocalInviteStatus()
+        or "none"
+    local rows = {}
+    for _, retained in ipairs(retainedSession and retainedSession.roster or {}) do
+        local displayName = tostring(retained.displayName or "")
+        local current = currentByName[displayName]
+        if current then
+            rows[#rows + 1] = BuildRosterRow(current)
+        else
+            local isPlayer = displayName == playerName
+            local status = GetString(EZO_GROUP_ACTIVITY_PEER_NOT_IN_GROUP)
+            local tone = "muted"
+            local iconType = "pending"
+            if isPlayer and inviteStatus == "received" then
+                status = GetString(EZO_GROUP_ACTIVITY_PEER_INVITE_RECEIVED)
+                tone = "warning"
+            end
+            local zoneName = isPlayer and GetUnitZoneName("player") or tostring(retained.lastZoneName or "")
+            if zoneName == "" then
+                zoneName = GetString(EZO_GROUP_ACTIVITY_PEER_LOCATION_UNKNOWN)
+            elseif not isPlayer then
+                zoneName = zo_strformat(GetString(EZO_GROUP_ACTIVITY_PEER_LAST_KNOWN_LOCATION), zoneName)
+            end
+            rows[#rows + 1] = {
+                id = displayName,
+                name = displayName,
+                status = status,
+                tone = tone,
+                iconType = iconType,
+                location = zoneName,
+                locationTone = isPlayer and "info" or "muted",
+            }
+        end
+    end
+    return rows
+end
+
 local function BuildLocationRows(snapshot, leaderUnitTag, leaderState)
+    local participantSession = GetParticipantSessionModule()
+    local retainedSession = participantSession and type(participantSession.Get) == "function"
+        and participantSession.Get()
+        or nil
+    if retainedSession and leaderState
+        and tonumber(retainedSession.sessionId) == tonumber(leaderState.sessionId) then
+        if type(participantSession.RefreshObservedRoster) == "function" then
+            participantSession.RefreshObservedRoster(snapshot)
+        end
+        local retainedRows = BuildRetainedRosterRows(snapshot, retainedSession)
+        if #retainedRows > 0 then
+            return retainedRows
+        end
+    end
+
     local rows = {}
     local members = snapshot.group and snapshot.group.members or {}
     for _, member in ipairs(members) do
@@ -410,6 +489,9 @@ local function BuildModel()
     end
 
     local mode = leaderState and tostring(leaderState.modeName or "") or ""
+    if leaderState and leaderState.difficulty ~= nil then
+        mode = GetDifficultyText(leaderState.difficulty)
+    end
     if isRemoteState then
         mode = string.format(
             "%s | %s",
@@ -453,22 +535,36 @@ local function BuildModel()
             text = GetString(EZO_GROUP_ACTIVITY_PEER_SIMULATION_ACTIVE),
             tone = "info",
         }
+    elseif not group.isGrouped then
+        local participantSession = GetParticipantSessionModule()
+        if participantSession and type(participantSession.HasSession) == "function"
+            and participantSession.HasSession() then
+            alert = {
+                text = GetString(EZO_GROUP_ACTIVITY_PEER_DISBAND_GAP),
+                tone = "warning",
+            }
+        end
     end
 
     local contextText
     if isGroupIdle then
         local zoneName = GetUnitZoneName(leaderUnitTag)
         if zoneName == "" then
-            zoneName = tostring(snapshot.instance and snapshot.instance.zoneName or "")
-            if zoneName ~= "" and type(zo_strformat) == "function" then
-                zoneName = zo_strformat("<<1>>", zoneName)
-            end
+            zoneName = FormatZoneName(snapshot.instance and snapshot.instance.zoneName)
         end
-        local difficultyName = tostring(snapshot.instance and snapshot.instance.difficultyName or "")
+        local difficulty = snapshot.instance and snapshot.instance.difficulty
+        local difficultyName
+        if difficulty == DUNGEON_DIFFICULTY_NORMAL then
+            difficultyName = GetString(EZO_GROUP_INFORMATION_MODE_NORMAL)
+        elseif difficulty == DUNGEON_DIFFICULTY_VETERAN then
+            difficultyName = GetString(EZO_GROUP_INFORMATION_MODE_VETERAN)
+        else
+            difficultyName = tostring(snapshot.instance and snapshot.instance.difficultyName or "")
+        end
         if difficultyName == "" then
             difficultyName = GetString(EZO_GROUP_ACTIVITY_PEER_DIFFICULTY_UNKNOWN)
         end
-        contextText = zoneName ~= "" and string.format("%s | %s", zoneName, difficultyName) or difficultyName
+        contextText = zoneName ~= "" and string.format("%s - %s", zoneName, difficultyName) or difficultyName
     else
         contextText = zo_strformat(GetString(EZO_INSTANCE_RESET_STATUS_ACTIVITY), GetString(EZO_MENU_GROUP_ACTIVITIES_TITLE), mode)
     end
@@ -521,6 +617,8 @@ local function BuildModel()
         alert = alert,
         metrics = metrics,
         rowsTitle = GetString(EZO_GROUP_ACTIVITY_PEER_ROWS_TITLE),
+        rowLocationWidth = 205,
+        rowStatusWidth = 70,
         rows = BuildLocationRows(snapshot, leaderUnitTag, leaderState),
         actions = {
             {
@@ -552,10 +650,20 @@ local function EnsurePanel()
 end
 
 function MOD.CanShowInMenu()
+    local participantSession = GetParticipantSessionModule()
     return IsGrouped()
+        or (participantSession and type(participantSession.HasSession) == "function"
+            and participantSession.HasSession())
 end
 
 function MOD.Show()
+    local reset = EZO and EZO.RaidLeaderReset
+    if reset and type(reset.HasSession) == "function" and reset.HasSession()
+        and type(reset.ShowStatus) == "function" then
+        MOD.Hide()
+        return reset.ShowStatus()
+    end
+
     local win = EnsurePanel()
     if not win then
         return false
@@ -707,6 +815,10 @@ function MOD.SetLeaderActivityState(unitTag, state)
             receivedAt = receivedAt,
             expiresAt = tonumber(state.expiresAt) or (receivedAt + (tonumber(state.ttlSeconds) or 0)),
         }
+        local participantSession = GetParticipantSessionModule()
+        if participantSession and type(participantSession.Capture) == "function" then
+            participantSession.Capture(currentLeaderUnitTag, currentLeaderState, BuildSnapshot())
+        end
     else
         currentLeaderState = nil
     end
@@ -719,6 +831,10 @@ function MOD.ClearLeaderActivityState()
     currentLeaderUnitTag = nil
     simulationActive = false
     simulatedSnapshot = nil
+    local participantSession = GetParticipantSessionModule()
+    if participantSession and type(participantSession.Clear) == "function" then
+        participantSession.Clear()
+    end
     MOD.Refresh()
     return true
 end

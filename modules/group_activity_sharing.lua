@@ -138,6 +138,16 @@ function MOD.PublishResetState(state, overrides, force)
         return false, "invalidLocalState"
     end
 
+    local participantSession = EZO and EZO.GroupActivityParticipantSession
+    local tools = EZO and EZO.RaidLeaderTools
+    if participantSession and type(participantSession.Capture) == "function"
+        and tools and type(tools.BuildResetSnapshot) == "function" then
+        local ok, snapshot = pcall(tools.BuildResetSnapshot)
+        if ok and type(snapshot) == "table" then
+            participantSession.Capture("player", compact, snapshot)
+        end
+    end
+
     local now = NowSeconds()
     local fingerprint = GetFingerprint(compact)
     if force ~= true and fingerprint == lastFingerprint and now - lastPublishedAt < REFRESH_SECONDS then

@@ -130,10 +130,6 @@ local function PuedeAbandonarGrupo()
     return EZO and type(EZO.CanLeaveGroup) == "function" and EZO.CanLeaveGroup()
 end
 
-local function PuedeSalirInstancia()
-    return EZO and type(EZO.CanLeaveInstance) == "function" and EZO.CanLeaveInstance()
-end
-
 local function PuedeAbandonarGrupoEInstancia()
     return EZO
         and type(EZO.CanLeaveGroupAndInstance) == "function"
@@ -256,13 +252,6 @@ local function ConstruirEntradas()
         entradas[#entradas + 1] = {
             text = GetString(EZO_MENU_LEAVE_GROUP),
             callback = EZO.LeaveGroup,
-        }
-    end
-
-    if PuedeSalirInstancia() and type(EZO.LeaveInstance) == "function" then
-        entradas[#entradas + 1] = {
-            text = GetString(EZO_MENU_LEAVE_INSTANCE),
-            callback = EZO.LeaveInstance,
         }
     end
 
@@ -490,15 +479,6 @@ function Dialog.OpenMouse(anchor)
     if PuedeAbandonarGrupo() and type(EZO.LeaveGroup) == "function" then
         AddMenuItem(GetString(EZO_MENU_LEAVE_GROUP), function()
             EjecutarCallbackSeguro(EZO.LeaveGroup)
-            if HideMenu then HideMenu() end
-            if EZO then EZO._contextMenuOpen = false end
-            return false
-        end)
-    end
-
-    if PuedeSalirInstancia() and type(EZO.LeaveInstance) == "function" then
-        AddMenuItem(GetString(EZO_MENU_LEAVE_INSTANCE), function()
-            EjecutarCallbackSeguro(EZO.LeaveInstance)
             if HideMenu then HideMenu() end
             if EZO then EZO._contextMenuOpen = false end
             return false

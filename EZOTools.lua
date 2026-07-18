@@ -317,6 +317,10 @@ function EZO:Initialize()
         EZO.GroupActivityMemberTravel.Initialize()
     end
 
+    if EZO.GroupActivityParticipantSession and type(EZO.GroupActivityParticipantSession.Initialize) == "function" then
+        EZO.GroupActivityParticipantSession.Initialize()
+    end
+
     if EZO.GroupActivityPeerPanel and type(EZO.GroupActivityPeerPanel.Initialize) == "function" then
         EZO.GroupActivityPeerPanel.Initialize()
     end

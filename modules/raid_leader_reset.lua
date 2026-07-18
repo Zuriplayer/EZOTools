@@ -162,6 +162,24 @@ end
 
 local function EnsureMemberStates(run)
     run.memberStates = run.memberStates or {}
+    local playerName = type(GetDisplayName) == "function" and tostring(GetDisplayName() or "") or ""
+    local group = run and run.snapshot and run.snapshot.group or {}
+    for _, member in ipairs(group.members or {}) do
+        local displayName = tostring(member.displayName or "")
+        if displayName ~= "" and displayName ~= playerName then
+            if not run.memberStates[displayName] then
+                run.memberStates[displayName] = {
+                    displayName = displayName,
+                    invitesSent = 0,
+                    inviteResponses = 0,
+                    requestErrors = 0,
+                    status = "pending",
+                    lastKnownZoneName = tostring(member.zoneName or ""),
+                    lastKnownZoneIndex = tonumber(member.zoneIndex),
+                }
+            end
+        end
+    end
     for _, displayName in ipairs(GetCapturedNames(run)) do
         if not run.memberStates[displayName] then
             run.memberStates[displayName] = {
@@ -336,6 +354,31 @@ local function GetMemberTone(status)
     return "pending", "pending"
 end
 
+local function FormatZoneName(zoneName)
+    zoneName = tostring(zoneName or "")
+    if zoneName == "" or type(zo_strformat) ~= "function" then
+        return zoneName
+    end
+    if SI_ZONE_NAME ~= nil then
+        return zo_strformat(SI_ZONE_NAME, zoneName)
+    end
+    return zo_strformat("<<1>>", zoneName)
+end
+
+local function GetUnitZoneName(unitTag)
+    if type(unitTag) ~= "string" or unitTag == ""
+        or type(GetUnitZoneIndex) ~= "function"
+        or type(GetZoneNameByIndex) ~= "function" then
+        return "", nil
+    end
+    local okIndex, zoneIndex = SafeCall(GetUnitZoneIndex, unitTag)
+    if not okIndex or not zoneIndex then
+        return "", nil
+    end
+    local okName, zoneName = SafeCall(GetZoneNameByIndex, zoneIndex)
+    return FormatZoneName(okName and zoneName or ""), tonumber(zoneIndex)
+end
+
 local function GetStatusPanelWidth(memberCount)
     memberCount = tonumber(memberCount) or 0
     local gamepad = type(IsInGamepadPreferredMode) == "function" and IsInGamepadPreferredMode()
@@ -349,7 +392,14 @@ end
 
 local function GetMemberLocation(currentNames, displayName)
     local unitTag = currentNames and currentNames[displayName]
+    local state = activeRun and activeRun.memberStates and activeRun.memberStates[displayName]
+        or statusRun and statusRun.memberStates and statusRun.memberStates[displayName]
+        or nil
     if type(unitTag) ~= "string" or unitTag == "" then
+        local lastKnownZoneName = state and tostring(state.lastKnownZoneName or "") or ""
+        if lastKnownZoneName ~= "" then
+            return zo_strformat(GetString(EZO_INSTANCE_RESET_MEMBER_LOCATION_LAST_KNOWN), FormatZoneName(lastKnownZoneName)), "muted"
+        end
         return GetString(EZO_INSTANCE_RESET_MEMBER_LOCATION_UNKNOWN), "muted"
     end
     if type(IsUnitOnline) == "function" then
@@ -365,8 +415,23 @@ local function GetMemberLocation(currentNames, displayName)
     if not ok then
         return GetString(EZO_INSTANCE_RESET_MEMBER_LOCATION_UNKNOWN), "muted"
     end
+    local zoneName, zoneIndex = GetUnitZoneName(unitTag)
+    if state then
+        if zoneName ~= "" then
+            state.lastKnownZoneName = zoneName
+        end
+        if zoneIndex then
+            state.lastKnownZoneIndex = zoneIndex
+        end
+    end
     if sameInstance == true then
+        if zoneName ~= "" then
+            return zo_strformat(GetString(EZO_INSTANCE_RESET_MEMBER_LOCATION_SAME_ZONE), zoneName), "success"
+        end
         return GetString(EZO_INSTANCE_RESET_MEMBER_LOCATION_SAME), "success"
+    end
+    if zoneName ~= "" then
+        return zo_strformat(GetString(EZO_INSTANCE_RESET_MEMBER_LOCATION_DIFFERENT_ZONE), zoneName), "warning"
     end
     return GetString(EZO_INSTANCE_RESET_MEMBER_LOCATION_DIFFERENT), "warning"
 end
@@ -410,6 +475,11 @@ end
 local function UpdateStatusWindow(run, stageText, phaseIndex)
     if not run then
         return
+    end
+
+    local peerPanel = EZO and EZO.GroupActivityPeerPanel
+    if peerPanel and type(peerPanel.Hide) == "function" then
+        peerPanel.Hide()
     end
 
     stageText = stageText or run.statusText or tostring(run.stage or "")
@@ -481,11 +551,17 @@ local function UpdateStatusWindow(run, stageText, phaseIndex)
             location, locationTone = GetMemberLocation(currentNames, state.displayName)
             statusText = GetMemberStatusText(state.status)
         else
-            statusText = zo_strformat(
-                GetString(EZO_INSTANCE_RESET_STATUS_MEMBER_STATE_REQUESTS),
-                GetMemberStatusText(state.status),
-                tonumber(state.invitesSent) or 0
-            )
+            local invitesSent = tonumber(state.invitesSent) or 0
+            if invitesSent > 0 or tostring(state.status or "") ~= "pending" then
+                statusText = zo_strformat(
+                    GetString(EZO_INSTANCE_RESET_STATUS_MEMBER_STATE_REQUESTS),
+                    GetMemberStatusText(state.status),
+                    invitesSent
+                )
+            else
+                statusText = GetString(EZO_INSTANCE_RESET_MEMBER_STATUS_NOT_GROUPED)
+            end
+            location, locationTone = GetMemberLocation(currentNames, state.displayName)
         end
         memberRows[#memberRows + 1] = {
             id = state.displayName,
@@ -520,6 +596,8 @@ local function UpdateStatusWindow(run, stageText, phaseIndex)
         },
         statusText = stageText,
         statusTimeText = statusTimeText,
+        rowLocationWidth = 180,
+        rowStatusWidth = 120,
         alert = #alertLines > 0 and {
             text = table.concat(alertLines, "\n"),
             tone = alertTone,
@@ -1983,6 +2061,24 @@ end
 
 function MOD.HasSession()
     return activeRun ~= nil or statusRun ~= nil
+end
+
+function MOD.ShowStatus()
+    local run = activeRun or statusRun
+    if not run then
+        return false
+    end
+    UpdateStatusWindow(run)
+    if type(zo_callLater) == "function" then
+        local expectedRunId = run.id
+        zo_callLater(function()
+            local current = activeRun or statusRun
+            if current and current.id == expectedRunId then
+                UpdateStatusWindow(current)
+            end
+        end, 100)
+    end
+    return statusPanel ~= nil
 end
 
 function MOD.GetPublicActivityState()

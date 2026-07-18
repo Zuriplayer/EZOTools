@@ -65,6 +65,20 @@ function A.BuildEntries()
             "groupActivities")
     end
 
+    -- Salir de instancia es una acción general y no depende de pertenecer a un grupo.
+    if not enCombate
+        and EZO
+        and type(EZO.CanLeaveInstance) == "function"
+        and type(EZO.LeaveInstance) == "function" then
+        local ok, puede = LlamadaSegura(EZO.CanLeaveInstance)
+        if ok and puede == true then
+            AgregarEntrada(entradas,
+                GetString(EZO_MENU_LEAVE_INSTANCE),
+                function() return Trigger("LEAVE_INSTANCE") end,
+                "leaveInstance")
+        end
+    end
+
     -- Viaje: casa principal del jugador (oculto en combate — el juego rechaza el viaje)
     if not enCombate then
         if type(GetHousingPrimaryHouse) == "function" and type(RequestJumpToHouse) == "function" then

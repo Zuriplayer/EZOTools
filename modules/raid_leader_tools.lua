@@ -880,10 +880,23 @@ function MOD.BuildGroupSnapshot()
                 if okChar then characterName = tostring(name or "") end
             end
 
+            local zoneIndex = nil
+            local zoneName = ""
+            if type(GetUnitZoneIndex) == "function" then
+                local okZone, idx = SafeCall(GetUnitZoneIndex, unitTag)
+                if okZone then zoneIndex = idx end
+            end
+            if zoneIndex and type(GetZoneNameByIndex) == "function" then
+                local okZoneName, name = SafeCall(GetZoneNameByIndex, zoneIndex)
+                if okZoneName then zoneName = tostring(name or "") end
+            end
+
             snapshot.members[#snapshot.members + 1] = {
                 unitTag = unitTag,
                 displayName = displayName,
                 characterName = characterName,
+                zoneIndex = zoneIndex,
+                zoneName = zoneName,
                 isLeader = type(IsUnitGroupLeader) == "function" and IsUnitGroupLeader(unitTag) or false,
             }
         end

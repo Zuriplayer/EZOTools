@@ -321,8 +321,10 @@ function Panel:RenderRows(rows)
         location:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         name:SetVerticalAlignment(TEXT_ALIGN_CENTER)
         if tostring(row.location or "") ~= "" then
-            local locationWidth = gamepad and 175 or 165
-            local statusWidth = gamepad and 110 or 90
+            local locationWidth = tonumber(self.model and self.model.rowLocationWidth)
+                or (gamepad and 175 or 165)
+            local statusWidth = tonumber(self.model and self.model.rowStatusWidth)
+                or (gamepad and 110 or 90)
             icon:SetAnchor(LEFT, control, LEFT, 5, 0)
             location:SetHidden(false)
             location:SetDimensions(locationWidth, rowHeight)
@@ -404,26 +406,38 @@ function Panel:Render()
     self.title:SetAnchor(TOPLEFT, self.control, TOPLEFT, CONTENT_LEFT, 11)
     self.title:SetText(tostring(model.title or ""))
     self.phase:SetText(tostring(model.phaseText or ""))
-    self.context:SetText(tostring(model.contextText or ""))
-    self.totalTime:SetText(tostring(model.totalTimeText or ""))
-    self.stage:SetText(tostring(model.statusText or ""))
-    self.stageTime:SetText(tostring(model.statusTimeText or ""))
+    local contextText = tostring(model.contextText or "")
+    local totalTimeText = tostring(model.totalTimeText or "")
+    local statusText = tostring(model.statusText or "")
+    local statusTimeText = tostring(model.statusTimeText or "")
+    self.context:SetText(contextText)
+    self.totalTime:SetText(totalTimeText)
+    self.stage:SetText(statusText)
+    self.stageTime:SetText(statusTimeText)
 
     local progress = model.progress or {}
     local showProgress = progress.hidden ~= true
     self.progress:SetHidden(not showProgress)
+    self.progressValueBackdrop:SetHidden(not showProgress)
+    self.progressValue:SetHidden(not showProgress)
     self.progress:SetMinMax(tonumber(progress.min) or 0, tonumber(progress.max) or 1)
     self.progress:SetValue(tonumber(progress.value) or 0)
     self.progress:GetNamedChild("Progress"):SetText("")
-    self.progressValue:SetText(tostring(progress.text or ""))
+    self.progressValue:SetText(showProgress and tostring(progress.text or "") or "")
 
     local y = layout.contextY
     self.context:ClearAnchors()
     self.context:SetAnchor(TOPLEFT, self.control, TOPLEFT, CONTENT_LEFT, y)
-    self.context:SetAnchor(TOPRIGHT, self.totalTime, TOPLEFT, -8, 0)
     self.totalTime:ClearAnchors()
-    self.totalTime:SetDimensions(92, 22)
-    self.totalTime:SetAnchor(TOPRIGHT, self.control, TOPRIGHT, CONTENT_RIGHT, y)
+    if totalTimeText ~= "" then
+        self.totalTime:SetHidden(false)
+        self.totalTime:SetDimensions(92, 22)
+        self.totalTime:SetAnchor(TOPRIGHT, self.control, TOPRIGHT, CONTENT_RIGHT, y)
+        self.context:SetAnchor(TOPRIGHT, self.totalTime, TOPLEFT, -8, 0)
+    else
+        self.totalTime:SetHidden(true)
+        self.context:SetAnchor(TOPRIGHT, self.control, TOPRIGHT, CONTENT_RIGHT, y)
+    end
     y = y + layout.afterContext
 
     self.progress:ClearAnchors()
@@ -435,10 +449,16 @@ function Panel:Render()
 
     self.stage:ClearAnchors()
     self.stage:SetAnchor(TOPLEFT, self.control, TOPLEFT, CONTENT_LEFT, y)
-    self.stage:SetAnchor(TOPRIGHT, self.stageTime, TOPLEFT, -8, 0)
     self.stageTime:ClearAnchors()
-    self.stageTime:SetDimensions(92, 22)
-    self.stageTime:SetAnchor(TOPRIGHT, self.control, TOPRIGHT, CONTENT_RIGHT, y)
+    if statusTimeText ~= "" then
+        self.stageTime:SetHidden(false)
+        self.stageTime:SetDimensions(92, 22)
+        self.stageTime:SetAnchor(TOPRIGHT, self.control, TOPRIGHT, CONTENT_RIGHT, y)
+        self.stage:SetAnchor(TOPRIGHT, self.stageTime, TOPLEFT, -8, 0)
+    else
+        self.stageTime:SetHidden(true)
+        self.stage:SetAnchor(TOPRIGHT, self.control, TOPRIGHT, CONTENT_RIGHT, y)
+    end
     y = y + layout.afterStage
 
     local alert = model.alert

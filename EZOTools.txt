@@ -1,8 +1,8 @@
 ## Title: E|cB040FFZ|rOTools
 ## Author: @Zuriplayer
-## Description: Quick command panel and HUD overlay for keyboard, mouse and gamepad. Travel and group actions, ally recall with history (mount, pet, companion, assistant), food buff tracking, repair/recharge helpers and low stock alerts. English and Spanish.
-## Version: 2.0.80
-## AddOnVersion: 10150
+## Description: Quick command panel and HUD overlay for keyboard, mouse and gamepad. Travel and group actions, ally recall with history (mount, pet, companion, assistant), food buff tracking, repair/recharge helpers and low stock alerts. English and Spanish. Optional add-ons: LibChatMessage, LibDebugLogger, DebugLogViewer, LibSlashCommander, EZOCore.
+## Version: 2.0.85
+## AddOnVersion: 10156
 ## APIVersion: 101049 101050
 ## DependsOn: LibAddonMenu-2.0
 ## OptionalDependsOn: LibChatMessage LibDebugLogger DebugLogViewer LibSlashCommander EZOCore
@@ -25,6 +25,7 @@ modules/group_autoinvite.lua
 modules/raid_leader_activity_catalog.lua
 modules/raid_leader_tools.lua
 modules/raid_leader_activity_session.lua
+modules/group_activity_participant_session.lua
 modules/group_activity_sharing.lua
 modules/group_activity_member_travel.lua
 modules/status_panel.xml
