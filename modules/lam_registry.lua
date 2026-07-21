@@ -132,6 +132,45 @@ local function RegistrarSeccionesBase()
                 width   = "half",
                 tooltip = GetString(EZO_OPTION_LANGUAGE_TOOLTIP),
             },
+            {
+                type    = "button",
+                name    = GetString(EZO_MENU_LEAVE_INSTANCE),
+                func    = function()
+                    if type(EZOTools.LeaveInstance) == "function" then
+                        EZOTools.LeaveInstance()
+                    end
+                end,
+                disabled = function()
+                    return not (type(EZOTools.CanLeaveInstance) == "function" and EZOTools.CanLeaveInstance())
+                end,
+                width   = "half",
+            },
+            {
+                type    = "button",
+                name    = GetString(EZO_MENU_LEAVE_GROUP),
+                func    = function()
+                    if type(EZOTools.LeaveGroup) == "function" then
+                        EZOTools.LeaveGroup()
+                    end
+                end,
+                disabled = function()
+                    return not (type(EZOTools.CanLeaveGroup) == "function" and EZOTools.CanLeaveGroup())
+                end,
+                width   = "half",
+            },
+            {
+                type    = "button",
+                name    = GetString(EZO_MENU_LEAVE_GROUP_INSTANCE),
+                func    = function()
+                    if type(EZOTools.LeaveGroupAndInstance) == "function" then
+                        EZOTools.LeaveGroupAndInstance()
+                    end
+                end,
+                disabled = function()
+                    return not (type(EZOTools.CanLeaveGroupAndInstance) == "function" and EZOTools.CanLeaveGroupAndInstance())
+                end,
+                width   = "half",
+            },
         }
     end)
 

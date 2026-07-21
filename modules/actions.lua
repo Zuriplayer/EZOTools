@@ -54,9 +54,8 @@ function A.BuildEntries()
     local enCombate = JugadorEnCombate()
     local enGrupo = JugadorEnGrupo()
 
-    -- Actividades de grupo/trial/dungeon: disponible fuera de combate.
-    if not enCombate
-        and EZO
+    -- Actividades de grupo/trial/dungeon: ahora disponible también en combate para poder abandonar grupo.
+    if EZO
         and EZO.RaidLeaderActivitiesDialog
         and type(EZO.RaidLeaderActivitiesDialog.OpenGamepad) == "function" then
         AgregarEntrada(entradas,
@@ -66,8 +65,7 @@ function A.BuildEntries()
     end
 
     -- Salir de instancia es una acción general y no depende de pertenecer a un grupo.
-    if not enCombate
-        and EZO
+    if EZO
         and type(EZO.CanLeaveInstance) == "function"
         and type(EZO.LeaveInstance) == "function" then
         local ok, puede = LlamadaSegura(EZO.CanLeaveInstance)
