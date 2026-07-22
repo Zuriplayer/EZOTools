@@ -151,6 +151,57 @@ local function MigrateLegacyCharacterOverlayData(csvOverlay, accountOverlay)
     end
 
     MergeUniqueNumberHistory(accountOverlay, csvOverlay, "recentCompanionCollectibles", 5)
+
+    if tostring(accountOverlay.lastFoodItemLink or "") == "" then
+        accountOverlay.lastFoodItemLink = tostring(csvOverlay.lastFoodItemLink or "")
+    end
+    if tostring(accountOverlay.lastFoodItemName or "") == "" then
+        accountOverlay.lastFoodItemName = tostring(csvOverlay.lastFoodItemName or "")
+    end
+
+    if type(csvOverlay.recentFoodItems) == "table" then
+        local merged = {}
+        local seen = {}
+
+        local function AddFoodEntry(entry)
+            if type(entry) ~= "table" then
+                return
+            end
+
+            local itemLink = tostring(entry.itemLink or "")
+            local itemName = tostring(entry.itemName or "")
+            if itemLink == "" and itemName == "" then
+                return
+            end
+
+            local key = itemLink ~= "" and itemLink or itemName
+            if seen[key] then
+                return
+            end
+
+            seen[key] = true
+            merged[#merged + 1] = {
+                itemLink = itemLink,
+                itemName = itemName,
+            }
+        end
+
+        if type(accountOverlay.recentFoodItems) == "table" then
+            for _, entry in ipairs(accountOverlay.recentFoodItems) do
+                AddFoodEntry(entry)
+                if #merged >= 5 then break end
+            end
+        end
+
+        if #merged < 5 then
+            for _, entry in ipairs(csvOverlay.recentFoodItems) do
+                AddFoodEntry(entry)
+                if #merged >= 5 then break end
+            end
+        end
+
+        accountOverlay.recentFoodItems = merged
+    end
 end
 
 function EZO:Initialize()
@@ -194,6 +245,9 @@ function EZO:Initialize()
             recentAssistantCollectibles = {},
             recentOwnHouses = {},
             recentOtherHouses = {},
+            lastFoodItemLink = "",
+            lastFoodItemName = "",
+            recentFoodItems = {},
             x                = nil,
             y                = nil,
         },
@@ -235,19 +289,10 @@ function EZO:Initialize()
         },
     }
 
-    local charDefaults = {
-        overlay = {
-            lastCompanionCollectibleId = 0,
-            recentCompanionCollectibles = {},
-            lastFoodItemLink = "",
-            lastFoodItemName = "",
-            recentFoodItems = {},
-        },
-    }
-
     self.sv = ZO_SavedVars:NewAccountWide("EZOTools_Saved", 1, world, defaults)
-    self.csv = ZO_SavedVars:NewCharacterIdSettings("EZOTools_SavedChar", 1, world, charDefaults)
-    MigrateLegacyCharacterOverlayData(self.csv and self.csv.overlay, self.sv and self.sv.overlay)
+    local legacyCsv = ZO_SavedVars:NewCharacterIdSettings("EZOTools_SavedChar", 1, world, nil)
+    MigrateLegacyCharacterOverlayData(legacyCsv and legacyCsv.overlay, self.sv and self.sv.overlay)
+    self.csv = nil
     EZO.runtime.debugMode = self.sv and self.sv.general and self.sv.general.debugMode == true
 
     -- Aplicar idioma guardado

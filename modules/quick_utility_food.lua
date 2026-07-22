@@ -33,7 +33,7 @@ local NormalizarTextoTooltip = EZOTools_NormalizarTextoTooltip
 local NormalizarTextoEtiqueta = EZOTools_NormalizarTextoEtiqueta
 
 local function ObtenerFoodSV()
-    local overlaySV = EZO and EZO.csv and EZO.csv.overlay or nil
+    local overlaySV = EZO and EZO.sv and EZO.sv.overlay or nil
     if type(overlaySV) ~= "table" then
         return nil
     end
