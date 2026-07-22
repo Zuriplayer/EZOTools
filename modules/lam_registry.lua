@@ -69,6 +69,16 @@ local function RefrescarOverlay()
     end
 end
 
+local function EjecutarAccionLAM(actionId, fallback)
+    if EZOTools_InputRouter and type(EZOTools_InputRouter.Trigger) == "function" then
+        return EZOTools_InputRouter.Trigger("LAM", actionId, {})
+    end
+    if type(fallback) == "function" then
+        return fallback()
+    end
+    return false
+end
+
 local ultimoAvisoIdiomaForzadoMs = 0
 
 local function AvisarIdiomaForzado()
@@ -136,39 +146,36 @@ local function RegistrarSeccionesBase()
                 type    = "button",
                 name    = GetString(EZO_MENU_LEAVE_INSTANCE),
                 func    = function()
-                    if type(EZOTools.LeaveInstance) == "function" then
-                        EZOTools.LeaveInstance()
-                    end
+                    return EjecutarAccionLAM("LEAVE_INSTANCE", EZOTools.LeaveInstance)
                 end,
                 disabled = function()
                     return not (type(EZOTools.CanLeaveInstance) == "function" and EZOTools.CanLeaveInstance())
                 end,
+                tooltip = GetString(EZO_OPTION_LEAVE_INSTANCE_TOOLTIP),
                 width   = "half",
             },
             {
                 type    = "button",
                 name    = GetString(EZO_MENU_LEAVE_GROUP),
                 func    = function()
-                    if type(EZOTools.LeaveGroup) == "function" then
-                        EZOTools.LeaveGroup()
-                    end
+                    return EjecutarAccionLAM("LEAVE_GROUP", EZOTools.LeaveGroup)
                 end,
                 disabled = function()
                     return not (type(EZOTools.CanLeaveGroup) == "function" and EZOTools.CanLeaveGroup())
                 end,
+                tooltip = GetString(EZO_OPTION_LEAVE_GROUP_TOOLTIP),
                 width   = "half",
             },
             {
                 type    = "button",
                 name    = GetString(EZO_MENU_LEAVE_GROUP_INSTANCE),
                 func    = function()
-                    if type(EZOTools.LeaveGroupAndInstance) == "function" then
-                        EZOTools.LeaveGroupAndInstance()
-                    end
+                    return EjecutarAccionLAM("LEAVE_GROUP_AND_INSTANCE", EZOTools.LeaveGroupAndInstance)
                 end,
                 disabled = function()
                     return not (type(EZOTools.CanLeaveGroupAndInstance) == "function" and EZOTools.CanLeaveGroupAndInstance())
                 end,
+                tooltip = GetString(EZO_OPTION_LEAVE_GROUP_INSTANCE_TOOLTIP),
                 width   = "half",
             },
         }

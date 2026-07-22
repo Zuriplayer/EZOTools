@@ -77,6 +77,31 @@ function A.BuildEntries()
         end
     end
 
+    -- Acciones rápidas de grupo: disponibles incluso en combate cuando ESO las permite.
+    if EZO
+        and type(EZO.CanLeaveGroup) == "function"
+        and type(EZO.LeaveGroup) == "function" then
+        local ok, puede = LlamadaSegura(EZO.CanLeaveGroup)
+        if ok and puede == true then
+            AgregarEntrada(entradas,
+                GetString(EZO_MENU_LEAVE_GROUP),
+                function() return Trigger("LEAVE_GROUP") end,
+                "leaveGroup")
+        end
+    end
+
+    if EZO
+        and type(EZO.CanLeaveGroupAndInstance) == "function"
+        and type(EZO.LeaveGroupAndInstance) == "function" then
+        local ok, puede = LlamadaSegura(EZO.CanLeaveGroupAndInstance)
+        if ok and puede == true then
+            AgregarEntrada(entradas,
+                GetString(EZO_MENU_LEAVE_GROUP_INSTANCE),
+                function() return Trigger("LEAVE_GROUP_AND_INSTANCE") end,
+                "leaveGroupInstance")
+        end
+    end
+
     -- Viaje: casa principal del jugador (oculto en combate — el juego rechaza el viaje)
     if not enCombate then
         if type(GetHousingPrimaryHouse) == "function" and type(RequestJumpToHouse) == "function" then

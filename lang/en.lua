@@ -48,6 +48,9 @@ EZO_STRINGS_EN = {
     EZO_OPTION_LANGUAGE                 = "Language",
     EZO_OPTION_LANGUAGE_AUTO            = "Automatic (ESO client)",
     EZO_OPTION_LANGUAGE_TOOLTIP         = "Local language used when EZOCore is not installed or its language mode is 'Let each addon choose'. Central EZOCore language choices disable this selector. Forcing a different language can mix addon text with ESO system names.",
+    EZO_OPTION_LEAVE_INSTANCE_TOOLTIP   = "Requests ESO's immediate exit from the current instance when that action is available. It does not leave your group.",
+    EZO_OPTION_LEAVE_GROUP_TOOLTIP      = "Leaves your current group when ESO allows it. This is a direct group action and does not reset the instance.",
+    EZO_OPTION_LEAVE_GROUP_INSTANCE_TOOLTIP = "Leaves your current group and requests ESO's immediate instance exit when both actions are available.",
     EZO_MSG_LANGUAGE_FORCED_WARNING     = "Forced language: ESO names may use the game language.",
 
     -- -------------------------------------------------------------------------
