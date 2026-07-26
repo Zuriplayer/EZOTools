@@ -47,6 +47,48 @@ local function CopiarDatosEntrada(origen, destino)
     end
 end
 
+local function ResolverEstadoHabilitado(entry)
+    if type(entry) ~= "table" then
+        return true
+    end
+
+    if type(entry.disabled) == "function" then
+        local ok, disabled = pcall(entry.disabled, entry)
+        if ok and disabled == true then
+            return false
+        end
+    elseif entry.disabled == true then
+        return false
+    end
+
+    if type(entry.enabled) == "function" then
+        local ok, enabled = pcall(entry.enabled, entry)
+        if ok then
+            return enabled ~= false
+        end
+    elseif entry.enabled == false then
+        return false
+    end
+
+    return true
+end
+
+local function EstaEntradaHabilitada(data)
+    if type(data) ~= "table" then
+        return true
+    end
+    if data.enabled == false or data.disabled == true then
+        return false
+    end
+    if type(data.IsEnabled) == "function" then
+        local ok, enabled = pcall(function() return data:IsEnabled() end)
+        if ok and enabled == false then
+            return false
+        end
+    end
+    return true
+end
+
 local function CrearSetupEntrada(config)
     return function(control, data, selected, reselectingDuringRebuild, enabled, active)
         ZO_GamepadMenuEntryTemplate_Setup(control, data.text, nil, nil, nil, selected)
@@ -80,6 +122,9 @@ function Core.CreateDialog(config)
             callback = function(zoDialog)
                 local data = zoDialog.entryList and zoDialog.entryList.GetTargetData
                     and zoDialog.entryList:GetTargetData() or nil
+                if not EstaEntradaHabilitada(data) then
+                    return
+                end
                 local cb = ExtraerCallback(data)
                 if cb then cb() end
             end,
@@ -132,6 +177,12 @@ function Core.CreateDialog(config)
                     if preparado ~= nil then
                         cb = preparado
                     end
+                end
+                local enabled = ResolverEstadoHabilitado(entry)
+                ed.enabled = enabled
+                ed.disabled = not enabled
+                if type(ed.SetEnabled) == "function" then
+                    ed:SetEnabled(enabled)
                 end
                 ed.callback = cb
                 ed.setup = setupEntry

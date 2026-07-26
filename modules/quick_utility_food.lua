@@ -788,14 +788,20 @@ function MOD.BuildRecentEntries(options)
             if type(entry) == "table" then
                 local itemLink = tostring(entry.itemLink or "")
                 local itemName = tostring(entry.itemName or "")
-                local _, _, resolvedName = MOD.FindFoodByReference(itemLink, itemName)
+                local bagId, slotIndex, resolvedName = MOD.FindFoodByReference(itemLink, itemName)
                 local label = NormalizarTextoEtiqueta(tostring(resolvedName or itemName or ""))
                 if label ~= "" then
+                    local disponible = bagId ~= nil and slotIndex ~= nil
                     entries[#entries + 1] = {
                         text = label,
                         callback = function()
+                            if not disponible then
+                                return false
+                            end
                             return MOD.ConsumeHistoryFood(itemLink, itemName, options)
                         end,
+                        enabled = disponible,
+                        tooltipText = disponible and nil or GetString(EZO_SIDE_WIDGET_FOOD_HISTORY_MISSING_TOOLTIP),
                         previewKind = "item",
                         previewItemLink = itemLink,
                     }

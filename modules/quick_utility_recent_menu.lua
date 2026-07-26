@@ -69,9 +69,11 @@ function MOD.OpenFood(anchor, quickUtility, handlers)
     local recentEntries = quickUtility.BuildRecentEntries("food") or {}
     for _, entry in ipairs(recentEntries) do
         local itemLinkTooltip = tostring(entry.previewItemLink or "")
+        local enabled = entry.empty ~= true and entry.enabled ~= false
         entries[#entries + 1] = {
             label = tostring(entry.text or ""),
-            enabled = entry.empty ~= true,
+            enabled = enabled,
+            tooltipText = entry.tooltipText,
             onEnter = function(control)
                 if itemLinkTooltip ~= "" and type(handlers.ShowItem) == "function" then
                     handlers.ShowItem(control, itemLinkTooltip)
@@ -83,7 +85,7 @@ function MOD.OpenFood(anchor, quickUtility, handlers)
                 end
             end,
             onSelect = function()
-                if type(entry.callback) == "function" then
+                if enabled and type(entry.callback) == "function" then
                     entry.callback()
                 end
             end,

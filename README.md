@@ -7,7 +7,7 @@ Support, bug reports, and suggestions: https://discord.gg/FtP4KapGua
 
 ## Status
 
-Current version: **2.0.87**.
+Current version: **2.0.88**.
 
 This addon is in public beta. The implemented features are usable, but some newer group and trial tools are still experimental and should be tested carefully before relying on them in organized runs.
 
@@ -65,6 +65,7 @@ The quick utility panel groups frequently used non-combat conveniences:
 - Recent history for mounts, pets, companions, and assistants.
 - Empty-state shortcuts to the relevant ESO collection screens.
 - Food and drink tracking, recent food/drink history, and optional reuse with confirmation.
+- Recent food/drink entries stay visible but disabled when the remembered item is no longer in your inventory.
 - Owned house history.
 - Other players' house history.
 

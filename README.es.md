@@ -7,7 +7,7 @@ Soporte, errores y sugerencias: https://discord.gg/FtP4KapGua
 
 ## Estado
 
-Versión actual: **2.0.87**.
+Versión actual: **2.0.88**.
 
 Este addon está en beta pública. Las funciones implementadas son utilizables, pero algunas herramientas nuevas de grupo y trials siguen siendo experimentales y conviene probarlas con cuidado antes de depender de ellas en raids organizadas.
 
@@ -65,6 +65,7 @@ El panel de utilidades rápidas agrupa comodidades de uso frecuente fuera de com
 - Historial reciente de monturas, mascotas, compañeros y asistentes.
 - Accesos de estado vacío a las pantallas de colección correspondientes de ESO.
 - Seguimiento de comida y bebida, historial reciente de comida/bebida y reutilización opcional con confirmación.
+- Las entradas recientes de comida/bebida siguen visibles pero deshabilitadas cuando el objeto recordado ya no está en tu inventario.
 - Historial de casas propias.
 - Historial de casas de otros jugadores.
 

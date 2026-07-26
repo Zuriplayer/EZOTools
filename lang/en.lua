@@ -543,6 +543,7 @@ EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT_WITH_TIME"] = "You are about t
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT_WITH_EFFECT"] = "You are about to consume <<1>>.|n|nEffect: <<2>>"
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_CONFIRM_TEXT_WITH_EFFECT_AND_TIME"] = "You are about to consume <<1>>.|n|nEffect: <<2>>|n|nTime remaining on the current effect: |cC8A95A<<3>>|r."
 EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_HISTORY_EMPTY"] = "No food or drink is saved yet.|nOpen the game's inventory and use one to add it here."
+EZO_STRINGS_EN["EZO_SIDE_WIDGET_FOOD_HISTORY_MISSING_TOOLTIP"] = "This saved food or drink is not in your inventory."
 EZO_STRINGS_EN["EZO_TIME_REMAINING_HM"] = "<<1>>h <<2>>m"
 EZO_STRINGS_EN["EZO_TIME_REMAINING_MS"] = "<<1>>m <<2>>s"
 EZO_STRINGS_EN["EZO_TIME_REMAINING_S"] = "<<1>>s"
