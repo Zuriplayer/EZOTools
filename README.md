@@ -7,7 +7,7 @@ Support, bug reports, and suggestions: https://discord.gg/FtP4KapGua
 
 ## Status
 
-Current version: **2.0.88**.
+Current version: **2.0.89**.
 
 This addon is in public beta. The implemented features are usable, but some newer group and trial tools are still experimental and should be tested carefully before relying on them in organized runs.
 
@@ -176,7 +176,7 @@ EZOTools is not an automation addon for combat or gameplay decisions.
 
 ## Settings
 
-With EZOCore enabled, open the complete panel under Settings > EZO > EZOTools or from EZOTools itself. The panel is not duplicated in ESO's standard Addons settings list. Its overlay and reset status window register independently in the shared interface layout mode; closing Settings returns to HUD/HUD_UI where the active previews remain movable. Without EZOCore, the same controls remain available through the standalone LibAddonMenu fallback. Every section heading uses the same purple information icon; hover the heading to read its general explanation without occupying permanent panel space. Help for an individual setting appears when hovering that setting itself. Current settings cover:
+With EZOCore enabled, open the complete panel under Settings > EZO > EZOTools or from EZOTools itself. The panel is not duplicated in ESO's standard Addons settings list. Its overlay and reset status window register independently in the shared interface layout mode; closing Settings returns to HUD/HUD_UI where the active previews remain movable. Without EZOCore, the same controls remain available through the standalone LibAddonMenu fallback. Every section heading uses the same purple information icon; hover the heading to read its general explanation without occupying permanent panel space. Help for an individual setting appears when hovering that setting itself. Master settings refresh their dependent controls immediately in both EZOCore-hosted and standalone LibAddonMenu panels. Current settings cover:
 
 - Language.
 - Overlay enabled/locked state.

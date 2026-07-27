@@ -68,6 +68,9 @@ local function ConstruirOpciones()
         setFunc = function(v)
             EZOTools.sv.general.repairKitAlertEnabled = v
             if EZOTools_Overlay and EZOTools_Overlay.Refresh then EZOTools_Overlay.Refresh() end
+            if EZOTools_LAM and EZOTools_LAM.RequestSettingsRefresh then
+                EZOTools_LAM.RequestSettingsRefresh()
+            end
         end,
         default = true,
     }
@@ -94,6 +97,9 @@ local function ConstruirOpciones()
         setFunc = function(v)
             EZOTools.sv.general.soulGemAlertEnabled = v
             if EZOTools_Overlay and EZOTools_Overlay.Refresh then EZOTools_Overlay.Refresh() end
+            if EZOTools_LAM and EZOTools_LAM.RequestSettingsRefresh then
+                EZOTools_LAM.RequestSettingsRefresh()
+            end
         end,
         default = true,
     }
@@ -127,6 +133,9 @@ local function ConstruirOpciones()
         setFunc = function(v)
             if EZOTools and type(EZOTools.SetDebugModeEnabled) == "function" then
                 EZOTools.SetDebugModeEnabled(v)
+            end
+            if EZOTools_LAM and EZOTools_LAM.RequestSettingsRefresh then
+                EZOTools_LAM.RequestSettingsRefresh()
             end
         end,
         default = false,

@@ -20,6 +20,23 @@ function REG.CreateInfoHeader(name, tooltip)
     }
 end
 
+function REG.RequestSettingsRefresh()
+    if EZOTools and EZOTools.ezoSettingsRegistered
+        and EZOCore
+        and type(EZOCore.RefreshSettingsPanel) == "function" then
+        pcall(function() EZOCore:RefreshSettingsPanel() end)
+    end
+
+    local LAM = LibAddonMenu2
+    local util = LAM and LAM.util
+    if util and type(util.RequestRefreshIfNeeded) == "function" then
+        local panel = EZOTools and EZOTools._lamPanel or _G.EZOTools_Panel
+        if panel then
+            pcall(util.RequestRefreshIfNeeded, panel)
+        end
+    end
+end
+
 -- Registra una sección de opciones.
 -- name:     identificador único de la sección
 -- order:    número de orden (menor = antes)
@@ -388,6 +405,7 @@ local function RegistrarSeccionesBase()
                     elseif EZO.ApplyAutoFriendHousesSelection then
                         EZO.ApplyAutoFriendHousesSelection()
                     end
+                    REG.RequestSettingsRefresh()
                 end,
                 default = false,
                 width   = "full",
@@ -594,6 +612,7 @@ local function RegistrarSeccionesBase()
                     if v ~= true and reset and type(reset.SetStatusWindowUnlocked) == "function" then
                         reset.SetStatusWindowUnlocked(false)
                     end
+                    REG.RequestSettingsRefresh()
                 end,
                 default = true,
                 width = "full",
