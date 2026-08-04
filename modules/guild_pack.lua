@@ -1,16 +1,11 @@
--- Contenido exclusivo para gremios amigos de EZOTools (el "huevo de pascua").
--- Este módulo es la ÚNICA lista blanca de gremios con extras: imágenes de
--- overlay y casas de gremio predefinidas. Si el jugador no pertenece a
--- ninguno de estos gremios, toda esta capa queda inerte y el addon se
--- comporta como un producto 100% genérico: sin opciones extra en el panel,
--- sin texturas propias y sin datos de terceros aplicados.
+-- Datos y estado del modo guild de EZOTools.
+-- Esta es la unica lista de guilds con imagen y casas predefinidas.
+EZOTools = EZOTools or {}
 EZOTools_GuildPack = EZOTools_GuildPack or {}
 
+local EZO = EZOTools
 local MOD = EZOTools_GuildPack
 
--- Lista blanca. La clave es el nombre del gremio normalizado
--- (minúsculas, espacios colapsados). Para añadir o quitar un gremio
--- amigo basta con tocar esta tabla: nada más en el addon la conoce.
 local GUILD_PACK = {
     ["hojablanca"] = {
         textures = {
@@ -26,103 +21,135 @@ local GUILD_PACK = {
         },
         friendHouses = { craftingHall = "@Whasabi", secondaryHall = "@Whasabi" },
     },
-    ["children of lamae"] = {
-        textures = {
-            "/AddOns/EZOTools/media/guild_overlays/children_of_lamae.dds",
-            "EZOTools/media/guild_overlays/children_of_lamae.dds",
-        },
-        friendHouses = { craftingHall = "@HoDPS", secondaryHall = "@LadyRee" },
-    },
-    ["ad-minions"] = {
-        textures = {
-            "/AddOns/EZOTools/media/guild_overlays/minion.dds",
-            "EZOTools/media/guild_overlays/minion.dds",
-        },
-        friendHouses = { craftingHall = "@Jogi1", secondaryHall = "@Stucca" },
-    },
     ["sombras de lorkhan"] = {
         textures = {
             "/AddOns/EZOTools/media/guild_overlays/sombra.dds",
             "EZOTools/media/guild_overlays/sombra.dds",
         },
-        friendHouses = { craftingHall = "@Salander7", secondaryHall = "@RoseDarkSpiryt" },
-    },
-    ["liga latina"] = {
-        textures = {
-            "/AddOns/EZOTools/media/guild_overlays/liga_latina.dds",
-            "EZOTools/media/guild_overlays/liga_latina.dds",
-        },
+        friendHouses = { craftingHall = "@Salander7", secondaryHall = "@Sr.Manco" },
     },
 }
 
--- Caché del desbloqueo: nil = pendiente de calcular. Se calcula una vez
--- y solo se recalcula cuando el jugador entra/sale de un gremio, para no
--- consultar la lista de gremios en cada refresco del overlay.
 local unlockedKeys = nil
 
-local function NormalizarClave(nombre)
-    if EZOTools and type(EZOTools.NormalizeGuildKey) == "function" then
-        return EZOTools.NormalizeGuildKey(nombre)
-    end
-    if type(nombre) ~= "string" then return nil end
-    nombre = zo_strtrim(nombre)
-    if nombre == "" then return nil end
-    return zo_strlower(nombre):gsub("%s+", " ")
+function MOD.NormalizeGuildKey(name)
+    if type(name) ~= "string" then return nil end
+    name = zo_strtrim(name)
+    if name == "" then return nil end
+    return zo_strlower(name):gsub("%s+", " ")
 end
 
-local function RecalcularDesbloqueo()
+local function RecalculateUnlockedGuilds()
     unlockedKeys = {}
-    if type(GetNumGuilds) ~= "function" then return end
+    if type(GetNumGuilds) ~= "function"
+        or type(GetGuildId) ~= "function"
+        or type(GetGuildName) ~= "function" then
+        return
+    end
+
     for i = 1, GetNumGuilds() do
         local guildId = GetGuildId(i)
-        local key = NormalizarClave(guildId and GetGuildName(guildId))
+        local key = MOD.NormalizeGuildKey(guildId and GetGuildName(guildId))
         if key and GUILD_PACK[key] then
             unlockedKeys[key] = true
         end
     end
 end
 
-local function AsegurarDesbloqueo()
+local function GetUnlockedGuilds()
     if unlockedKeys == nil then
-        RecalcularDesbloqueo()
+        RecalculateUnlockedGuilds()
     end
     return unlockedKeys
 end
 
--- Invalida la caché; el próximo acceso recalcula con datos frescos.
 function MOD.Refresh()
     unlockedKeys = nil
 end
 
--- true si el jugador pertenece a al menos un gremio de la lista blanca.
 function MOD.IsUnlocked()
-    return next(AsegurarDesbloqueo()) ~= nil
+    return next(GetUnlockedGuilds()) ~= nil
 end
 
 function MOD.IsGuildUnlocked(guildName)
-    local key = NormalizarClave(guildName)
-    if not key then return false end
-    return AsegurarDesbloqueo()[key] == true
+    local key = MOD.NormalizeGuildKey(guildName)
+    return key ~= nil and GetUnlockedGuilds()[key] == true
 end
 
--- Rutas de textura del overlay para un gremio, solo si está desbloqueado.
-function MOD.GetTextures(guildName)
-    if not MOD.IsGuildUnlocked(guildName) then return nil end
-    return GUILD_PACK[NormalizarClave(guildName)].textures
+function MOD.GetRepresentedGuildName()
+    if type(GetRepresentedGuildId) ~= "function" or type(GetGuildName) ~= "function" then
+        return nil
+    end
+    local guildId = GetRepresentedGuildId()
+    if not guildId or guildId == 0 then
+        return nil
+    end
+    local guildName = GetGuildName(guildId)
+    if type(guildName) ~= "string" or guildName == "" then
+        return nil
+    end
+    return guildName
 end
 
--- Casas de gremio predefinidas para un gremio, solo si está desbloqueado.
-function MOD.GetFriendHouses(guildName)
-    if not MOD.IsGuildUnlocked(guildName) then return nil end
-    return GUILD_PACK[NormalizarClave(guildName)].friendHouses
+function MOD.GetRepresentedGuildKey()
+    return MOD.NormalizeGuildKey(MOD.GetRepresentedGuildName())
 end
 
--- Mantener la caché al día cuando cambia la pertenencia a gremios.
--- Los datos de gremio pueden llegar después de EVENT_ADD_ON_LOADED,
--- por eso el cálculo es perezoso y estos eventos solo invalidan.
-EVENT_MANAGER:RegisterForEvent("EZOTools_GuildPack_Joined",
-    EVENT_GUILD_SELF_JOINED_GUILD, function() MOD.Refresh() end)
-EVENT_MANAGER:RegisterForEvent("EZOTools_GuildPack_Left",
-    EVENT_GUILD_SELF_LEFT_GUILD, function() MOD.Refresh() end)
-EVENT_MANAGER:RegisterForEvent("EZOTools_GuildPack_DataLoaded",
-    EVENT_GUILD_DATA_LOADED, function() MOD.Refresh() end)
+function MOD.GetRepresentedGuildEntry()
+    local guildName = MOD.GetRepresentedGuildName()
+    local key = MOD.NormalizeGuildKey(guildName)
+    if not key or not MOD.IsGuildUnlocked(key) then
+        return nil
+    end
+    return GUILD_PACK[key], key, guildName
+end
+
+function MOD.IsModeEnabled()
+    return EZO.sv and EZO.sv.guild and EZO.sv.guild.modeEnabled == true
+end
+
+function MOD.SetModeEnabled(enabled)
+    if not (EZO.sv and EZO.sv.guild) then
+        return false
+    end
+    EZO.sv.guild.modeEnabled = enabled == true
+    return true
+end
+
+function MOD.GetActiveTextures()
+    if not MOD.IsModeEnabled() then return nil end
+    local entry = MOD.GetRepresentedGuildEntry()
+    return entry and entry.textures or nil
+end
+
+function MOD.GetActiveFriendHouses()
+    if not MOD.IsModeEnabled() then return nil end
+    local entry = MOD.GetRepresentedGuildEntry()
+    return entry and entry.friendHouses or nil
+end
+
+local function HandleGuildMembershipChanged(eventCode)
+    MOD.Refresh()
+    if EZO and type(EZO.RefreshActiveFriendHouses) == "function" then
+        EZO.RefreshActiveFriendHouses(eventCode ~= EVENT_GUILD_DATA_LOADED)
+    end
+    if EZOTools_Overlay and type(EZOTools_Overlay.Refresh) == "function" then
+        EZOTools_Overlay.Refresh()
+    end
+    if EZOTools_LAM and type(EZOTools_LAM.RequestSettingsRefresh) == "function" then
+        EZOTools_LAM.RequestSettingsRefresh(true)
+    end
+end
+
+EVENT_MANAGER:RegisterForEvent(
+    "EZOTools_GuildPack_Joined",
+    EVENT_GUILD_SELF_JOINED_GUILD,
+    HandleGuildMembershipChanged)
+EVENT_MANAGER:RegisterForEvent(
+    "EZOTools_GuildPack_Left",
+    EVENT_GUILD_SELF_LEFT_GUILD,
+    HandleGuildMembershipChanged)
+EVENT_MANAGER:RegisterForEvent(
+    "EZOTools_GuildPack_DataLoaded",
+    EVENT_GUILD_DATA_LOADED,
+    HandleGuildMembershipChanged)

@@ -44,13 +44,10 @@ EZO_STRINGS_EN = {
     -- LAM panel: General section
     -- -------------------------------------------------------------------------
     EZO_OPTION_GENERAL                  = "General",
-    EZO_OPTION_GENERAL_NOTE             = "Language behavior and other general EZOTools settings.",
+    EZO_OPTION_GENERAL_NOTE             = "Language behavior for EZOTools.",
     EZO_OPTION_LANGUAGE                 = "Language",
     EZO_OPTION_LANGUAGE_AUTO            = "Automatic (ESO client)",
     EZO_OPTION_LANGUAGE_TOOLTIP         = "Local language used when EZOCore is not installed or its language mode is 'Let each addon choose'. Central EZOCore language choices disable this selector. Forcing a different language can mix addon text with ESO system names.",
-    EZO_OPTION_LEAVE_INSTANCE_TOOLTIP   = "Requests ESO's immediate exit from the current instance when that action is available. It does not leave your group.",
-    EZO_OPTION_LEAVE_GROUP_TOOLTIP      = "Leaves your current group when ESO allows it. This is a direct group action and does not reset the instance.",
-    EZO_OPTION_LEAVE_GROUP_INSTANCE_TOOLTIP = "Leaves your current group and requests ESO's immediate instance exit when both actions are available.",
     EZO_MSG_LANGUAGE_FORCED_WARNING     = "Forced language: ESO names may use the game language.",
 
     -- -------------------------------------------------------------------------
@@ -70,29 +67,30 @@ EZO_STRINGS_EN = {
     EZO_OPTION_OVERLAY_TEXT             = "Overlay text",
     EZO_OPTION_OVERLAY_RESET_POS        = "Reset position",
     EZO_OPTION_OVERLAY_RESET_POS_TOOLTIP = "Return the overlay to its default on-screen position.",
-    EZO_OPTION_GUILD_OVERLAY            = "Guild Image",
+    EZO_OPTION_GUILD_LABEL              = "Guild label",
+    EZO_OPTION_GUILD_LABEL_NOTE         = "Controls how the represented guild name is shown above the EZOTools logo. These settings do not enable Guild mode.",
     EZO_OPTION_GUILD_LABEL_COLOR        = "Represented guild name color",
     EZO_OPTION_GUILD_LABEL_COLOR_TOOLTIP = "Applied only when a represented guild is selected and no tabard is equipped. Tabard and no-guild states keep their current colors.",
     EZO_OPTION_GUILD_HIDE_NO_GUILD      = "Hide 'No guild' label",
     EZO_OPTION_GUILD_HIDE_NO_GUILD_TOOLTIP = "If enabled, the overlay hides the 'No guild' text when no guild is represented in the C selector.",
 
     -- -------------------------------------------------------------------------
-    -- LAM panel: Friend Houses section
+    -- LAM panel: manual houses and Guild mode
     -- -------------------------------------------------------------------------
-    EZO_OPTION_FRIENDS          = "Guild Houses",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN = "Auto-assign houses from guild",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN_TOOLTIP = "If enabled, the addon uses the guild represented in C only when it has a saved or internal profile. If there is no valid guild in C, it uses Own values.",
+    EZO_OPTION_FRIENDS          = "Manual houses",
+    EZO_OPTION_FRIENDS_NOTE     = "These fixed values are used by default and whenever Guild mode cannot resolve a supported guild represented in C. The central image remains the EZOTools logo in manual mode. While Guild mode is enabled, both fields are disabled and show the effective guild values; the manual values remain saved.",
     EZO_OPTION_FRIENDS_ACTIVE_VALUES = "Active Crafting/Secondary: |cC8A95A<<1>>|r / |cC8A95A<<2>>|r",
     EZO_OPTION_FRIENDS_ACTIVE_EMPTY = "(empty)",
-    EZO_OPTION_FRIENDS_MANUAL_ACTIVE_PROFILE = "Manual active profile",
-    EZO_OPTION_FRIENDS_MANUAL_ACTIVE_PROFILE_TOOLTIP = "When auto-assignment is disabled, this profile defines the houses the addon uses for travel. It defaults to Own values until you change it.",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD = "Profile being edited",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD_TOOLTIP = "Choose Own values or one of your guilds to edit its saved houses. The fields below only edit this profile and do not change active houses until it is saved and applied. Auto-assignment always uses the guild represented in C.",
-    EZO_OPTION_FRIENDS_PROFILE_MANUAL = "Own values",
-    EZO_OPTION_FRIENDS_SAVE_SELECTED = "Save edited profile",
-    EZO_OPTION_FRIENDS_SAVE_SELECTED_TOOLTIP = "Save the written houses for the selected profile. If that profile matches the current auto-assigned guild, the active houses are updated too.",
-    EZO_OPTION_FRIENDS_CRAFTING = "Edit Crafting Hall (@player)",
-    EZO_OPTION_FRIENDS_SECONDARY= "Edit Secondary Hall (@player)",
+    EZO_OPTION_FRIENDS_CRAFTING = "Primary Crafting Hall (@player)",
+    EZO_OPTION_FRIENDS_CRAFTING_TOOLTIP = "Account name used for the primary Crafting Hall. In Guild mode this disabled field shows the effective guild value while preserving the manual value.",
+    EZO_OPTION_FRIENDS_SECONDARY = "Secondary house (@player)",
+    EZO_OPTION_FRIENDS_SECONDARY_TOOLTIP = "Account name used for the secondary house. In Guild mode this disabled field shows the effective guild value while preserving the manual value.",
+    EZO_OPTION_GUILD_MODE = "Guild mode",
+    EZO_OPTION_GUILD_MODE_NOTE = "This section is available only to members of Hojablanca, Fuego, or Sombras de Lorkhan. Guild mode never offers a manual guild selector: the image and houses always come from the guild currently represented in C.",
+    EZO_OPTION_GUILD_MODE_ENABLE = "Use Guild mode",
+    EZO_OPTION_GUILD_MODE_ENABLE_TOOLTIP = "Replace the EZOTools logo and manual houses with the built-in image and houses for the supported guild represented in C. If C does not point to one, manual values remain active and a warning is shown.",
+    EZO_OPTION_GUILD_MODE_ACTIVE = "Guild selected in C: |cC8A95A<<1>>|r. Its built-in image and houses are available.",
+    EZO_OPTION_GUILD_MODE_REPRESENTED_REQUIRED = "Select Hojablanca, Fuego, or Sombras de Lorkhan in C to use its image and houses.",
 
     -- -------------------------------------------------------------------------
     -- LAM panel: Group Activities and raid leader reset section
@@ -298,8 +296,7 @@ EZO_STRINGS_EN = {
     EZO_CMD_ABOUT_AUTHOR        = "Author: @Zuriplayer — in-game mail welcome (EU and NA).",
     EZO_CMD_ABOUT_DISCORD       = "Discord: <<1>>",
     EZO_MENU_ABOUT              = "About EZOTools",
-    EZO_CONTACT_GUILD_ACTIVE    = "Guild pack active. Outdated houses or image? Mail @Zuriplayer in game or reach us on Discord (/ezo about).",
-    EZO_CONTACT_GUILD_LOCKED    = "Want a custom pack for your guild (guild image and crafting houses)? Mail @Zuriplayer in game or join our Discord (/ezo about).",
+    EZO_MSG_GUILD_MODE_REPRESENTED_REQUIRED = "Guild mode is enabled, but C is not set to Hojablanca, Fuego, or Sombras de Lorkhan. Manual houses and the EZOTools logo remain active.",
 
     EZO_CMD_DEBUG_TITLE         = "Diagnostic commands",
     EZO_CMD_DEBUG_INFO          = "  /ezo debug info     — diagnostic: zone, group, maintenance, guild",
@@ -516,8 +513,6 @@ EZO_STRINGS_EN = {
 }
 
 EZO_STRINGS_EN["EZO_OPTION_LOW_STOCK_ALERTS_NOTE"] = "Low stock alerts drive the side widgets. Soul gems are counted by usable filled gems. Repair kits are currently counted by item units, without distinguishing single-piece kits from full-repair kits yet."
-EZO_STRINGS_EN["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE"] = "Use custom image for represented guild"
-EZO_STRINGS_EN["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE_TOOLTIP"] = "If enabled and the represented guild has an image registered in the addon, the central logo is replaced by that image. If no valid image is available, the normal EZOTools logo stays in place."
 EZO_STRINGS_EN["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE"] = "Show low repair kit alert"
 EZO_STRINGS_EN["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE_TOOLTIP"] = "Show or hide the side alert widget when repair kits are low."
 EZO_STRINGS_EN["EZO_OPTION_REPAIR_KIT_ALERT_THRESHOLD"] = "Repair kit alert threshold"

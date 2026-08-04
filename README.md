@@ -7,7 +7,7 @@ Support, bug reports, and suggestions: https://discord.gg/FtP4KapGua
 
 ## Status
 
-Current version: **2.0.89**.
+Current version: **2.0.94**.
 
 This addon is in public beta. The implemented features are usable, but some newer group and trial tools are still experimental and should be tested carefully before relying on them in organized runs.
 
@@ -37,7 +37,7 @@ This addon is in public beta. The implemented features are usable, but some newe
 - Optional gamepad-style overlay simulation.
 - Contextual tooltips for overlay and side icons.
 - Represented guild label, configurable guild label color, and optional hiding of the "No guild" text.
-- Custom guild image support for guild packs included in the addon.
+- Optional Guild mode for Hojablanca, Fuego, and Sombras de Lorkhan. It uses the image of the supported guild currently represented in C.
 - Low stock side widgets for filled Soul Gems and repair kits.
 - Side widgets for food/drink status, armor repair, weapon recharge, and related previews.
 
@@ -75,7 +75,7 @@ The Group Activities panel is a separate menu for dungeon, trial, and group-rela
 
 - Valid raid-leader actions are placed first: Disband Group, Instance Reset, and then the difficulty control. Disband Group and Instance Reset are omitted entirely when the current player is not the group leader; they are not shown as disabled rows.
 - Leave group, available to any grouped player regardless of leadership.
-- Leave group, Leave instance, and Leave group and instance are available from the main command panel and the main EZOTools settings panel (LAM) when ESO allows them, including during combat. Leave group and Leave group and instance also remain available from Group Activities. These quick actions are independent from Instance Reset and leader tools.
+- Leave group, Leave instance, and Leave group and instance are available from the main command panel when ESO allows them, including during combat. Leave group and Leave group and instance also remain available from Group Activities. They are intentionally not duplicated in the EZOTools settings panel. These quick actions are independent from Instance Reset and leader tools.
 - `Group status` is not a selectable menu entry. When debug mode and the dedicated LAM option are enabled, EZOTools automatically writes a pre-action group and instance snapshot to Log Viewer before a Group Activities command runs; it does not write the report to chat.
 - Any grouped player, including the leader, can open "Group information" on demand from Group Activities. It reuses the same structured status-panel component as the leader reset window without starting or changing a reset. Its idle view is the same for every member: leader zone, effective group difficulty, group size, EZOCore transport state and the current roster with the leader first and each locally reported zone. When the local client owns a reset session, this command shows the existing operational reset panel instead of opening a second group-information panel. Members can receive the leader's activity type, resolved stable target, stage and result through compatible EZOCore and LibGroupBroadcast clients. When an announced reset intentionally disbands the group, each compatible client retains the locally observed session and roster so Group Information remains available: the local player's zone and receipt of the leader's regroup invitation update locally, while absent players are explicitly shown as not grouped with their last known location.
 - Trial Travel submenu for veteran trial travel, including "Last trial" and the current centralized trial list.
@@ -116,12 +116,16 @@ The trial list lives in `modules/raid_leader_activity_catalog.lua`. It centraliz
 - Requests the invitation only while you are solo or the current group leader, skips the local player and accounts already detected in the group, and suppresses repeated requests to the same account for 15 seconds.
 - With debug enabled, matched keywords and the invitation decision are written to Log Viewer without copying the chat message text.
 
-### Guild House Profiles
+### Manual Houses and Guild Mode
 
-- Manual crafting and secondary house account names.
-- Editable "Own values" profile.
-- Optional auto-assignment from the represented guild when the guild has a saved or internal profile.
-- Active crafting/secondary values shown in the settings panel.
+- Manual primary Crafting Hall and secondary house account names are the stable default.
+- Manual mode always keeps the EZOTools logo and uses those two fixed house values.
+- Members of Hojablanca, Fuego, or Sombras de Lorkhan receive a separate Guild mode section in Settings.
+- Guild mode has no manual guild selector. It uses the built-in image and houses only for the supported guild currently represented in C.
+- Changing the guild represented in C automatically updates the effective guild image, houses, and disabled LAM values when the represented-guild poll detects the change (within five seconds).
+- While Guild mode is enabled, the manual house fields remain visible and disabled while showing the effective guild houses; their manual values stay saved and are restored unchanged when returning to manual mode.
+- If C does not point to a supported guild, EZOTools warns the player and safely falls back to the EZOTools logo and manual houses.
+- Active crafting/secondary values are shown in the Manual houses section tooltip.
 
 ### Maintenance
 
@@ -185,8 +189,9 @@ With EZOCore enabled, open the complete panel under Settings > EZO > EZOTools or
 - Player name color and size.
 - Combat hiding.
 - Contextual tooltips.
-- Guild image/label behavior.
-- Guild house profile selection and editing.
+- Represented guild label behavior.
+- Fixed manual primary/secondary house values.
+- A conditional Guild mode section for eligible members, driven exclusively by the guild represented in C.
 - Automatic pre-action group-status diagnostics for Group Activities, available only while the global debug mode is enabled.
 - Chat autoinvite enable toggle and simultaneous alternative invitation words.
 - Instance reset settings start with a master enable toggle. When disabled, the dependent controls are visibly unavailable. The section then provides confirmation (enabled by default), staging destination, movable status window with a temporary full 11-member placement preview, wait timer, invite delay, and reinvite attempts. The experimental explanation is available from the information icon beside the section heading.
@@ -232,7 +237,7 @@ After installing or updating:
 - After cancelling, verify that Start Last Group and Instance appears, confirms the remembered trial and member count, invites only missing saved members, and travels through the existing trial route at the captured difficulty. Confirm that it is hidden during an active reset and while grouped under another leader.
 - With debug enabled, verify that a reset produces yellow `Info` summaries at lifecycle boundaries and one warning if interrupted. Group joins/leaves and invitation responses must update the panel without generating a complete standalone report for each event, and normal reset progress must not be copied to chat.
 - While phase 6 still has pending members, run Reset Instance again and confirm that the resume dialog restarts invitations without replacing the snapshot. Once every captured member is grouped, confirm that the panel shows `RESET COMPLETE` without phase timers and that a later explicitly confirmed reset can create a new snapshot.
-- Verify Leave group as both leader and non-leader, Leave instance where ESO allows immediate exit, and Leave group and instance when both conditions are true. Confirm the valid actions appear in the main command panel and LAM, and that Leave group plus Leave group and instance remain available in Group Activities. Repeat in mouse, keyboard-menu, and gamepad-menu flows, including combat where ESO still allows the action.
+- Verify Leave group as both leader and non-leader, Leave instance where ESO allows immediate exit, and Leave group and instance when both conditions are true. Confirm the valid actions appear in the main command panel but not in LAM, and that Leave group plus Leave group and instance remain available in Group Activities. Repeat in mouse, keyboard-menu, and gamepad-menu flows, including combat where ESO still allows the action.
 - Confirm that `Group status` no longer appears in Group Activities. With debug mode and automatic group-status logging enabled, run each available group action and verify that Log Viewer receives one pre-action snapshot containing the corresponding `action` value; disable the LAM option and verify that these snapshots stop.
 - Open Group Information on the leader and a member with no reset session. Confirm that both show the same group size, natively formatted leader zone, an explicit `Normal`/`Veteran` label separated from the zone by a hyphen, and the complete roster, without truncated status text, progress, pending counts, remote-waiting messages or duplicated rows. Then install the same EZOCore protocol-v2 beta and EZOTools build on both clients, start a controlled reset as leader, and open Group Information on both clients. Confirm that the leader keeps only the existing operational reset panel and that no second group-information panel appears. Confirm that the member receives the trial key/name, Normal/Veteran mode, exact phase progress and pending count; the member panel must not fabricate progress from the stage or use its local difficulty. After the intentional disband, confirm that Group Information remains available, the captured roster is retained, the local player's zone updates, absent members are marked not grouped with last-known locations, and the local row changes when the regroup invitation is received. Confirm that live leader state resumes after rejoining. Closing the panel must not affect the group, travel, invitations or reset state. Repeat without EZOCore to verify the local fallback.
 - Enable automatic member travel only on the non-leader test client. Accept the reset regroup invitation manually while outside the leader's target instance and confirm that EZOTools requests one jump to the current leader. Repeat while already in the same instance, as leader, with the setting disabled, with an expired or incompatible state, and with ESO reporting that the jump is unavailable; none of those cases may request travel. Confirm that a repeated state for the same session does not trigger another jump.

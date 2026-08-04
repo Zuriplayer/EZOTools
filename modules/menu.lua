@@ -164,15 +164,15 @@ function MENU.Init()
         registerForDefaults = true,
     }
 
-    local options = ConstruirOpciones()
     if EZOCore and type(EZOCore.RegisterSettingsPanel) == "function" then
-        local registered = EZOCore:RegisterSettingsPanel(ADDON_NAME, PANEL_ID, panelData, options)
+        local registered = EZOCore:RegisterSettingsPanel(ADDON_NAME, PANEL_ID, panelData, ConstruirOpciones)
         if registered then
             EZOTools.ezoSettingsRegistered = true
             return
         end
     end
 
+    local options = ConstruirOpciones()
     local panel = LAM:RegisterAddonPanel(PANEL_ID, panelData)
     -- Guardamos la referencia al panel para poder abrirlo programáticamente
     EZOTools._lamPanel  = panel

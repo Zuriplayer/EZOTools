@@ -5,7 +5,6 @@ EZOTools = EZOTools or {}
 EZOTools_GuildOverlay = EZOTools_GuildOverlay or {}
 
 local MOD = EZOTools_GuildOverlay
-local EZO = EZOTools
 
 local DEFAULT_OVERLAY_TEXTURES = {
     "/AddOns/EZOTools/media/ezotools_logo.dds",
@@ -37,27 +36,19 @@ function MOD.GetTabardGuildName()
 end
 
 function MOD.GetRepresentedGuildName()
-    if type(GetRepresentedGuildId) ~= "function" then return nil end
-    local guildId = GetRepresentedGuildId()
-    if not guildId or guildId == 0 then return nil end
-    if type(GetGuildName) ~= "function" then return nil end
-    return GetGuildName(guildId)
+    local pack = _G.EZOTools_GuildPack
+    if pack and type(pack.GetRepresentedGuildName) == "function" then
+        return pack.GetRepresentedGuildName()
+    end
+    return nil
 end
 
 function MOD.GetRepresentedGuildTexturePaths()
-    if not (EZO.sv and EZO.sv.overlay and EZO.sv.overlay.guildCustomImageEnabled == true) then
-        return nil
-    end
-    if MOD.GetTabardGuildName() ~= nil then
-        return nil
-    end
-    -- Las imágenes por gremio son contenido del guild pack: solo existen
-    -- si el jugador pertenece a un gremio de su lista blanca.
     local pack = _G.EZOTools_GuildPack
-    if not (pack and type(pack.GetTextures) == "function") then
+    if not (pack and type(pack.GetActiveTextures) == "function") then
         return nil
     end
-    return pack.GetTextures(MOD.GetRepresentedGuildName())
+    return pack.GetActiveTextures()
 end
 
 function MOD.GetCentralTexturePaths()

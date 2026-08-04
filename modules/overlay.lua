@@ -1597,8 +1597,8 @@ function MOD.Init()
         EVENT_GUILD_DATA_LOADED,
         function()
             cachedRepresentedGuildId = nil  -- forzar refresco
-            if EZO and type(EZO.ApplyAutoFriendHousesSelection) == "function" then
-                EZO.ApplyAutoFriendHousesSelection()
+            if EZO and type(EZO.RefreshActiveFriendHouses) == "function" then
+                EZO.RefreshActiveFriendHouses(false)
             end
             if overlayWin then RefrescarEtiquetaGuild() end
         end)
@@ -1640,8 +1640,14 @@ function MOD.Init()
             local guildId = GetRepresentedGuildId()
             if guildId ~= cachedRepresentedGuildId then
                 cachedRepresentedGuildId = guildId
-                if EZO and type(EZO.ApplyAutoFriendHousesSelection) == "function" then
-                    EZO.ApplyAutoFriendHousesSelection()
+                if EZO and type(EZO.RefreshActiveFriendHouses) == "function" then
+                    EZO.RefreshActiveFriendHouses(true)
+                end
+                if EZO and type(EZO.IsGuildModeEnabled) == "function"
+                    and EZO.IsGuildModeEnabled()
+                    and EZOTools_LAM
+                    and type(EZOTools_LAM.RequestSettingsRefresh) == "function" then
+                    EZOTools_LAM.RequestSettingsRefresh(true)
                 end
                 if overlayWin then
                     RefrescarEtiquetaGuild()

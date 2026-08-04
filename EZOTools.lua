@@ -206,7 +206,6 @@ end
 
 function EZO:Initialize()
     local world = GetWorldName()
-    local manualFriendHouseProfileKey = EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual"
     EZO.runtime = EZO.runtime or {}
 
     -- Valores por defecto de las variables guardadas (por cuenta y mundo)
@@ -231,7 +230,6 @@ function EZO:Initialize()
             playerTextColor  = { 1, 1, 1, 1 },
             guildLabelColor  = { 0.7, 0.7, 0.7, 1 },
             hideNoGuildLabel = false,
-            guildCustomImageEnabled = false,
             simulateGamepad  = false,
             hideInCombat     = false,
             locked           = false,
@@ -256,16 +254,10 @@ function EZO:Initialize()
             secondaryHall  = "",
             manualCraftingHall = "",
             manualSecondaryHall = "",
-            editCraftingHall = "",
-            editSecondaryHall = "",
             manualFriendHousesMigrated = false,
-            autoAssignFriendHouses = false,
-            autoAssignFriendGuildKey = "",
-            manualActiveFriendHouseProfileKey = manualFriendHouseProfileKey,
-            manualActiveFriendHouseProfileInitialized = true,
-            friendHouseProfileKey = manualFriendHouseProfileKey,
-            fuegoFriendHouseDefaultMigrated = false,
-            customGuildFriendHouses = {},
+        },
+        guild = {
+            modeEnabled = false,
         },
         raidLeaderReset = {
             enabled = true,
@@ -309,41 +301,8 @@ function EZO:Initialize()
         self.sv.friends.manualSecondaryHall = tostring(self.sv.friends.secondaryHall or "")
         self.sv.friends.manualFriendHousesMigrated = true
     end
-    if EZO.MigrateLegacyFriendHouseProfiles then
-        EZO.MigrateLegacyFriendHouseProfiles(self.sv.friends)
-    end
-    if self.sv.friends and (not self.sv.friends.friendHouseProfileKey or self.sv.friends.friendHouseProfileKey == "") then
-        self.sv.friends.friendHouseProfileKey = manualFriendHouseProfileKey
-    end
-    if self.sv.friends and self.sv.friends.manualActiveFriendHouseProfileInitialized ~= true then
-        self.sv.friends.manualActiveFriendHouseProfileKey = manualFriendHouseProfileKey
-        self.sv.friends.manualActiveFriendHouseProfileInitialized = true
-    elseif self.sv.friends and (not self.sv.friends.manualActiveFriendHouseProfileKey or self.sv.friends.manualActiveFriendHouseProfileKey == "") then
-        self.sv.friends.manualActiveFriendHouseProfileKey = manualFriendHouseProfileKey
-    end
-    do
-        local profileKey = tostring(self.sv.friends.friendHouseProfileKey or "")
-        if EZO.IsFriendHouseProfileKeyValid and not EZO.IsFriendHouseProfileKeyValid(profileKey) then
-            self.sv.friends.friendHouseProfileKey = manualFriendHouseProfileKey
-        end
-
-        local manualActiveProfileKey = tostring(self.sv.friends.manualActiveFriendHouseProfileKey or "")
-        if EZO.IsFriendHouseProfileKeyValid and not EZO.IsFriendHouseProfileKeyValid(manualActiveProfileKey) then
-            self.sv.friends.manualActiveFriendHouseProfileKey = manualFriendHouseProfileKey
-        end
-
-        local oldGuildKey = EZO.NormalizeGuildKey and EZO.NormalizeGuildKey(self.sv.friends.autoAssignFriendGuildKey) or nil
-        if oldGuildKey and EZO.IsPlayerGuildKey and not EZO.IsPlayerGuildKey(oldGuildKey) then
-            self.sv.friends.autoAssignFriendGuildKey = ""
-        end
-
-    end
-    if self.sv.friends and EZO.LoadSelectedFriendHouseProfileForEditing then
-        EZO.LoadSelectedFriendHouseProfileForEditing()
-    end
-
     if self.RefreshActiveFriendHouses then
-        self.RefreshActiveFriendHouses()
+        self.RefreshActiveFriendHouses(false)
     end
 
     if EZO.GroupAutoinvite and type(EZO.GroupAutoinvite.Initialize) == "function" then

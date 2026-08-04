@@ -20,11 +20,19 @@ function REG.CreateInfoHeader(name, tooltip)
     }
 end
 
-function REG.RequestSettingsRefresh()
-    if EZOTools and EZOTools.ezoSettingsRegistered
-        and EZOCore
-        and type(EZOCore.RefreshSettingsPanel) == "function" then
-        pcall(function() EZOCore:RefreshSettingsPanel() end)
+function REG.RequestSettingsRefresh(forceRebuild)
+    local function RefreshHostedPanel()
+        if EZOTools and EZOTools.ezoSettingsRegistered
+            and EZOCore
+            and type(EZOCore.RefreshSettingsPanel) == "function" then
+            pcall(function() EZOCore:RefreshSettingsPanel(forceRebuild == true) end)
+        end
+    end
+
+    if forceRebuild == true and type(zo_callLater) == "function" then
+        zo_callLater(RefreshHostedPanel, 1)
+    else
+        RefreshHostedPanel()
     end
 
     local LAM = LibAddonMenu2
@@ -86,14 +94,38 @@ local function RefrescarOverlay()
     end
 end
 
-local function EjecutarAccionLAM(actionId, fallback)
-    if EZOTools_InputRouter and type(EZOTools_InputRouter.Trigger) == "function" then
-        return EZOTools_InputRouter.Trigger("LAM", actionId, {})
+local function ObtenerGuildPack()
+    return _G.EZOTools_GuildPack
+end
+
+local function CombinarTooltips(general, estado)
+    if estado == nil or estado == "" then
+        return tostring(general or "")
     end
-    if type(fallback) == "function" then
-        return fallback()
+    return zo_strformat("<<1>>|n|n<<2>>", tostring(general or ""), tostring(estado))
+end
+
+local function ObtenerDescripcionCasasManuales()
+    local estado = ""
+    if EZOTools and type(EZOTools.GetActiveFriendHousesDescription) == "function" then
+        estado = EZOTools.GetActiveFriendHousesDescription()
     end
-    return false
+    return CombinarTooltips(GetString(EZO_OPTION_FRIENDS_NOTE), estado)
+end
+
+local function ObtenerDescripcionModoGuild()
+    local pack = ObtenerGuildPack()
+    if not pack then
+        return GetString(EZO_OPTION_GUILD_MODE_NOTE)
+    end
+    local entry, _, guildName = nil, nil, nil
+    if type(pack.GetRepresentedGuildEntry) == "function" then
+        entry, _, guildName = pack.GetRepresentedGuildEntry()
+    end
+    local estado = entry
+        and zo_strformat(GetString(EZO_OPTION_GUILD_MODE_ACTIVE), tostring(guildName or ""))
+        or GetString(EZO_OPTION_GUILD_MODE_REPRESENTED_REQUIRED)
+    return CombinarTooltips(GetString(EZO_OPTION_GUILD_MODE_NOTE), estado)
 end
 
 local ultimoAvisoIdiomaForzadoMs = 0
@@ -156,44 +188,8 @@ local function RegistrarSeccionesBase()
                         and integration.IsLanguageManagedByEZOCore()
                 end,
                 default = (EZO.GetDefaultLanguage and EZO.GetDefaultLanguage()) or "auto",
-                width   = "half",
+                width   = "full",
                 tooltip = GetString(EZO_OPTION_LANGUAGE_TOOLTIP),
-            },
-            {
-                type    = "button",
-                name    = GetString(EZO_MENU_LEAVE_INSTANCE),
-                func    = function()
-                    return EjecutarAccionLAM("LEAVE_INSTANCE", EZOTools.LeaveInstance)
-                end,
-                disabled = function()
-                    return not (type(EZOTools.CanLeaveInstance) == "function" and EZOTools.CanLeaveInstance())
-                end,
-                tooltip = GetString(EZO_OPTION_LEAVE_INSTANCE_TOOLTIP),
-                width   = "half",
-            },
-            {
-                type    = "button",
-                name    = GetString(EZO_MENU_LEAVE_GROUP),
-                func    = function()
-                    return EjecutarAccionLAM("LEAVE_GROUP", EZOTools.LeaveGroup)
-                end,
-                disabled = function()
-                    return not (type(EZOTools.CanLeaveGroup) == "function" and EZOTools.CanLeaveGroup())
-                end,
-                tooltip = GetString(EZO_OPTION_LEAVE_GROUP_TOOLTIP),
-                width   = "half",
-            },
-            {
-                type    = "button",
-                name    = GetString(EZO_MENU_LEAVE_GROUP_INSTANCE),
-                func    = function()
-                    return EjecutarAccionLAM("LEAVE_GROUP_AND_INSTANCE", EZOTools.LeaveGroupAndInstance)
-                end,
-                disabled = function()
-                    return not (type(EZOTools.CanLeaveGroupAndInstance) == "function" and EZOTools.CanLeaveGroupAndInstance())
-                end,
-                tooltip = GetString(EZO_OPTION_LEAVE_GROUP_INSTANCE_TOOLTIP),
-                width   = "half",
             },
         }
     end)
@@ -307,37 +303,13 @@ local function RegistrarSeccionesBase()
         }
     end)
 
-    REG.RegisterSection("guild_overlay", 15, function()
+    REG.RegisterSection("guild_label", 15, function()
         local EZO = EZOTools
-        -- Huevo de pascua: la imagen personalizada por gremio solo se ofrece
-        -- si el jugador pertenece a un gremio del guild pack. Para el resto
-        -- de usuarios la opción no existe, pero sí una invitación a pedir
-        -- su propio pack contactando con el autor.
-        local pack = _G.EZOTools_GuildPack
-        local packUnlocked = pack and type(pack.IsUnlocked) == "function" and pack.IsUnlocked()
-        local opciones = {
+        return {
             REG.CreateInfoHeader(
-                GetString(EZO_OPTION_GUILD_OVERLAY),
-                GetString(packUnlocked and EZO_CONTACT_GUILD_ACTIVE or EZO_CONTACT_GUILD_LOCKED)
+                GetString(EZO_OPTION_GUILD_LABEL),
+                GetString(EZO_OPTION_GUILD_LABEL_NOTE)
             ),
-        }
-
-        if packUnlocked then
-            opciones[#opciones + 1] = {
-                type    = "checkbox",
-                name    = GetString(EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE),
-                tooltip = GetString(EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE_TOOLTIP),
-                getFunc = function() return EZO.sv.overlay.guildCustomImageEnabled == true end,
-                setFunc = function(v)
-                    EZO.sv.overlay.guildCustomImageEnabled = v
-                    RefrescarOverlay()
-                end,
-                default = false,
-                width   = "full",
-            }
-        end
-
-        local resto = {
             {
                 type    = "colorpicker",
                 name    = GetString(EZO_OPTION_GUILD_LABEL_COLOR),
@@ -364,137 +336,80 @@ local function RegistrarSeccionesBase()
                 width   = "full",
             },
         }
-        for _, control in ipairs(resto) do
-            opciones[#opciones + 1] = control
-        end
-        return opciones
     end)
 
     REG.RegisterSection("friend_houses", 20, function()
         local EZO = EZOTools
         if EZO.RefreshActiveFriendHouses then
-            EZO.RefreshActiveFriendHouses()
-        end
-        if EZO.sv and EZO.sv.friends and EZO.sv.friends.autoAssignFriendHouses ~= true then
-            local manualKey = EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual"
-            if tostring(EZO.sv.friends.manualActiveFriendHouseProfileKey or "") == "" then
-                EZO.sv.friends.manualActiveFriendHouseProfileKey = manualKey
-            end
+            EZO.RefreshActiveFriendHouses(false)
         end
         return {
-            REG.CreateInfoHeader(GetString(EZO_OPTION_FRIENDS), function()
-                if EZO.GetActiveFriendHousesDescription then
-                    return EZO.GetActiveFriendHousesDescription()
-                end
-                return ""
-            end),
-            {
-                type    = "checkbox",
-                name    = GetString(EZO_OPTION_FRIENDS_AUTO_ASSIGN),
-                tooltip = GetString(EZO_OPTION_FRIENDS_AUTO_ASSIGN_TOOLTIP),
-                getFunc = function() return EZO.sv.friends.autoAssignFriendHouses == true end,
-                setFunc = function(v)
-                    EZO.sv.friends.autoAssignFriendHouses = v
-                    if v == false then
-                        if EZO.ResetFriendHouseProfileDefaults then
-                            EZO.ResetFriendHouseProfileDefaults()
-                        elseif EZO.ApplyManualFriendHouseProfileSelection then
-                            EZO.sv.friends.manualActiveFriendHouseProfileKey = EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual"
-                            EZO.ApplyManualFriendHouseProfileSelection()
-                        end
-                    elseif EZO.ApplyAutoFriendHousesSelection then
-                        EZO.ApplyAutoFriendHousesSelection()
-                    end
-                    REG.RequestSettingsRefresh()
-                end,
-                default = false,
-                width   = "full",
-            },
-            {
-                type          = "dropdown",
-                name          = GetString(EZO_OPTION_FRIENDS_MANUAL_ACTIVE_PROFILE),
-                tooltip       = GetString(EZO_OPTION_FRIENDS_MANUAL_ACTIVE_PROFILE_TOOLTIP),
-                choices       = (function()
-                    if EZO.GetFriendHouseProfileChoices then
-                        return EZO.GetFriendHouseProfileChoices()
-                    end
-                    return {}
-                end)(),
-                choicesValues = (function()
-                    if EZO.GetFriendHouseProfileChoices then
-                        local _, values = EZO.GetFriendHouseProfileChoices()
-                        return values
-                    end
-                    return {}
-                end)(),
-                getFunc       = function() return EZO.sv.friends.manualActiveFriendHouseProfileKey or EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual" end,
-                setFunc       = function(v)
-                    EZO.sv.friends.manualActiveFriendHouseProfileKey = tostring(v or EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual")
-                    EZO.sv.friends.manualActiveFriendHouseProfileInitialized = true
-                    if EZO.sv.friends.autoAssignFriendHouses ~= true and EZO.ApplyManualFriendHouseProfileSelection then
-                        EZO.ApplyManualFriendHouseProfileSelection()
-                    end
-                end,
-                default       = EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual",
-                disabled      = function()
-                    return EZO.sv.friends.autoAssignFriendHouses == true
-                end,
-            },
-            {
-                type          = "dropdown",
-                name          = GetString(EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD),
-                tooltip       = GetString(EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD_TOOLTIP),
-                choices       = (function()
-                    if EZO.GetFriendHouseProfileChoices then
-                        return EZO.GetFriendHouseProfileChoices()
-                    end
-                    return {}
-                end)(),
-                choicesValues = (function()
-                    if EZO.GetFriendHouseProfileChoices then
-                        local _, values = EZO.GetFriendHouseProfileChoices()
-                        return values
-                    end
-                    return {}
-                end)(),
-                getFunc       = function() return EZO.sv.friends.friendHouseProfileKey or EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual" end,
-                setFunc       = function(v)
-                    EZO.sv.friends.friendHouseProfileKey = tostring(v or EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual")
-                    if EZO.LoadSelectedFriendHouseProfileForEditing then
-                        EZO.LoadSelectedFriendHouseProfileForEditing()
-                    end
-                end,
-                default       = EZO.FRIEND_HOUSE_MANUAL_PROFILE_KEY or "__manual",
-            },
+            REG.CreateInfoHeader(GetString(EZO_OPTION_FRIENDS), ObtenerDescripcionCasasManuales),
             {
                 type        = "editbox",
                 name        = GetString(EZO_OPTION_FRIENDS_CRAFTING),
-                getFunc     = function() return EZO.sv.friends.editCraftingHall or "" end,
+                tooltip     = GetString(EZO_OPTION_FRIENDS_CRAFTING_TOOLTIP),
+                getFunc     = function()
+                    return EZO.GetDisplayedCraftingHall and EZO.GetDisplayedCraftingHall() or ""
+                end,
                 setFunc     = function(v)
-                    EZO.sv.friends.editCraftingHall = tostring(v or "")
+                    if EZO.SetManualCraftingHall then
+                        EZO.SetManualCraftingHall(v)
+                    end
                 end,
                 isMultiline = false,
                 default     = "",
+                width       = "half",
+                disabled    = function()
+                    return EZO.IsGuildModeEnabled and EZO.IsGuildModeEnabled() == true
+                end,
             },
             {
                 type        = "editbox",
                 name        = GetString(EZO_OPTION_FRIENDS_SECONDARY),
-                getFunc     = function() return EZO.sv.friends.editSecondaryHall or "" end,
+                tooltip     = GetString(EZO_OPTION_FRIENDS_SECONDARY_TOOLTIP),
+                getFunc     = function()
+                    return EZO.GetDisplayedSecondaryHall and EZO.GetDisplayedSecondaryHall() or ""
+                end,
                 setFunc     = function(v)
-                    EZO.sv.friends.editSecondaryHall = tostring(v or "")
+                    if EZO.SetManualSecondaryHall then
+                        EZO.SetManualSecondaryHall(v)
+                    end
                 end,
                 isMultiline = false,
                 default     = "",
-            },
-            {
-                type    = "button",
-                name    = GetString(EZO_OPTION_FRIENDS_SAVE_SELECTED),
-                tooltip = GetString(EZO_OPTION_FRIENDS_SAVE_SELECTED_TOOLTIP),
-                func    = function()
-                    if EZO.SaveCurrentFriendHousesForSelectedGuild then
-                        EZO.SaveCurrentFriendHousesForSelectedGuild()
-                    end
+                width       = "half",
+                disabled    = function()
+                    return EZO.IsGuildModeEnabled and EZO.IsGuildModeEnabled() == true
                 end,
+            },
+        }
+    end)
+
+    REG.RegisterSection("guild_mode", 21, function()
+        local EZO = EZOTools
+        local pack = ObtenerGuildPack()
+        if not (pack and type(pack.IsUnlocked) == "function" and pack.IsUnlocked()) then
+            return {}
+        end
+
+        return {
+            REG.CreateInfoHeader(GetString(EZO_OPTION_GUILD_MODE), ObtenerDescripcionModoGuild),
+            {
+                type    = "checkbox",
+                name    = GetString(EZO_OPTION_GUILD_MODE_ENABLE),
+                tooltip = GetString(EZO_OPTION_GUILD_MODE_ENABLE_TOOLTIP),
+                getFunc = function()
+                    return EZO.IsGuildModeEnabled and EZO.IsGuildModeEnabled() == true
+                end,
+                setFunc = function(v)
+                    if EZO.SetGuildModeEnabled then
+                        EZO.SetGuildModeEnabled(v, true)
+                    end
+                    RefrescarOverlay()
+                    REG.RequestSettingsRefresh(true)
+                end,
+                default = false,
                 width   = "full",
             },
         }

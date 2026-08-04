@@ -43,13 +43,10 @@ EZO_STRINGS_ES = {
     -- Panel LAM: sección General
     -- -------------------------------------------------------------------------
     EZO_OPTION_GENERAL                  = "General",
-    EZO_OPTION_GENERAL_NOTE             = "Comportamiento del idioma y otros ajustes generales de EZOTools.",
+    EZO_OPTION_GENERAL_NOTE             = "Comportamiento del idioma de EZOTools.",
     EZO_OPTION_LANGUAGE                 = "Idioma",
     EZO_OPTION_LANGUAGE_AUTO            = "Automático (cliente ESO)",
     EZO_OPTION_LANGUAGE_TOOLTIP         = "Idioma local usado cuando EZOCore no está instalado o su modo de idioma es 'dejar que cada addon elija'. Los idiomas centrales de EZOCore desactivan este selector. Forzar otro idioma puede mezclar textos del addon con nombres del sistema ESO.",
-    EZO_OPTION_LEAVE_INSTANCE_TOOLTIP   = "Solicita a ESO la salida inmediata de la instancia actual cuando esa acción está disponible. No abandona el grupo.",
-    EZO_OPTION_LEAVE_GROUP_TOOLTIP      = "Abandona el grupo actual cuando ESO lo permite. Es una acción directa de grupo y no resetea la instancia.",
-    EZO_OPTION_LEAVE_GROUP_INSTANCE_TOOLTIP = "Abandona el grupo actual y solicita a ESO la salida inmediata de la instancia cuando ambas acciones están disponibles.",
     EZO_MSG_LANGUAGE_FORCED_WARNING     = "Idioma forzado: los nombres de ESO pueden usar el idioma del juego.",
 
     -- -------------------------------------------------------------------------
@@ -69,29 +66,30 @@ EZO_STRINGS_ES = {
     EZO_OPTION_OVERLAY_TEXT             = "Texto del overlay",
     EZO_OPTION_OVERLAY_RESET_POS        = "Reiniciar posición",
     EZO_OPTION_OVERLAY_RESET_POS_TOOLTIP = "Devuelve el overlay a su posición inicial en pantalla.",
-    EZO_OPTION_GUILD_OVERLAY            = "Imagen de gremio",
+    EZO_OPTION_GUILD_LABEL              = "Etiqueta de gremio",
+    EZO_OPTION_GUILD_LABEL_NOTE         = "Controla cómo se muestra el nombre del gremio representado sobre el logo de EZOTools. Estos ajustes no activan el modo guild.",
     EZO_OPTION_GUILD_LABEL_COLOR        = "Color del nombre del gremio representado",
     EZO_OPTION_GUILD_LABEL_COLOR_TOOLTIP = "Solo se aplica cuando hay un gremio representado seleccionado y no llevas tabardo. Los estados de tabardo y sin gremio mantienen sus colores actuales.",
     EZO_OPTION_GUILD_HIDE_NO_GUILD      = "Ocultar texto 'Sin gremio'",
     EZO_OPTION_GUILD_HIDE_NO_GUILD_TOOLTIP = "Si está activado, el overlay oculta el texto 'Sin gremio' cuando no hay ningún gremio representado en el selector C.",
 
     -- -------------------------------------------------------------------------
-    -- Panel LAM: sección Casas de amigos
+    -- Panel LAM: casas manuales y modo guild
     -- -------------------------------------------------------------------------
-    EZO_OPTION_FRIENDS          = "Casas del gremio",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN = "Autoasignar casas desde el gremio",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN_TOOLTIP = "Si está activado, el addon usa el gremio representado en C solo si tiene perfil guardado o interno. Si no hay gremio válido en C, usa Valores propios.",
+    EZO_OPTION_FRIENDS          = "Casas manuales",
+    EZO_OPTION_FRIENDS_NOTE     = "Estos valores fijos se usan por defecto y siempre que el modo guild no pueda resolver una guild admitida representada en C. En modo manual, la imagen central sigue siendo el logo de EZOTools. Mientras el modo guild está activo, ambos campos quedan deshabilitados y muestran los valores efectivos de la guild; los valores manuales se conservan.",
     EZO_OPTION_FRIENDS_ACTIVE_VALUES = "Casa activa Artesanía/Secundaria: |cC8A95A<<1>>|r / |cC8A95A<<2>>|r",
     EZO_OPTION_FRIENDS_ACTIVE_EMPTY = "(vacía)",
-    EZO_OPTION_FRIENDS_MANUAL_ACTIVE_PROFILE = "Perfil activo manual",
-    EZO_OPTION_FRIENDS_MANUAL_ACTIVE_PROFILE_TOOLTIP = "Cuando autoasignar está desactivado, este perfil define las casas que usará el addon para viajar. Por defecto es Valores propios hasta que lo cambies.",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD = "Perfil que estás editando",
-    EZO_OPTION_FRIENDS_AUTO_ASSIGN_GUILD_TOOLTIP = "Elige Valores propios o un gremio de tu lista para editar sus casas guardadas. Las casillas inferiores solo editan este perfil y no cambian las casas activas hasta guardarlo y aplicarlo. La autoasignación usa siempre el gremio representado en C.",
-    EZO_OPTION_FRIENDS_PROFILE_MANUAL = "Valores propios",
-    EZO_OPTION_FRIENDS_SAVE_SELECTED = "Guardar perfil editado",
-    EZO_OPTION_FRIENDS_SAVE_SELECTED_TOOLTIP = "Guarda las casas escritas para el perfil seleccionado. Si ese perfil coincide con el gremio autoasignado actual, se actualizarán también las casas activas.",
-    EZO_OPTION_FRIENDS_CRAFTING = "Editar casa de artesanía (@jugador)",
-    EZO_OPTION_FRIENDS_SECONDARY= "Editar casa secundaria (@jugador)",
+    EZO_OPTION_FRIENDS_CRAFTING = "Casa primaria de artesanía (@jugador)",
+    EZO_OPTION_FRIENDS_CRAFTING_TOOLTIP = "Nombre de cuenta usado para la casa primaria de artesanía. En modo guild, este campo deshabilitado muestra el valor efectivo de la guild y conserva el valor manual.",
+    EZO_OPTION_FRIENDS_SECONDARY = "Casa secundaria (@jugador)",
+    EZO_OPTION_FRIENDS_SECONDARY_TOOLTIP = "Nombre de cuenta usado para la casa secundaria. En modo guild, este campo deshabilitado muestra el valor efectivo de la guild y conserva el valor manual.",
+    EZO_OPTION_GUILD_MODE = "Modo guild",
+    EZO_OPTION_GUILD_MODE_NOTE = "Este apartado solo está disponible para miembros de Hojablanca, Fuego o Sombras de Lorkhan. El modo guild nunca ofrece un selector manual de guild: la imagen y las casas siempre proceden de la guild representada en C.",
+    EZO_OPTION_GUILD_MODE_ENABLE = "Usar modo guild",
+    EZO_OPTION_GUILD_MODE_ENABLE_TOOLTIP = "Sustituye el logo de EZOTools y las casas manuales por la imagen y las casas integradas para la guild admitida representada en C. Si C no apunta a una, se mantienen los valores manuales y se muestra un aviso.",
+    EZO_OPTION_GUILD_MODE_ACTIVE = "Guild seleccionada en C: |cC8A95A<<1>>|r. Su imagen y sus casas integradas están disponibles.",
+    EZO_OPTION_GUILD_MODE_REPRESENTED_REQUIRED = "Selecciona Hojablanca, Fuego o Sombras de Lorkhan en C para usar su imagen y sus casas.",
 
     -- -------------------------------------------------------------------------
     -- Panel LAM: sección Actividades de grupo y reset de raid leader
@@ -297,8 +295,7 @@ EZO_STRINGS_ES = {
     EZO_CMD_ABOUT_AUTHOR        = "Autor: @Zuriplayer — correo del juego bienvenido (EU y NA).",
     EZO_CMD_ABOUT_DISCORD       = "Discord: <<1>>",
     EZO_MENU_ABOUT              = "Acerca de EZOTools",
-    EZO_CONTACT_GUILD_ACTIVE    = "Pack de gremio activo. ¿Casas o imagen desactualizadas? Escribe a @Zuriplayer por correo del juego o en nuestro Discord (/ezo about).",
-    EZO_CONTACT_GUILD_LOCKED    = "¿Quieres un pack personalizado para tu gremio (imagen y casas de artesanía)? Contacta con @Zuriplayer por correo del juego o en nuestro Discord (/ezo about).",
+    EZO_MSG_GUILD_MODE_REPRESENTED_REQUIRED = "El modo guild está activo, pero C no tiene seleccionado Hojablanca, Fuego ni Sombras de Lorkhan. Se mantienen las casas manuales y el logo de EZOTools.",
 
     EZO_CMD_DEBUG_TITLE         = "Comandos de diagnóstico",
     EZO_CMD_DEBUG_INFO          = "  /ezo debug info     — diagnóstico: zona, grupo, mantenimiento y gremio",
@@ -514,8 +511,6 @@ EZO_STRINGS_ES = {
     EZO_SIDE_WIDGET_REPAIR_KITS_TOOLTIP = "Kits de reparación bajos: <<1>> disponibles (umbral <<2>>). Clic para abrir ajustes.",
 }
 EZO_STRINGS_ES["EZO_OPTION_LOW_STOCK_ALERTS_NOTE"] = "Estas alertas controlan los iconos laterales. Las gemas de alma se cuentan como gemas cargadas utilizables. Los kits de reparación se cuentan por unidades detectadas y, por ahora, no se diferencian los kits de una pieza y los de reparación completa."
-EZO_STRINGS_ES["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE"] = "Usar imagen propia del gremio representado"
-EZO_STRINGS_ES["EZO_OPTION_GUILD_CUSTOM_IMAGE_ENABLE_TOOLTIP"] = "Si está activado y el gremio representado tiene una imagen registrada en el addon, el logo central se sustituye por esa imagen. Si no hay imagen válida, se mantiene el logo normal de EZOTools."
 EZO_STRINGS_ES["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE"] = "Mostrar alerta de kits bajos"
 EZO_STRINGS_ES["EZO_OPTION_REPAIR_KIT_ALERT_ENABLE_TOOLTIP"] = "Muestra u oculta el widget lateral cuando los kits de reparación estén bajos."
 EZO_STRINGS_ES["EZO_OPTION_REPAIR_KIT_ALERT_THRESHOLD"] = "Umbral alerta kits reparación"

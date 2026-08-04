@@ -39,3 +39,7 @@ dist/
 docs/*
 !docs/status-panel.md
 tools/
+
+# Keep shared AI project instructions versioned.
+!AGENTS.md
+!CLAUDE.md

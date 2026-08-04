@@ -7,7 +7,7 @@ Soporte, errores y sugerencias: https://discord.gg/FtP4KapGua
 
 ## Estado
 
-Versión actual: **2.0.89**.
+Versión actual: **2.0.94**.
 
 Este addon está en beta pública. Las funciones implementadas son utilizables, pero algunas herramientas nuevas de grupo y trials siguen siendo experimentales y conviene probarlas con cuidado antes de depender de ellas en raids organizadas.
 
@@ -37,7 +37,7 @@ Este addon está en beta pública. Las funciones implementadas son utilizables, 
 - Simulación opcional de estilo gamepad solo para el overlay.
 - Tooltips contextuales para el overlay y los iconos laterales.
 - Etiqueta del gremio representado, color configurable para esa etiqueta y opción para ocultar el texto "Sin gremio".
-- Soporte de imagen personalizada para packs de gremio incluidos en el addon.
+- Modo guild opcional para Hojablanca, Fuego y Sombras de Lorkhan. Usa la imagen de la guild admitida que esté representada en C.
 - Widgets laterales de aviso para Gemas de alma llenas y kits de reparación bajos.
 - Widgets laterales para estado de comida/bebida, reparación de armadura, recarga de armas y sus previsualizaciones.
 
@@ -75,7 +75,7 @@ El panel Actividades de grupo es un menú separado para acciones relacionadas co
 
 - Las acciones válidas de raid leader aparecen primero: Disbandear grupo, Resetear instancia y después el control de dificultad. Disbandear grupo y Resetear instancia se omiten por completo cuando el jugador actual no es líder; no se muestran como filas desactivadas.
 - Abandonar grupo, disponible para cualquier jugador agrupado independientemente de si es líder.
-- Abandonar grupo, Salir de instancia y Abandonar grupo y salir de instancia están disponibles desde el panel principal de comandos y desde el menú principal de ajustes de EZOTools (LAM) cuando ESO lo permite, incluso durante el combate. Abandonar grupo y Abandonar grupo y salir de instancia también siguen disponibles desde Actividades de grupo. Estas acciones rápidas son independientes de Resetear instancia y de las herramientas de líder.
+- Abandonar grupo, Salir de instancia y Abandonar grupo y salir de instancia están disponibles desde el panel principal de comandos cuando ESO lo permite, incluso durante el combate. Abandonar grupo y Abandonar grupo y salir de instancia también siguen disponibles desde Actividades de grupo. Intencionadamente no se duplican en el panel de ajustes de EZOTools. Estas acciones rápidas son independientes de Resetear instancia y de las herramientas de líder.
 - `Estado del grupo` no es una entrada seleccionable del menú. Cuando están activados el modo debug y su opción específica en LAM, EZOTools escribe automáticamente en Log Viewer una captura previa del grupo y la instancia antes de ejecutar un comando de Actividades de grupo; el informe no se escribe en el chat.
 - Cualquier jugador agrupado, incluido el líder, puede abrir bajo demanda "Información del grupo" desde Actividades de grupo. Reutiliza el mismo componente estructurado que la ventana de reset del líder sin iniciar ni modificar un reset. Su vista inactiva es la misma para todos los miembros: zona del líder, dificultad efectiva del grupo, tamaño, estado del transporte EZOCore y roster actual con el líder primero y la zona informada localmente para cada jugador. Cuando el cliente local posee una sesión de reset, este comando muestra el panel operativo de reset ya existente en vez de abrir un segundo panel de información del grupo. Los miembros pueden recibir el tipo de actividad, destino estable, etapa y resultado del líder mediante clientes compatibles de EZOCore y LibGroupBroadcast. Cuando un reset anunciado disuelve intencionadamente el grupo, cada cliente compatible conserva la sesión y el roster observados localmente para que Información del grupo siga disponible: la zona del jugador local y la recepción de la invitación del líder para reagruparse se actualizan localmente, mientras los jugadores ausentes se muestran expresamente sin grupo y con su última ubicación conocida.
 - Submenú de viaje a trials en veterano, con "Última trial" y la lista centralizada actual de trials.
@@ -116,12 +116,16 @@ La lista de trials vive en `modules/raid_leader_activity_catalog.lua`. Centraliz
 - Solo solicita la invitación cuando estás solo o eres el líder actual, omite al propio jugador y a las cuentas ya detectadas en el grupo, y bloquea solicitudes repetidas a la misma cuenta durante 15 segundos.
 - Con debug activo, las coincidencias y la decisión de invitación se escriben en Log Viewer sin copiar el texto del mensaje de chat.
 
-### Perfiles de casas de gremio
+### Casas manuales y modo guild
 
-- Nombres de cuenta manuales para casa de artesanía y casa secundaria.
-- Perfil editable "Valores propios".
-- Autoasignación opcional desde el gremio representado cuando ese gremio tiene un perfil guardado o interno.
-- Valores activos de artesanía/secundaria visibles en el panel de ajustes.
+- Los nombres de cuenta manuales para la casa primaria de artesanía y la casa secundaria son el modo estable por defecto.
+- El modo manual mantiene siempre el logo de EZOTools y usa esos dos valores fijos de casas.
+- Los miembros de Hojablanca, Fuego o Sombras de Lorkhan reciben un apartado separado de modo guild en Ajustes.
+- El modo guild no tiene selector manual de guild. Usa la imagen y las casas integradas únicamente para la guild admitida que esté representada en C.
+- Cambiar la guild representada en C actualiza automáticamente la imagen, las casas efectivas y los valores deshabilitados de LAM cuando el sondeo de guild representada detecta el cambio (en un máximo de cinco segundos).
+- Mientras el modo guild está activo, los campos de casas manuales siguen visibles y deshabilitados mientras muestran las casas efectivas de la guild; sus valores manuales permanecen guardados y se recuperan sin cambios al volver al modo manual.
+- Si C no apunta a una guild admitida, EZOTools avisa al jugador y vuelve de forma segura al logo de EZOTools y a las casas manuales.
+- Los valores activos de artesanía/secundaria se muestran en el tooltip del apartado Casas manuales.
 
 ### Mantenimiento
 
@@ -185,8 +189,9 @@ Con EZOCore activo, abre el panel completo desde Ajustes > EZO > EZOTools o desd
 - Color y tamaño del nombre de jugador.
 - Ocultar durante combate.
 - Tooltips contextuales.
-- Comportamiento de imagen/etiqueta de gremio.
-- Selección y edición de perfiles de casas de gremio.
+- Comportamiento de la etiqueta del gremio representado.
+- Valores fijos manuales para las casas primaria/secundaria.
+- Un apartado condicional de modo guild para miembros válidos, controlado exclusivamente por la guild representada en C.
 - Diagnóstico automático del estado del grupo antes de las acciones de Actividades de grupo, disponible solo mientras el modo debug global está activado.
 - Activación de autoinvitación por chat y palabras de invitación alternativas simultáneas.
 - Los ajustes de reset de instancia comienzan con una opción maestra de habilitación. Cuando está desactivada, los controles dependientes aparecen visualmente inactivos. Después incluye confirmación (activada por defecto), destino puente, movimiento de la ventana de estado con una vista temporal completa de colocación para 11 miembros, tiempo de espera, retraso de invitaciones y reintentos. La explicación experimental está disponible en el icono de información situado junto al encabezado de la sección.
@@ -232,7 +237,7 @@ Después de instalar o actualizar:
 - Después de cancelar, comprueba que aparezca Iniciar último grupo e instancia, que la confirmación muestre la trial y el número de miembros memorizados, que solo invite a miembros guardados ausentes y que viaje mediante la ruta existente con la dificultad capturada. Verifica que se oculte durante un reset activo y cuando estés agrupado bajo otro líder.
 - Con debug activo, verifica que un reset genere resúmenes amarillos `Info` en los límites del ciclo de vida y un único aviso si se interrumpe. Las entradas/salidas del grupo y las respuestas de invitación deben actualizar el panel sin generar un informe completo independiente por evento, y el progreso normal del reset no debe copiarse al chat.
 - Mientras la fase 6 aún tenga miembros pendientes, ejecuta otra vez Resetear instancia y comprueba que la confirmación de reanudación reinicia las invitaciones sin sustituir el snapshot. Cuando todos los miembros capturados estén agrupados, verifica que el panel muestre `RESET COMPLETADO` sin temporizadores de fase y que un reset posterior confirmado explícitamente pueda crear un snapshot nuevo.
-- Prueba Abandonar grupo tanto como líder como sin serlo, Salir de instancia cuando ESO permita la salida inmediata y Abandonar grupo y salir de instancia cuando se cumplan ambas condiciones. Comprueba que las acciones válidas aparezcan en el panel principal de comandos y en LAM, y que Abandonar grupo junto con Abandonar grupo y salir de instancia permanezcan disponibles en Actividades de grupo. Repite con ratón, menú de teclado y menú de mando, incluido combate cuando ESO siga permitiendo la acción.
+- Prueba Abandonar grupo tanto como líder como sin serlo, Salir de instancia cuando ESO permita la salida inmediata y Abandonar grupo y salir de instancia cuando se cumplan ambas condiciones. Comprueba que las acciones válidas aparezcan en el panel principal de comandos pero no en LAM, y que Abandonar grupo junto con Abandonar grupo y salir de instancia permanezcan disponibles en Actividades de grupo. Repite con ratón, menú de teclado y menú de mando, incluido combate cuando ESO siga permitiendo la acción.
 - Comprueba que `Estado del grupo` ya no aparezca en Actividades de grupo. Con el modo debug y el registro automático del estado activados, ejecuta cada acción de grupo disponible y verifica que Log Viewer reciba una única captura previa con el valor `action` correspondiente; desactiva la opción LAM y comprueba que dejen de generarse esas capturas.
 - Abre Información del grupo en el líder y en un miembro sin una sesión de reset. Comprueba que ambos muestren el mismo tamaño, zona del líder con formato nativo, una etiqueta explícita `Normal`/`Veterano` separada de la zona mediante un guion y el roster completo, sin texto de estado recortado, progreso, pendientes, mensajes de espera remota ni filas duplicadas. Después instala en ambos clientes la misma beta de EZOCore con protocolo v2 y la misma compilación de EZOTools, inicia un reset controlado como líder y abre Información del grupo en ambos clientes. Comprueba que el líder conserve únicamente el panel operativo de reset existente y que no aparezca un segundo panel de información del grupo. Comprueba que el miembro reciba la clave/nombre de la trial, modo Normal/Veterano, progreso exacto y pendientes; el panel del miembro no debe fabricar progreso desde la etapa ni usar su dificultad local. Tras el disband intencionado, comprueba que Información del grupo siga disponible, conserve el roster capturado, actualice la zona del jugador local, marque los miembros ausentes sin grupo y con ubicaciones de última observación, y cambie la fila local al recibir la invitación de reagrupación. Comprueba que el estado en vivo del líder se reanude al volver al grupo. Cerrar el panel no debe afectar al grupo, viajes, invitaciones ni reset. Repite sin EZOCore para verificar el fallback local.
 - Activa el viaje automático solo en el cliente de prueba que no es líder. Acepta manualmente la invitación de reagrupación del reset mientras estás fuera de la instancia objetivo del líder y comprueba que EZOTools solicite un único salto al líder actual. Repite estando ya en la misma instancia, como líder, con el ajuste desactivado, con estado caducado o incompatible y cuando ESO indique que el salto no está disponible; ninguno de esos casos debe solicitar el viaje. Verifica que un estado repetido de la misma sesión no provoque otro salto.
