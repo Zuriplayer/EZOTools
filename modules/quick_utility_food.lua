@@ -160,8 +160,11 @@ function MOD.GetBuffInfo()
     local num = GetNumBuffs("player")
     local mejor = nil
     for i = 1, num do
-        local buffName, _, endTime, _, _, _, _, _, abilityType, _, _, canClickOff = GetUnitBuffInfo("player", i)
-        if endTime and endTime > 0 and canClickOff == true and abilityType == ABILITY_TYPE_NONCOMBATBONUS then
+        local buffName, _, endTime, _, _, iconFilename, _, _, abilityType, _, _, canClickOff = GetUnitBuffInfo("player", i)
+        local isFoodType = abilityType ~= 0
+        local iconLower = type(iconFilename) == "string" and string.lower(iconFilename) or ""
+        local isScroll = string.find(iconLower, "scroll") ~= nil or string.find(iconLower, "experience") ~= nil
+        if endTime and endTime > 0 and canClickOff == true and isFoodType and not isScroll then
             local candidato = {
                 active = true,
                 name = buffName,
