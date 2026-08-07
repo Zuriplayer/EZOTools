@@ -160,8 +160,8 @@ function MOD.GetBuffInfo()
     local num = GetNumBuffs("player")
     local mejor = nil
     for i = 1, num do
-        local buffName, _, endTime, _, _, _, _, _, _, _, _, canClickOff = GetUnitBuffInfo("player", i)
-        if endTime and endTime > 0 and canClickOff == true then
+        local buffName, _, endTime, _, _, _, _, _, abilityType, _, _, canClickOff = GetUnitBuffInfo("player", i)
+        if endTime and endTime > 0 and canClickOff == true and abilityType == ABILITY_TYPE_NONCOMBATBONUS then
             local candidato = {
                 active = true,
                 name = buffName,
