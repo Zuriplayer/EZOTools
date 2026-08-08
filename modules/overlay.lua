@@ -1579,16 +1579,13 @@ function MOD.Init()
             RefrescarDot()
         end)
 
-    -- Buff comida/bebida: refresco reactivo al ganar o perder cualquier efecto
+    -- Buff comida/bebida: el módulo aprende y reconoce el abilityId nativo.
     EVENT_MANAGER:RegisterForEvent("EZOTools_Overlay_Food",
         EVENT_EFFECT_CHANGED,
-        function(_, changeType, _, _, unitTag, _, _, _, _, _, abilityType)
-            if unitTag == "player" and abilityType == ABILITY_TYPE_NONCOMBATBONUS then
-                if changeType == EFFECT_RESULT_GAINED or changeType == EFFECT_RESULT_UPDATED or changeType == EFFECT_RESULT_FULL_REFRESH then
-                    if FOOD and type(FOOD.RecordActiveFood) == "function" then
-                        FOOD.RecordActiveFood()
-                    end
-                end
+        function(_, changeType, _, effectName, unitTag, beginTime, endTime, _, _, _, _, _, _, _, _, abilityId)
+            local foodChanged = FOOD and type(FOOD.HandleEffectChanged) == "function"
+                and FOOD.HandleEffectChanged(changeType, effectName, unitTag, beginTime, endTime, abilityId)
+            if foodChanged then
                 RefrescarDot()
             end
         end)

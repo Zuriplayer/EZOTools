@@ -246,6 +246,8 @@ function EZO:Initialize()
             lastFoodItemLink = "",
             lastFoodItemName = "",
             recentFoodItems = {},
+            lastFoodBuffAbilityId = 0,
+            knownFoodBuffAbilityIds = {},
             x                = nil,
             y                = nil,
         },

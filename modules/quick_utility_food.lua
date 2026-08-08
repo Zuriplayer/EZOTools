@@ -6,12 +6,14 @@ local MOD = EZOTools_QuickUtilityFood
 local EZO = EZOTools
 
 local FOOD_ALERT_SECONDS = 15 * 60
-local FOOD_PENDING_WINDOW_MS = 4000
+local FOOD_PENDING_WINDOW_MS = 2000
+local FOOD_MIN_EFFECT_DURATION_SECONDS = 60
 local FOOD_HISTORY_LIMIT = 5
 local foodDebugState = nil
 local foodConfirmDialogRegistered = false
 local foodBackpackCache = {}
 local foodPendingItem = nil
+local lastFoodEffectCandidate = nil
 
 local function FormatearTiempoRestanteCorto(segundos)
     segundos = math.max(0, math.floor(tonumber(segundos) or 0))
@@ -39,6 +41,13 @@ local function ObtenerFoodSV()
     end
     overlaySV.lastFoodItemLink = tostring(overlaySV.lastFoodItemLink or "")
     overlaySV.lastFoodItemName = tostring(overlaySV.lastFoodItemName or "")
+    overlaySV.lastFoodBuffAbilityId = math.floor(tonumber(overlaySV.lastFoodBuffAbilityId) or 0)
+    if overlaySV.lastFoodBuffAbilityId < 0 then
+        overlaySV.lastFoodBuffAbilityId = 0
+    end
+    if type(overlaySV.knownFoodBuffAbilityIds) ~= "table" then
+        overlaySV.knownFoodBuffAbilityIds = {}
+    end
     if type(overlaySV.recentFoodItems) ~= "table" then
         overlaySV.recentFoodItems = {}
     end
@@ -134,6 +143,63 @@ local function CalcularSegundosRestantesBuff(endTime)
     return candidatos[1]
 end
 
+local function NormalizarAbilityId(abilityId)
+    local normalized = math.floor(tonumber(abilityId) or 0)
+    if normalized <= 0 then
+        return nil
+    end
+    return normalized
+end
+
+local function EsFoodBuffAbilityIdConocido(abilityId)
+    local normalized = NormalizarAbilityId(abilityId)
+    if not normalized then
+        return false
+    end
+    local overlaySV = ObtenerFoodSV()
+    if not overlaySV then
+        return false
+    end
+    if overlaySV.lastFoodBuffAbilityId == normalized then
+        return true
+    end
+    return overlaySV.knownFoodBuffAbilityIds[tostring(normalized)] == true
+end
+
+local function RegistrarFoodBuffAbilityId(abilityId, updateLast)
+    local normalized = NormalizarAbilityId(abilityId)
+    local overlaySV = ObtenerFoodSV()
+    if not normalized or not overlaySV then
+        return false
+    end
+    if updateLast ~= false then
+        overlaySV.lastFoodBuffAbilityId = normalized
+    end
+    overlaySV.knownFoodBuffAbilityIds[tostring(normalized)] = true
+    return true
+end
+
+local function RegistrarAbilityIdDeItemLink(itemLink)
+    itemLink = tostring(itemLink or "")
+    if itemLink == "" or type(GetItemLinkOnUseAbilityId) ~= "function" then
+        return false
+    end
+    return RegistrarFoodBuffAbilityId(GetItemLinkOnUseAbilityId(itemLink), false)
+end
+
+local function RegistrarAbilityIdsDeComidaRecordada()
+    local overlaySV = ObtenerFoodSV()
+    if not overlaySV then
+        return
+    end
+    for _, entry in ipairs(overlaySV.recentFoodItems) do
+        if type(entry) == "table" then
+            RegistrarAbilityIdDeItemLink(entry.itemLink)
+        end
+    end
+    RegistrarAbilityIdDeItemLink(overlaySV.lastFoodItemLink)
+end
+
 function MOD.GetBuffInfo()
     if foodDebugState == "green" then
         return {
@@ -157,18 +223,22 @@ function MOD.GetBuffInfo()
         return { active = false }
     end
 
+    -- ESO usa este abilityId nativo para describir el consumible. El emparejado
+    -- por eventos de inventario queda como respaldo si el buff activo difiere.
+    RegistrarAbilityIdsDeComidaRecordada()
+
     local num = GetNumBuffs("player")
     local mejor = nil
     for i = 1, num do
-        local buffName, _, endTime, _, _, iconFilename, _, _, abilityType, _, _, canClickOff = GetUnitBuffInfo("player", i)
-        local isFoodType = abilityType ~= 0
-        local iconLower = type(iconFilename) == "string" and string.lower(iconFilename) or ""
-        local isScroll = string.find(iconLower, "scroll") ~= nil or string.find(iconLower, "experience") ~= nil
-        if endTime and endTime > 0 and canClickOff == true and isFoodType and not isScroll then
+        local buffName, _, endTime, buffSlot, _, _, _, _, _, _, abilityId = GetUnitBuffInfo("player", i)
+        if (tonumber(buffSlot) or 0) > 0
+            and tostring(buffName or "") ~= ""
+            and EsFoodBuffAbilityIdConocido(abilityId) then
             local candidato = {
                 active = true,
                 name = buffName,
                 remainingSeconds = CalcularSegundosRestantesBuff(endTime),
+                abilityId = NormalizarAbilityId(abilityId),
             }
             if not mejor then
                 mejor = candidato
@@ -272,20 +342,6 @@ local function ObtenerDescripcionUsoItem(itemLink)
     end
     if type(abilityDescription) == "string" and abilityDescription ~= "" then
         return abilityDescription
-    end
-    if type(abilityHeader) == "string" and abilityHeader ~= "" then
-        return abilityHeader
-    end
-    return nil
-end
-
-local function ObtenerCabeceraUsoItem(itemLink)
-    if type(GetItemLinkOnUseAbilityInfo) ~= "function" then
-        return nil
-    end
-    local hasAbility, abilityHeader = GetItemLinkOnUseAbilityInfo(itemLink)
-    if not hasAbility then
-        return nil
     end
     if type(abilityHeader) == "string" and abilityHeader ~= "" then
         return abilityHeader
@@ -436,6 +492,8 @@ end
 
 function MOD.SyncBackpackCache()
     foodBackpackCache = {}
+    foodPendingItem = nil
+    lastFoodEffectCandidate = nil
     if type(GetBagSize) ~= "function" then
         return
     end
@@ -453,7 +511,7 @@ local function RegistrarConsumoComidaPendiente(previousEntry, stackCountChange)
         return
     end
     local delta = tonumber(stackCountChange) or 0
-    if delta >= 0 then
+    if delta ~= -1 then
         return
     end
 
@@ -468,34 +526,39 @@ local function RegistrarConsumoComidaPendiente(previousEntry, stackCountChange)
         itemName = itemName,
         timestampMs = ObtenerMomentoActualMs(),
     }
-
-    -- Guardar en el cambio exacto de pila evita depender del orden entre mochila y buff.
-    if delta == -1 then
-        GuardarComidaRecordada(itemLink, itemName)
-        GuardarComidaEnHistorial(itemLink, itemName)
-    end
 end
 
-function MOD.HandleInventorySlotUpdate(slotIndex, stackCountChange)
-    local previousEntry = foodBackpackCache[slotIndex]
-    RegistrarConsumoComidaPendiente(previousEntry, stackCountChange)
-    ActualizarCacheConsumibleComidaMochila(slotIndex)
+local function EsCambioEfectoActivo(changeType)
+    return changeType == EFFECT_RESULT_GAINED
+        or changeType == EFFECT_RESULT_UPDATED
+        or changeType == EFFECT_RESULT_FULL_REFRESH
 end
 
-local function IntentarRecordarComidaPendiente()
-    if type(foodPendingItem) ~= "table" then
+local function CrearCandidatoEfecto(changeType, effectName, beginTime, endTime, abilityId)
+    local normalized = NormalizarAbilityId(abilityId)
+    local duration = (tonumber(endTime) or 0) - (tonumber(beginTime) or 0)
+    if not normalized or not EsCambioEfectoActivo(changeType) or duration < FOOD_MIN_EFFECT_DURATION_SECONDS then
+        return nil
+    end
+    return {
+        abilityId = normalized,
+        effectName = tostring(effectName or ""),
+        timestampMs = ObtenerMomentoActualMs(),
+    }
+end
+
+local function IntentarAprenderFoodBuffPendiente(candidate)
+    if type(foodPendingItem) ~= "table" or type(candidate) ~= "table" then
         return false
     end
-
-    local foodInfo = MOD.GetBuffInfo()
-    if not (type(foodInfo) == "table" and foodInfo.active) then
-        return false
-    end
-
     local nowMs = ObtenerMomentoActualMs()
     local pendingMs = tonumber(foodPendingItem.timestampMs)
+    local candidateMs = tonumber(candidate.timestampMs)
     if nowMs and pendingMs and (nowMs - pendingMs) > FOOD_PENDING_WINDOW_MS then
         foodPendingItem = nil
+        return false
+    end
+    if pendingMs and candidateMs and math.abs(candidateMs - pendingMs) > FOOD_PENDING_WINDOW_MS then
         return false
     end
 
@@ -506,39 +569,39 @@ local function IntentarRecordarComidaPendiente()
         return false
     end
 
+    if not RegistrarFoodBuffAbilityId(candidate.abilityId) then
+        return false
+    end
     GuardarComidaRecordada(itemLink, itemName)
     GuardarComidaEnHistorial(itemLink, itemName)
     foodPendingItem = nil
+    lastFoodEffectCandidate = nil
     return true
 end
 
-function MOD.RecordActiveFood()
-    local foodInfo = MOD.GetBuffInfo()
-    if not (type(foodInfo) == "table" and foodInfo.active and type(foodInfo.name) == "string" and foodInfo.name ~= "") then
+function MOD.HandleInventorySlotUpdate(slotIndex, stackCountChange)
+    local previousEntry = foodBackpackCache[slotIndex]
+    RegistrarConsumoComidaPendiente(previousEntry, stackCountChange)
+    if type(foodPendingItem) == "table" and type(lastFoodEffectCandidate) == "table" then
+        IntentarAprenderFoodBuffPendiente(lastFoodEffectCandidate)
+    end
+    ActualizarCacheConsumibleComidaMochila(slotIndex)
+end
+
+function MOD.HandleEffectChanged(changeType, effectName, unitTag, beginTime, endTime, abilityId)
+    if unitTag ~= "player" then
         return false
     end
-    if IntentarRecordarComidaPendiente() then
-        return true
-    end
 
-    -- Mismo criterio que antes (nombre del item o cabecera del efecto),
-    -- pero iterando la caché: solo se consulta la API para los huecos
-    -- que ya sabemos que contienen comida/bebida.
-    for _, entry in pairs(foodBackpackCache) do
-        if type(entry) == "table" then
-            local itemLink = tostring(entry.itemLink or "")
-            local itemName = tostring(entry.itemName or "")
-            local abilityHeader = ObtenerCabeceraUsoItem(itemLink)
-            local coincideNombre = itemName ~= "" and itemName == foodInfo.name
-            local coincideCabecera = type(abilityHeader) == "string" and abilityHeader == foodInfo.name
-            if coincideNombre or coincideCabecera then
-                GuardarComidaRecordada(itemLink, itemName)
-                GuardarComidaEnHistorial(itemLink, itemName)
-                return true
-            end
+    local knownAbility = EsFoodBuffAbilityIdConocido(abilityId)
+    local candidate = CrearCandidatoEfecto(changeType, effectName, beginTime, endTime, abilityId)
+    if candidate then
+        lastFoodEffectCandidate = candidate
+        if IntentarAprenderFoodBuffPendiente(candidate) then
+            return true
         end
     end
-    return false
+    return knownAbility
 end
 
 local function ConsumirComidaEnSlot(bagId, slotIndex, itemName, itemLink)
@@ -836,7 +899,6 @@ end
 
 function MOD.BuildWidgetData()
     local foodInfo = MOD.GetBuffInfo()
-    MOD.RecordActiveFood()
     local foodState = MOD.BuildVisualState(foodInfo)
     local foodPrimaryHandler = nil
     local foodSecondaryHandler = nil
