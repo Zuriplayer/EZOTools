@@ -65,6 +65,7 @@ El panel de utilidades rápidas agrupa comodidades de uso frecuente fuera de com
 - Historial reciente de monturas, mascotas, compañeros y asistentes.
 - Accesos de estado vacío a las pantallas de colección correspondientes de ESO.
 - Seguimiento de comida y bebida, historial reciente de comida/bebida y reutilización opcional con confirmación.
+- El indicador de comida/bebida lee el efecto activo y su `abilityId` nativo exacto. Obtiene el ID desde los enlaces de provisiones recordadas y, como respaldo, aprende el ID real del efecto al consumirlas; los ID aprendidos se conservan tras volver a entrar. Una provisión ya activa en una instalación limpia puede requerir un consumo antes de ser reconocida.
 - Las entradas recientes de comida/bebida siguen visibles pero deshabilitadas cuando el objeto recordado ya no está en tu inventario.
 - Historial de casas propias.
 - Historial de casas de otros jugadores.

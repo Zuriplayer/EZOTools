@@ -65,6 +65,7 @@ The quick utility panel groups frequently used non-combat conveniences:
 - Recent history for mounts, pets, companions, and assistants.
 - Empty-state shortcuts to the relevant ESO collection screens.
 - Food and drink tracking, recent food/drink history, and optional reuse with confirmation.
+- The food/drink indicator reads the active effect and its exact native `abilityId`. It obtains the ID from remembered provision links and learns the actual effect ID on consumption as a fallback; learned IDs remain available after relogging. A provision already active on a clean installation may require one consumption before it is recognized.
 - Recent food/drink entries stay visible but disabled when the remembered item is no longer in your inventory.
 - Owned house history.
 - Other players' house history.
