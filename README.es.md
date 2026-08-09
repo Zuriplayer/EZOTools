@@ -121,6 +121,8 @@ La lista de trials vive en `modules/raid_leader_activity_catalog.lua`. Centraliz
 
 - Los nombres de cuenta manuales para la casa primaria de artesanía y la casa secundaria son el modo estable por defecto.
 - El modo manual mantiene siempre el logo de EZOTools y usa esos dos valores fijos de casas.
+- Mientras visitas una casa en modo manual, los dos botones de casa actual pueden guardar esa casa exacta y su propietario como casa primaria de artesanía o destino secundario. Guardarla no inicia ningún viaje.
+- Las acciones de viaje y la preparación del reset regresan a la casa exacta capturada. Editar manualmente un nombre de cuenta borra el ID de casa capturado y conserva el comportamiento anterior de viajar a la casa principal de esa cuenta.
 - Los miembros de Hojablanca, Fuego o Sombras de Lorkhan reciben un apartado separado de modo guild en Ajustes.
 - El modo guild no tiene selector manual de guild. Usa la imagen y las casas integradas únicamente para la guild admitida que esté representada en C.
 - Cambiar la guild representada en C actualiza automáticamente la imagen, las casas efectivas y los valores deshabilitados de LAM cuando el sondeo de guild representada detecta el cambio (en un máximo de cinco segundos).

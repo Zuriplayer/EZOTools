@@ -1101,15 +1101,9 @@ local function CanTravelToDestination(destination)
         return ok and tonumber(houseId) ~= nil and tonumber(houseId) > 0
     end
 
-    if type(JumpToHouse) ~= "function" then
-        return false
-    end
-
-    local friends = EZO.sv and EZO.sv.friends or {}
-    local account = destination == "crafting"
-        and tostring(friends.craftingHall or "")
-        or tostring(friends.secondaryHall or "")
-    return account ~= ""
+    return EZO
+        and type(EZO.CanJumpConfiguredFriendHouse) == "function"
+        and EZO.CanJumpConfiguredFriendHouse(destination) == true
 end
 
 local function TravelToDestination(destination)
@@ -1127,13 +1121,9 @@ local function TravelToDestination(destination)
         return false
     end
 
-    local friends = EZO.sv and EZO.sv.friends or {}
-    local account = destination == "crafting"
-        and tostring(friends.craftingHall or "")
-        or tostring(friends.secondaryHall or "")
-    if account ~= "" and type(JumpToHouse) == "function" then
-        local okJump = SafeCall(JumpToHouse, account)
-        return okJump == true
+    if EZO and type(EZO.JumpConfiguredFriendHouse) == "function" then
+        local okJump, requested = SafeCall(EZO.JumpConfiguredFriendHouse, destination)
+        return okJump == true and requested == true
     end
     return false
 end

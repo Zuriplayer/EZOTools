@@ -121,6 +121,8 @@ The trial list lives in `modules/raid_leader_activity_catalog.lua`. It centraliz
 
 - Manual primary Crafting Hall and secondary house account names are the stable default.
 - Manual mode always keeps the EZOTools logo and uses those two fixed house values.
+- While visiting a house in Manual mode, the two current-house buttons can store that exact house and its owner as the primary Crafting Hall or secondary destination. Saving does not start a travel request.
+- Travel actions and reset staging return to the exact captured house. Editing an account name manually clears the captured house ID and keeps the previous account-primary-house behavior.
 - Members of Hojablanca, Fuego, or Sombras de Lorkhan receive a separate Guild mode section in Settings.
 - Guild mode has no manual guild selector. It uses the built-in image and houses only for the supported guild currently represented in C.
 - Changing the guild represented in C automatically updates the effective guild image, houses, and disabled LAM values when the represented-guild poll detects the change (within five seconds).

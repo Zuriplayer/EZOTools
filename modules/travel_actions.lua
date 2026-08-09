@@ -28,24 +28,72 @@ function EZO.JumpPrimaryHouse()
     end
 end
 
-local function SaltarACasa(nombreCuenta)
-    if nombreCuenta and nombreCuenta ~= "" then
-        JumpToHouse(nombreCuenta)
-        return true
+local function SaltarACasa(nombreCuenta, houseId)
+    nombreCuenta = tostring(nombreCuenta or "")
+    houseId = tonumber(houseId) or 0
+    if nombreCuenta == "" then
+        return false
+    end
+
+    if houseId > 0 then
+        local manager = _G.HOUSING_SOCIAL_MANAGER
+        if manager and type(manager.VisitHouse) == "function" then
+            local ok, result = pcall(manager.VisitHouse, manager, houseId, nombreCuenta, false)
+            return ok and result ~= false
+        end
+        if type(JumpToSpecificHouse) == "function" then
+            local ok = pcall(JumpToSpecificHouse, nombreCuenta, houseId, false)
+            return ok
+        end
+        return false
+    end
+
+    if type(JumpToHouse) == "function" then
+        local ok = pcall(JumpToHouse, nombreCuenta)
+        return ok
     end
     return false
 end
 
-function EZO.JumpCraftingHall()
+local function GetConfiguredFriendHouse(destination)
     local friends = EZO.sv and EZO.sv.friends or nil
-    if not SaltarACasa(friends and friends.craftingHall) then
+    if not friends then
+        return "", 0
+    end
+    if destination == "crafting" then
+        return tostring(friends.craftingHall or ""), tonumber(friends.craftingHallHouseId) or 0
+    elseif destination == "secondary" then
+        return tostring(friends.secondaryHall or ""), tonumber(friends.secondaryHallHouseId) or 0
+    end
+    return "", 0
+end
+
+function EZO.CanJumpConfiguredFriendHouse(destination)
+    local account, houseId = GetConfiguredFriendHouse(destination)
+    if account == "" then
+        return false
+    end
+    if houseId > 0 then
+        local manager = _G.HOUSING_SOCIAL_MANAGER
+        return (manager and type(manager.VisitHouse) == "function")
+            or type(JumpToSpecificHouse) == "function"
+    end
+    return type(JumpToHouse) == "function"
+end
+
+function EZO.JumpConfiguredFriendHouse(destination)
+    local account, houseId = GetConfiguredFriendHouse(destination)
+    return SaltarACasa(account, houseId)
+end
+
+function EZO.JumpCraftingHall()
+    if not EZO.JumpConfiguredFriendHouse("crafting") then
         Print(GetString(EZO_MSG_NO_CRAFTING_HALL))
     end
 end
 
 function EZO.JumpSecondaryHall()
-    local friends = EZO.sv and EZO.sv.friends or nil
-    if not SaltarACasa(friends and friends.secondaryHall) then
+    if not EZO.JumpConfiguredFriendHouse("secondary") then
         Print(GetString(EZO_MSG_NO_SECONDARY_HALL))
     end
 end
