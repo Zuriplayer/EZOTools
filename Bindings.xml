@@ -1,5 +1,5 @@
 <Bindings>
-  <String id="SI_BINDING_CATEGORY_EZOTOOLS" value="EZOTools" />
+  <String id="SI_BINDING_CATEGORY_EZOTOOLS" value="E|cB040FFZ|rO AddOns" />
   <String id="SI_BINDING_NAME_EZO_TOGGLE_COMMAND_PANEL" value="Open Command Panel" />
   <String id="SI_BINDING_NAME_EZO_TRAVEL_PRIMARY_HOUSE" value="Travel to Primary House" />
   <String id="SI_BINDING_NAME_EZO_TRAVEL_CRAFTING_HALL" value="Visit Crafting Hall" />
@@ -13,7 +13,7 @@
   <String id="SI_BINDING_NAME_EZO_RESET_INSTANCE" value="Reset Instance" />
   <String id="SI_BINDING_NAME_EZO_DISBAND_GROUP" value="Disband Group" />
   <Layer name="SI_KEYBINDINGS_LAYER_GENERAL">
-    <Category name="E|cB040FFZ|rOTools">
+    <Category name="E|cB040FFZ|rO AddOns">
       <Action name="EZO_TOGGLE_COMMAND_PANEL"><Down>EZOTools_ToggleCommandPanel()</Down></Action>
       <Action name="EZO_TOGGLE_UTILITY_PANEL"><Down>EZOTools_ToggleUtilityPanel()</Down></Action>
       <Action name="EZO_TOGGLE_GROUP_ACTIVITIES_PANEL"><Down>EZOTools_ToggleGroupActivitiesPanel()</Down></Action>
