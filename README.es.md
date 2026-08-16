@@ -105,6 +105,7 @@ El panel Actividades de grupo es un menú separado para acciones relacionadas co
 - Mientras exista cualquier sesión de reset activa o retenida, `Cancelar reset de instancia` es la primera entrada de Actividades de grupo. Usa la confirmación nativa compartida, detiene el seguimiento del addon, desregistra los eventos del reset y cierra el panel. No puede retirar invitaciones ya enviadas ni un viaje que ESO ya haya aceptado.
 - Inmediatamente antes del disband del reset, EZOTools guarda en las SavedVariables de cuenta una plantilla compacta de la última actividad: nombres de cuenta verificados y capturados, clave/nombre de trial, índice de zona y dificultad. Cuando la sesión de reset se cancela o limpia, `Iniciar último grupo e instancia` puede invitar a los miembros guardados que falten y reutilizar después el viaje existente a la trial con la dificultad memorizada. La acción no está disponible mientras exista otra sesión de reset ni cuando el jugador está agrupado bajo otro líder.
 - Keybinds asignables para Actividades de grupo, reset de instancia y disband de grupo. Los valores por defecto continúan la secuencia existente: `Ctrl+Alt+Num2`, `Ctrl+Alt+Num3` y `Ctrl+Alt+Num4`.
+- La pantalla Controles de ESO agrupa todas las acciones de EZOTools bajo `EZO AddOns > EZOTools`; el cambio es solo de presentación y no reasigna teclas.
 
 La lista de trials vive en `modules/raid_leader_activity_catalog.lua`. Centraliza los nombres y alias de trials implementadas. Los campos para IDs como `zoneId`, `activityId` y `fastTravelNodeId` quedan reservados para datos verificados.
 
@@ -224,6 +225,7 @@ Después de instalar o actualizar:
 - Abrir el panel completo desde Ajustes > EZO y comprobar que EZOTools no aparece duplicado en la lista estándar de Addons.
 - Desactivar EZOCore y comprobar que el fallback independiente de LibAddonMenu sigue disponible.
 - Probar el panel de comandos con teclado/mando.
+- Abrir Controles y comprobar que las acciones aparecen bajo `EZO AddOns > EZOTools` sin cambiar sus teclas asignadas.
 - Probar las interacciones del overlay con ratón separadas de los menús laterales.
 - Probar chat y `Enter`.
 - Probar `ESC` y los menús normales del juego.

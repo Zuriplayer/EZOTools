@@ -105,6 +105,7 @@ The Group Activities panel is a separate menu for dungeon, trial, and group-rela
 - While any reset session is active or retained, `Cancel instance reset` is the first Group Activities entry. It uses the shared native confirmation, stops addon tracking, unregisters reset events, and closes the panel. It cannot retract invitations already sent or a travel request already accepted by ESO.
 - Immediately before the reset disband, EZOTools stores a compact last-activity template in account SavedVariables: the verified captured account names, trial key/name, zone index, and difficulty. After the reset session is cancelled or otherwise cleared, `Start last group and instance` can invite missing saved members and then reuse the existing trial travel with the saved difficulty. The action is unavailable while another reset session exists or while grouped under another leader.
 - Assignable keybinds for Group Activities, instance reset, and group disband. Current defaults continue the existing sequence: `Ctrl+Alt+Num2`, `Ctrl+Alt+Num3`, and `Ctrl+Alt+Num4`.
+- ESO's Controls screen groups all EZOTools actions under `EZO AddOns > EZOTools`; this changes presentation only and does not reassign bindings.
 
 The trial list lives in `modules/raid_leader_activity_catalog.lua`. It centralizes implemented trial names and aliases. Fields for IDs such as `zoneId`, `activityId`, and `fastTravelNodeId` are intentionally left for verified data only.
 
@@ -224,6 +225,7 @@ After installing or updating:
 - Open the full settings panel under Settings > EZO and confirm EZOTools is not duplicated in the standard Addons list.
 - Disable EZOCore and confirm the standalone LibAddonMenu fallback remains available.
 - Test the command panel with keyboard/gamepad.
+- Open Controls and verify the actions appear under `EZO AddOns > EZOTools` without changing their assigned keys.
 - Test the overlay mouse interactions separately from the side menus.
 - Test chat and `Enter`.
 - Test `ESC` and normal game menus.
