@@ -613,7 +613,7 @@ function MOD.Create(id, options)
 
     control:SetDimensions(self.width, PANEL_MIN_HEIGHT)
     control:SetHandler("OnMouseDown", function(_, button)
-        if button ~= MOUSE_BUTTON_INDEX_LEFT or self.movable ~= true then
+        if button ~= MOUSE_BUTTON_INDEX_RIGHT or self.movable ~= true then
             return
         end
         self.dragActive = true
@@ -621,7 +621,7 @@ function MOD.Create(id, options)
         control:StartMoving()
     end)
     control:SetHandler("OnMouseUp", function(_, button)
-        if button ~= MOUSE_BUTTON_INDEX_LEFT or self.dragActive ~= true then
+        if button ~= MOUSE_BUTTON_INDEX_RIGHT or self.dragActive ~= true then
             return
         end
         control:StopMovingOrResizing()

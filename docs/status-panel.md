@@ -86,6 +86,10 @@ checkbox artwork because rows are informational and not clickable settings.
 
 ## Visibility and movement
 
+When the panel is unlocked for editing, drag it with the right mouse button.
+Keep `SetMovable(false)` while idle, preserve normal left-click behavior, and
+save the final position from the move-stop callback.
+
 ```lua
 panel:SetHidden(false)
 panel:SetMovable(true)

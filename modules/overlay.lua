@@ -138,8 +138,8 @@ local function AplicarEstadoBloqueo()
         overlayWin:StopMovingOrResizing()
         overlayDragActive = false
     end
-    -- The control stays non-movable until a primary-button drag is started.
-    -- This preserves right-click context actions without allowing right drag.
+    -- The control stays non-movable until a secondary-button drag is started.
+    -- Normal-mode right-click context actions remain available when locked.
     overlayWin:SetMovable(false)
     overlayWin:SetMouseEnabled(enHUD)
 end
@@ -1148,7 +1148,7 @@ local function AsegurarControles()
     end
 
     overlayWin:SetHandler("OnMouseDown", function(control, button)
-        if button ~= MOUSE_BUTTON_INDEX_LEFT or not overlayMoveEnabled then
+        if button ~= MOUSE_BUTTON_INDEX_RIGHT or not overlayMoveEnabled then
             return
         end
         overlayDragActive = true
@@ -1178,7 +1178,7 @@ local function AsegurarControles()
     end)
 
     overlayWin:SetHandler("OnMouseUp", function(control, button, upInside)
-        if button == MOUSE_BUTTON_INDEX_LEFT and overlayDragActive then
+        if button == MOUSE_BUTTON_INDEX_RIGHT and overlayDragActive then
             control:StopMovingOrResizing()
             overlayDragActive = false
             control:SetMovable(false)

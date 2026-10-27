@@ -254,8 +254,16 @@ function EZO:Initialize()
         friends = {
             craftingHall   = "",
             secondaryHall  = "",
+            craftingHallHouseId = 0,
+            secondaryHallHouseId = 0,
+            craftingHallHouseName = "",
+            secondaryHallHouseName = "",
             manualCraftingHall = "",
             manualSecondaryHall = "",
+            manualCraftingHallHouseId = 0,
+            manualSecondaryHallHouseId = 0,
+            manualCraftingHallHouseName = "",
+            manualSecondaryHallHouseName = "",
             manualFriendHousesMigrated = false,
         },
         guild = {

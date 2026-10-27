@@ -128,6 +128,30 @@ local function ObtenerDescripcionModoGuild()
     return CombinarTooltips(GetString(EZO_OPTION_GUILD_MODE_NOTE), estado)
 end
 
+local function GuardarCasaActual(setterName, successStringId)
+    local EZO = EZOTools
+    local setter = EZO and EZO[setterName]
+    local ok, destination = false, nil
+    if type(setter) == "function" then
+        ok, destination = setter()
+    end
+
+    if EZO and type(EZO.Print) == "function" then
+        if ok and type(destination) == "table" then
+            local account = tostring(destination.account or "")
+            local houseName = tostring(destination.houseName or "")
+            local label = account
+            if houseName ~= "" then
+                label = zo_strformat(GetString(EZO_OPTION_FRIENDS_ACTIVE_HOUSE), houseName, account)
+            end
+            EZO.Print(zo_strformat(GetString(successStringId), label))
+        else
+            EZO.Print(GetString(EZO_MSG_FRIEND_HOUSE_CAPTURE_FAILED))
+        end
+    end
+    REG.RequestSettingsRefresh(true)
+end
+
 local ultimoAvisoIdiomaForzadoMs = 0
 
 local function AvisarIdiomaForzado()
@@ -380,6 +404,36 @@ local function RegistrarSeccionesBase()
                 default     = "",
                 width       = "half",
                 disabled    = function()
+                    return EZO.IsGuildModeEnabled and EZO.IsGuildModeEnabled() == true
+                end,
+            },
+            {
+                type     = "button",
+                name     = GetString(EZO_OPTION_FRIENDS_CAPTURE_CRAFTING),
+                tooltip  = GetString(EZO_OPTION_FRIENDS_CAPTURE_CRAFTING_TOOLTIP),
+                func     = function()
+                    GuardarCasaActual(
+                        "SetCurrentHouseAsManualCraftingHall",
+                        EZO_MSG_FRIEND_HOUSE_CAPTURED_CRAFTING
+                    )
+                end,
+                width    = "half",
+                disabled = function()
+                    return EZO.IsGuildModeEnabled and EZO.IsGuildModeEnabled() == true
+                end,
+            },
+            {
+                type     = "button",
+                name     = GetString(EZO_OPTION_FRIENDS_CAPTURE_SECONDARY),
+                tooltip  = GetString(EZO_OPTION_FRIENDS_CAPTURE_SECONDARY_TOOLTIP),
+                func     = function()
+                    GuardarCasaActual(
+                        "SetCurrentHouseAsManualSecondaryHall",
+                        EZO_MSG_FRIEND_HOUSE_CAPTURED_SECONDARY
+                    )
+                end,
+                width    = "half",
+                disabled = function()
                     return EZO.IsGuildModeEnabled and EZO.IsGuildModeEnabled() == true
                 end,
             },

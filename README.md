@@ -43,7 +43,9 @@ This addon is in public beta. The implemented features are usable, but some newe
 
 ### Command Panel
 
-The main command panel is available from the addon keybind, gamepad flow, and the overlay/context menu where applicable. It currently includes:
+The main command panel is available from the addon keybind, gamepad flow, and the overlay/context menu where applicable. Keyboard defaults are `Shift+NumPad 1` for the command panel, `Shift+NumPad 2` for the utility panel, `NumPad -` for Reload UI, and `NumPad +` for travel to the primary house. Gamepad buttons are never assigned automatically because the active ESO controller template may already use press or hold variants; assign an addon action manually in ESO Controls if desired.
+
+It currently includes:
 
 - Travel to your primary house.
 - Travel to configured crafting and secondary houses.
@@ -104,7 +106,7 @@ The Group Activities panel is a separate menu for dungeon, trial, and group-rela
 - Group members can explicitly opt in to one automatic travel request per received activity session. After the player has manually accepted the group invitation, EZOTools requires validated state from the current leader, a compatible trial/dungeon/arena target, a waiting-members or complete stage, and ESO confirmation that the leader is in another instance and can be jumped to. The setting is off by default and never accepts the group invitation itself.
 - While any reset session is active or retained, `Cancel instance reset` is the first Group Activities entry. It uses the shared native confirmation, stops addon tracking, unregisters reset events, and closes the panel. It cannot retract invitations already sent or a travel request already accepted by ESO.
 - Immediately before the reset disband, EZOTools stores a compact last-activity template in account SavedVariables: the verified captured account names, trial key/name, zone index, and difficulty. After the reset session is cancelled or otherwise cleared, `Start last group and instance` can invite missing saved members and then reuse the existing trial travel with the saved difficulty. The action is unavailable while another reset session exists or while grouped under another leader.
-- Assignable keybinds for Group Activities, instance reset, and group disband. Current defaults continue the existing sequence: `Ctrl+Alt+Num2`, `Ctrl+Alt+Num3`, and `Ctrl+Alt+Num4`.
+- Assignable keybinds for Group Activities, instance reset, and group disband. They intentionally have no default binding.
 - ESO's Controls screen groups all EZOTools actions under `EZO AddOns > EZOTools`; this changes presentation only and does not reassign bindings.
 
 The trial list lives in `modules/raid_leader_activity_catalog.lua`. It centralizes implemented trial names and aliases. Fields for IDs such as `zoneId`, `activityId`, and `fastTravelNodeId` are intentionally left for verified data only.
@@ -122,6 +124,8 @@ The trial list lives in `modules/raid_leader_activity_catalog.lua`. It centraliz
 
 - Manual primary Crafting Hall and secondary house account names are the stable default.
 - Manual mode always keeps the EZOTools logo and uses those two fixed house values.
+- While visiting a house in Manual mode, the two current-house buttons can store that exact house and its owner as the primary Crafting Hall or secondary destination. Saving does not start a travel request.
+- Travel actions and reset staging return to the exact captured house. Editing an account name manually clears the captured house ID and keeps the previous account-primary-house behavior.
 - Members of Hojablanca, Fuego, or Sombras de Lorkhan receive a separate Guild mode section in Settings.
 - Guild mode has no manual guild selector. It uses the built-in image and houses only for the supported guild currently represented in C.
 - Changing the guild represented in C automatically updates the effective guild image, houses, and disabled LAM values when the represented-guild poll detects the change (within five seconds).
@@ -159,6 +163,9 @@ Diagnostic commands include runtime status, guild information, texture/icon chec
 
 ## Safety Boundaries
 
+- The overlay and reset-panel surfaces move with the right mouse button only
+  while their move mode is active; normal left-click and context actions remain
+  unchanged.
 EZOTools is not an automation addon for combat or gameplay decisions.
 
 - It does not play combat, choose rotations, target enemies, or react to mechanics for you.
@@ -246,7 +253,7 @@ After installing or updating:
 - Enable automatic member travel only on the non-leader test client. Accept the reset regroup invitation manually while outside the leader's target instance and confirm that EZOTools requests one jump to the current leader. Repeat while already in the same instance, as leader, with the setting disabled, with an expired or incompatible state, and with ESO reporting that the jump is unavailable; none of those cases may request travel. Confirm that a repeated state for the same session does not trigger another jump.
 - With debug mode enabled, run `/ezo debug groupactivity`, `/ezo debug groupactivity returning`, `/ezo debug groupactivity complete`, and `/ezo debug groupactivity off`. Confirm that the simulated member panel clearly marks itself as debug data, shows only leader/self location rows rather than the full roster, and closes without changing group, travel, or reset state.
 - During that test, verify that the panel stays hidden in inventory/game menus, remains visible in the trial entrance hall, and normally clears after the leader leaves the raid staging area.
-- Verify the structured reset panel with one, four, and eleven captured members (the leader is not listed as a captured member). Enabling the LAM move option must show the complete eleven-member placement preview; drag it with the left mouse button and confirm the right button does not move it. Disabling the option must restore the real reset state or hide the panel. Check that metrics remain centered and aligned, member names do not overlap their invitation or location status, the six-phase bar and its centered counter remain readable, alerts expand the panel cleanly, and switching between keyboard and gamepad changes the native typography without moving or resizing unrelated UI. For grouped members, verify the green same-instance and yellow different-instance states; members without a current group unit tag must remain gray and unknown.
+- Verify the structured reset panel with one, four, and eleven captured members (the leader is not listed as a captured member). Enabling the LAM move option must show the complete eleven-member placement preview; drag it with the right mouse button and confirm the left button does not move it. Disabling the option must restore the real reset state or hide the panel. Check that metrics remain centered and aligned, member names do not overlap their invitation or location status, the six-phase bar and its centered counter remain readable, alerts expand the panel cleanly, and switching between keyboard and gamepad changes the native typography without moving or resizing unrelated UI. For grouped members, verify the green same-instance and yellow different-instance states; members without a current group unit tag must remain gray and unknown.
 - After a completed or retained reset session, form a controlled group and run standalone Disband Group. Verify that ESO confirms the disband, the panel closes, and Log Viewer reports `reset-session-cleared` when debug mode is enabled.
 - After a reset rebuilds the group, test manual Leave Group and standalone Disband Group. Confirm that both close the retained panel; then repeat the flow and leave the captured trial after the return to confirm that zone departure also closes it without affecting the staging phases.
 - For autoinvite, configure at least two keywords, enable it, and test exact, uppercase, `+keyword`, and unrelated larger-word messages from another account in guild or whisper chat. Confirm that only valid matches invite, that a non-leader does not invite, and that a repeated message within 15 seconds does not issue another request. With debug enabled, verify the `initialization`, `keyword-detected`, `keyword-evaluated`, `invite-requested`, and available `invite-response` stages in Log Viewer. Disable the option and confirm that matching messages stop inviting.

@@ -43,7 +43,9 @@ Este addon está en beta pública. Las funciones implementadas son utilizables, 
 
 ### Panel de comandos
 
-El panel principal de comandos está disponible desde el keybind del addon, el flujo de mando y el overlay/menú contextual cuando corresponde. Actualmente incluye:
+El panel principal de comandos está disponible desde el keybind del addon, el flujo de mando y el overlay/menú contextual cuando corresponde. Los valores predeterminados de teclado son `Mayusculas+NumPad 1` para el panel de comandos, `Mayusculas+NumPad 2` para el panel de utilidades, `NumPad -` para recargar la interfaz y `NumPad +` para viajar a la casa principal. Nunca se asignan botones de gamepad automáticamente porque la plantilla activa de ESO puede usar ya sus variantes de pulsación o mantener; si se desea, la acción del addon se asigna manualmente en Controles de ESO.
+
+Actualmente incluye:
 
 - Viajar a tu casa principal.
 - Viajar a las casas configuradas de artesanía y secundaria.
@@ -104,7 +106,7 @@ El panel Actividades de grupo es un menú separado para acciones relacionadas co
 - Los miembros pueden activar expresamente una única solicitud automática de viaje por cada sesión de actividad recibida. Después de que el jugador acepte manualmente la invitación de grupo, EZOTools exige un estado validado del líder actual, un objetivo compatible de trial/mazmorra/arena, una etapa de espera de miembros o completada y que ESO confirme que el líder está en otra instancia y que se permite viajar hasta él. El ajuste está desactivado por defecto y nunca acepta por sí mismo la invitación de grupo.
 - Mientras exista cualquier sesión de reset activa o retenida, `Cancelar reset de instancia` es la primera entrada de Actividades de grupo. Usa la confirmación nativa compartida, detiene el seguimiento del addon, desregistra los eventos del reset y cierra el panel. No puede retirar invitaciones ya enviadas ni un viaje que ESO ya haya aceptado.
 - Inmediatamente antes del disband del reset, EZOTools guarda en las SavedVariables de cuenta una plantilla compacta de la última actividad: nombres de cuenta verificados y capturados, clave/nombre de trial, índice de zona y dificultad. Cuando la sesión de reset se cancela o limpia, `Iniciar último grupo e instancia` puede invitar a los miembros guardados que falten y reutilizar después el viaje existente a la trial con la dificultad memorizada. La acción no está disponible mientras exista otra sesión de reset ni cuando el jugador está agrupado bajo otro líder.
-- Keybinds asignables para Actividades de grupo, reset de instancia y disband de grupo. Los valores por defecto continúan la secuencia existente: `Ctrl+Alt+Num2`, `Ctrl+Alt+Num3` y `Ctrl+Alt+Num4`.
+- Keybinds asignables para Actividades de grupo, reset de instancia y disband de grupo. Quedan deliberadamente sin binding predeterminado.
 - La pantalla Controles de ESO agrupa todas las acciones de EZOTools bajo `EZO AddOns > EZOTools`; el cambio es solo de presentación y no reasigna teclas.
 
 La lista de trials vive en `modules/raid_leader_activity_catalog.lua`. Centraliza los nombres y alias de trials implementadas. Los campos para IDs como `zoneId`, `activityId` y `fastTravelNodeId` quedan reservados para datos verificados.
@@ -122,6 +124,8 @@ La lista de trials vive en `modules/raid_leader_activity_catalog.lua`. Centraliz
 
 - Los nombres de cuenta manuales para la casa primaria de artesanía y la casa secundaria son el modo estable por defecto.
 - El modo manual mantiene siempre el logo de EZOTools y usa esos dos valores fijos de casas.
+- Mientras visitas una casa en modo manual, los dos botones de casa actual pueden guardar esa casa exacta y su propietario como casa primaria de artesanía o destino secundario. Guardarla no inicia ningún viaje.
+- Las acciones de viaje y la preparación del reset regresan a la casa exacta capturada. Editar manualmente un nombre de cuenta borra el ID de casa capturado y conserva el comportamiento anterior de viajar a la casa principal de esa cuenta.
 - Los miembros de Hojablanca, Fuego o Sombras de Lorkhan reciben un apartado separado de modo guild en Ajustes.
 - El modo guild no tiene selector manual de guild. Usa la imagen y las casas integradas únicamente para la guild admitida que esté representada en C.
 - Cambiar la guild representada en C actualiza automáticamente la imagen, las casas efectivas y los valores deshabilitados de LAM cuando el sondeo de guild representada detecta el cambio (en un máximo de cinco segundos).
@@ -159,6 +163,9 @@ Los comandos de diagnóstico incluyen estado de ejecución, información de grem
 
 ## Límites de seguridad
 
+- Las superficies movibles del overlay y del panel de reset usan el botón
+  derecho solo durante su modo de movimiento; el clic izquierdo y las acciones
+  contextuales normales mantienen su comportamiento.
 EZOTools no es un addon de automatización para combate ni decisiones de juego.
 
 - No juega el combate, no elige rotaciones, no selecciona enemigos y no reacciona a mecánicas por ti.
@@ -246,7 +253,7 @@ Después de instalar o actualizar:
 - Activa el viaje automático solo en el cliente de prueba que no es líder. Acepta manualmente la invitación de reagrupación del reset mientras estás fuera de la instancia objetivo del líder y comprueba que EZOTools solicite un único salto al líder actual. Repite estando ya en la misma instancia, como líder, con el ajuste desactivado, con estado caducado o incompatible y cuando ESO indique que el salto no está disponible; ninguno de esos casos debe solicitar el viaje. Verifica que un estado repetido de la misma sesión no provoque otro salto.
 - Con el modo debug activo, ejecuta `/ezo debug groupactivity`, `/ezo debug groupactivity returning`, `/ezo debug groupactivity complete` y `/ezo debug groupactivity off`. Comprueba que el panel simulado de miembro se marque claramente como datos debug, muestre solo las filas de ubicación del líder y del propio jugador en lugar del roster completo y se cierre sin cambiar grupo, viajes ni reset.
 - Durante esa prueba, verifica que el panel se oculte en inventario/menús, permanezca visible en el vestíbulo y se limpie normalmente cuando el líder abandone el área de preparación.
-- Verifica el panel estructurado del reset con uno, cuatro y once miembros capturados (el líder no figura como miembro capturado). Al activar en LAM la opción de mover, debe aparecer la vista completa de colocación con once miembros; arrástrala con el botón izquierdo y confirma que el derecho no la mueve. Al desactivar la opción debe restaurarse el estado real del reset u ocultarse el panel. Comprueba que las métricas queden centradas y alineadas, que los nombres no se superpongan al estado de invitación ni de ubicación, que la barra de seis fases y su contador central sean legibles, que los avisos amplíen limpiamente el panel y que cambiar entre teclado y mando adapte la tipografía nativa sin mover ni redimensionar otras interfaces. Para miembros agrupados, verifica los estados verde de misma instancia y amarillo de instancia distinta; los miembros sin `unitTag` actual deben permanecer en gris y con ubicación desconocida.
+- Verifica el panel estructurado del reset con uno, cuatro y once miembros capturados (el líder no figura como miembro capturado). Al activar en LAM la opción de mover, debe aparecer la vista completa de colocación con once miembros; arrástrala con el botón derecho y confirma que el izquierdo no la mueve. Al desactivar la opción debe restaurarse el estado real del reset u ocultarse el panel. Comprueba que las métricas queden centradas y alineadas, que los nombres no se superpongan al estado de invitación ni de ubicación, que la barra de seis fases y su contador central sean legibles, que los avisos amplíen limpiamente el panel y que cambiar entre teclado y mando adapte la tipografía nativa sin mover ni redimensionar otras interfaces. Para miembros agrupados, verifica los estados verde de misma instancia y amarillo de instancia distinta; los miembros sin `unitTag` actual deben permanecer en gris y con ubicación desconocida.
 - Después de una sesión de reset completada o conservada, forma un grupo controlado y ejecuta Disbandear grupo de manera independiente. Verifica que ESO confirme el disband, que el panel se cierre y que Log Viewer registre `reset-session-cleared` con el modo debug activado.
 - Después de que un reset reconstruya el grupo, prueba Abandonar grupo y Disbandear grupo de forma independiente. Comprueba que ambas acciones cierren el panel conservado; después repite el proceso y sal de la trial capturada tras el regreso para verificar que el cambio de zona también lo cierre sin afectar a las fases del destino puente.
 - Para la autoinvitación, configura al menos dos palabras, actívala y prueba desde otra cuenta mensajes exactos, en mayúsculas, con `+palabra` y con la misma secuencia dentro de una palabra mayor en chat de gremio o susurro. Comprueba que solo inviten las coincidencias válidas, que un jugador no líder no invite y que un mensaje repetido durante 15 segundos no genere otra solicitud. Con debug activado, verifica las fases `initialization`, `keyword-detected`, `keyword-evaluated`, `invite-requested` y, cuando exista, `invite-response` en Log Viewer. Desactiva la opción y comprueba que los mensajes coincidentes dejen de invitar.
